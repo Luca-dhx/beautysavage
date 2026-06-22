@@ -46,6 +46,17 @@ import {
 
 const router = express.Router();
 
+// SECURITY (Phase 1A): mock-pay creates a real Sale/Purchase (and can debit gift
+// cards) WITHOUT any real payment. It must never be reachable in production.
+// Returns 404 (not 403) so production does not even reveal the endpoint exists.
+// It remains available in development and test (for characterization/tests).
+function requireNonProductionMockPayment(req, res, next) {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ ok: false, code: 'NOT_FOUND' });
+  }
+  return next();
+}
+
 router.get('/me/products', requireAuth(), getMyProducts);
 router.get('/me/formations', requireAuth(), getMyFormations);
 router.get('/me/presentiel', requireAuth(), getMyPresentielSession);
@@ -69,7 +80,13 @@ router.post(
   '/session-cancel-flows/:flowId/service-reschedule',
   submitServiceRescheduleDecision
 );
-router.post('/mock-pay', requireAuth(), requireSiteActiveForPurchases(), mockPay);
+router.post(
+  '/mock-pay',
+  requireNonProductionMockPayment,
+  requireAuth(),
+  requireSiteActiveForPurchases(),
+  mockPay
+);
 router.put('/formations/:formationId/change-session', requireAuth(), changeFormationSession);
 router.post('/cart-snapshot', requireAuth(), saveCartSnapshot);
 router.get('/sales', requireAuth(), listMySales);

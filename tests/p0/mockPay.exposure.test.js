@@ -1,16 +1,15 @@
 // tests/p0/mockPay.exposure.test.js
-// CHARACTERIZATION (P0): the `POST /api/client/mock-pay` endpoint is still wired
-// and reachable by any authenticated client, with NO NODE_ENV/production guard.
-// In production this handler creates a real Sale + Purchase + commission and can
-// debit real gift cards WITHOUT any payment (see Rapports/version 1 report 06).
+// P0 (Phase 1A — FIXED): `POST /api/client/mock-pay` creates a real Sale/Purchase
+// (and can debit gift cards) WITHOUT real payment. It is now guarded so it is
+// UNREACHABLE in production (returns 404), while remaining available in
+// development and test for characterization.
 //
-// This test documents the CURRENT (dangerous) reality: the route exists and an
-// authenticated client is not blocked by any environment guard. When the route is
-// later neutralized (Phase 0/1) — e.g. returns 404/403 in production or is removed
-// — update or invert this test accordingly.
+// These tests verify:
+//   - in NODE_ENV=test the route is still reachable (dev/test behaviour);
+//   - in NODE_ENV=production the route returns 404 (no creation path, and the
+//     endpoint's existence is not revealed via a 403).
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
-// Mock mail/notification layers so any side-effect paths don't hit the network.
 vi.mock('../../services/notificationService.js', async (importOriginal) => {
   const actual = await importOriginal();
   return { ...actual, triggerNotification: async () => {} };
@@ -20,7 +19,7 @@ const { getAgent } = await import('../setup/testApp.js');
 const { stopMemoryDb, clearDatabase } = await import('../setup/testDb.js');
 const { seedTestData, TEST_PASSWORD } = await import('../setup/seedTestData.js');
 
-describe('P0 characterization — mock-pay endpoint exposure', () => {
+describe('P0 — mock-pay endpoint exposure (now production-guarded)', () => {
   let agent;
   let cookie;
 
@@ -42,27 +41,26 @@ describe('P0 characterization — mock-pay endpoint exposure', () => {
     expect(cookie).toBeDefined();
   });
 
-  it('the mock-pay route is still registered and reachable (not a 404 route, not auth-blocked)', async () => {
+  it('is reachable in NODE_ENV=test (dev/test behaviour preserved)', async () => {
     const res = await agent.post('/api/client/mock-pay').set('Cookie', cookie).send({});
 
-    // Express returns an HTML "Cannot POST ..." body for unregistered routes.
-    // A real handler response (JSON) proves the endpoint is still live.
+    // Not the Express "Cannot POST" 404 (route exists), and not blocked by the
+    // production guard (we are in test). With an empty body the handler will fail
+    // validation (JSON 400/404) — that's fine; we only assert reachability here.
     expect(res.text || '').not.toMatch(/Cannot POST/i);
-    // The authenticated client passed the auth gate — no env guard rejected it.
     expect(res.status).not.toBe(401);
-
-    // NOTE: with an empty body the handler will fail validation (e.g. 400/404 JSON),
-    // which is expected. The point is only that the dangerous route is exposed.
   });
 
-  it('mock-pay does NOT require any production/test guard to be reached', async () => {
-    // Sending a minimal product-ish body still reaches the handler (no 404 route).
-    const res = await agent
-      .post('/api/client/mock-pay')
-      .set('Cookie', cookie)
-      .send({ type: 'product', id: '000000000000000000000000' });
-
-    expect(res.text || '').not.toMatch(/Cannot POST/i);
-    expect(res.status).not.toBe(401);
+  it('is BLOCKED with 404 in NODE_ENV=production (no real-payment bypass in prod)', async () => {
+    const previous = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = 'production';
+      // The guard runs first, before auth — so no cookie is needed to observe it.
+      const res = await agent.post('/api/client/mock-pay').send({ type: 'product', id: 'x' });
+      expect(res.status).toBe(404);
+      expect(res.body).toMatchObject({ ok: false, code: 'NOT_FOUND' });
+    } finally {
+      process.env.NODE_ENV = previous; // restore for subsequent tests
+    }
   });
 });

@@ -2,11 +2,11 @@ import crypto from 'node:crypto';
 import argon2 from 'argon2';
 
 import GiftCard from '../models/GiftCard.js';
+import { requireSecret } from '../utils/secretEnv.js';
 
 const GIFT_CARD_PASSWORD_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const GIFT_CARD_PASSWORD_LENGTH = 10;
-const GIFT_CARD_PASSWORD_SECRET =
-  process.env.GIFT_CARD_PASSWORD_SECRET || process.env.SESSION_SECRET || 'beautysavage-gift-card-secret';
+const GIFT_CARD_PASSWORD_SECRET = requireSecret('GIFT_CARD_PASSWORD_SECRET', { fallback: 'SESSION_SECRET' });
 const GIFT_CARD_PASSWORD_KEY = crypto
   .createHash('sha256')
   .update(String(GIFT_CARD_PASSWORD_SECRET))

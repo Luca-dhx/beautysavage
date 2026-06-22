@@ -224,12 +224,8 @@ export async function submitSessionCancellationRefundDecision(req, res) {
     const trackingUrl = refundRequest?.trackingToken
       ? `${getAppBaseUrl()}/vitrine.html?page=refund-tracking&token=${refundRequest.trackingToken}`
       : '';
-    console.log('[DEBUG refund decision]', {
-      flowType: flow.flowType,
-      clientEmail: flow.clientEmail,
-      trackingToken: refundRequest?.trackingToken,
-      trackingUrl
-    });
+    // SECURITY (Phase 1A): removed a debug log that exposed the public refund
+    // tracking token, the full tracking URL and the client email in stdout.
     await sendRefundRequestedEmail({
       toEmail: String(flow.clientEmail || req.sessionUser?.email || '').trim(),
       siteName: await resolveSiteName(),

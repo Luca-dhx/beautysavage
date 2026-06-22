@@ -835,7 +835,6 @@ function openGiftCardModal(giftCard = null) {
   closeGiftCardModal();
 
   const code = String(giftCard?.code || '').trim();
-  const password = String(giftCard?.password || '').trim();
   const recipientName = String(giftCard?.recipientName || '').trim();
   const expiresAt = formatShortDate(giftCard?.expiresAt) || 'Aucune';
   const balanceLabel = formatPrice(giftCard?.balance || 0);
@@ -856,7 +855,10 @@ function openGiftCardModal(giftCard = null) {
         </section>
         <section class="refund-tracking-gift-modal__fields">
           ${buildCopyField('code', 'Code', code)}
-          ${buildCopyField('password', 'Mot de passe', password)}
+          <div class="refund-tracking-gift-modal__field">
+            <p class="refund-tracking-gift-modal__field-label">Mot de passe</p>
+            <strong class="refund-tracking-gift-modal__field-value" style="font-weight:500;font-size:0.9rem;line-height:1.35;">Pour des raisons de securite, le mot de passe n'est plus affiche ici. Pour utiliser votre carte cadeau, connectez-vous a votre compte ou contactez l'institut.</strong>
+          </div>
           <div class="refund-tracking-gift-modal__field">
             <p class="refund-tracking-gift-modal__field-label">Expiration</p>
             <strong class="refund-tracking-gift-modal__field-value">${escapeHtml(expiresAt)}</strong>

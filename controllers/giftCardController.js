@@ -17,6 +17,7 @@ import {
   getActivePromotionsForTargets
 } from '../services/promotionService.js';
 import { getSessionUserId } from '../utils/session.js';
+import { requireSecret } from '../utils/secretEnv.js';
 import {
   applySaleCommissionSnapshot,
   persistSale,
@@ -31,8 +32,7 @@ import { computeAvailableGiftCardBalance } from '../services/giftCardReservation
 const { Types } = mongoose;
 const GIFT_CARD_PASSWORD_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const GIFT_CARD_PASSWORD_LENGTH = 10;
-const GIFT_CARD_PASSWORD_SECRET =
-  process.env.GIFT_CARD_PASSWORD_SECRET || process.env.SESSION_SECRET || 'beautysavage-gift-card-secret';
+const GIFT_CARD_PASSWORD_SECRET = requireSecret('GIFT_CARD_PASSWORD_SECRET', { fallback: 'SESSION_SECRET' });
 const GIFT_CARD_PASSWORD_KEY = crypto
   .createHash('sha256')
   .update(String(GIFT_CARD_PASSWORD_SECRET))

@@ -110,7 +110,15 @@ function getEmailVerificationSecret() {
   const secret =
     String(process.env.EMAIL_VERIFICATION_SECRET || '').trim() ||
     String(process.env.SESSION_SECRET || '').trim();
-  return secret || 'beautysavage-email-verification-secret';
+  if (!secret) {
+    // No insecure hardcoded fallback: refuse to derive verification codes with a
+    // public, known key. SESSION_SECRET is mandatory at boot, so this never throws
+    // in a correctly-configured deployment.
+    throw new Error(
+      'EMAIL_VERIFICATION_SECRET (or SESSION_SECRET fallback) is required and was not found in the environment.'
+    );
+  }
+  return secret;
 }
 
 function hashVerificationCode(code) {

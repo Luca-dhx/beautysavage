@@ -2,8 +2,16 @@
 
 A characterization-first test harness put in place **before** any P0/P1 business
 fix, so that financial / booking / refund / security flows can be corrected with a
-safety net. **No business logic was changed** to create this harness (only a
-minimal, documented startup adaptation in `app.js`).
+safety net. The harness itself changed no business logic (only a minimal,
+documented startup adaptation in `app.js`).
+
+> **Phase 1A update** — the simple security P0s are now **fixed** (mock-pay
+> production guard, removed hardcoded secret fallbacks, gift-card password no
+> longer leaked by the public tracking endpoint, tracking-token debug log
+> removed). New green tests under `tests/p0/security.*` lock these in. The fixtures
+> (`seedTestData`) now also create an **active contract** so API routes pass
+> `contractGuard()` (otherwise it returns 503 CONTRACT_INACTIVE and tests never
+> reach the handlers). See `Rapports/version 1/23_rapport_phase1a_securite_p0.md`.
 
 ## How to run
 
@@ -78,11 +86,14 @@ tests/
     health.test.js
     auth.test.js
   p0/
-    mockPay.exposure.test.js
-    booking.doubleSlot.characterization.test.js
-    refund.doubleRequest.characterization.test.js
-    giftcard.zeroPayment.characterization.test.js
-    stripe.webhook.idempotence.characterization.test.js
+    mockPay.exposure.test.js                       # FIXED: 404 in production
+    security.secrets.test.js                       # FIXED: no hardcoded secret fallback
+    security.tracking-token.test.js                # FIXED: no gift-card password leak
+    security.logging.test.js                       # FIXED: no trackingToken in console.*
+    booking.doubleSlot.characterization.test.js    # it.fails (P0 still open)
+    refund.doubleRequest.characterization.test.js  # it.fails (P0 still open)
+    giftcard.zeroPayment.characterization.test.js  # it.todo (P0 still open)
+    stripe.webhook.idempotence.characterization.test.js # it.todo (P0 still open)
 ```
 
 ## Safety (no real secrets / no real DB)

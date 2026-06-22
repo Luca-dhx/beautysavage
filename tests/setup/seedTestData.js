@@ -21,6 +21,7 @@ import Formation from '../../models/Formation.js';
 import FormationSession from '../../models/FormationSession.js';
 import Product from '../../models/Product.js';
 import GiftCard from '../../models/GiftCard.js';
+import Contract from '../../models/Contract.js';
 import { hashPassword } from '../../utils/password.js';
 
 export const TEST_PASSWORD = 'Test1234';
@@ -28,6 +29,15 @@ export const TEST_PASSWORD = 'Test1234';
 export async function seedTestData() {
   const { hash, salt } = await hashPassword(TEST_PASSWORD);
   const cred = { passwordHash: hash, passwordSalt: salt };
+
+  // Active contract so contractGuard() lets API routes (/api/client, /api/refund-tracking)
+  // through. Without this the guard returns 503 CONTRACT_INACTIVE and tests never
+  // reach the handlers. Raw insert bypasses mongoose required-field validation.
+  await Contract.collection.insertOne({
+    contractId: 'CTR-TEST-0001',
+    status: 'active',
+    createdAt: new Date()
+  });
 
   const dev = await User.create({
     email: 'dev@test.local',

@@ -16,9 +16,9 @@ import {
   ensureRefundCommissionReversal
 } from '../services/refundService.js';
 import { triggerRefundExecution } from '../services/refundExecutionService.js';
+import { requireSecret } from '../utils/secretEnv.js';
 
-const GIFT_CARD_PASSWORD_SECRET =
-  process.env.GIFT_CARD_PASSWORD_SECRET || process.env.SESSION_SECRET || 'beautysavage-gift-card-secret';
+const GIFT_CARD_PASSWORD_SECRET = requireSecret('GIFT_CARD_PASSWORD_SECRET', { fallback: 'SESSION_SECRET' });
 const GIFT_CARD_PASSWORD_KEY = crypto
   .createHash('sha256')
   .update(String(GIFT_CARD_PASSWORD_SECRET))
@@ -173,9 +173,11 @@ async function resolveRecreditedGiftCardPayload(refund = {}) {
     recipientName = buildRecipientName(recipientUser);
   }
 
+  // SECURITY (Phase 1A): never expose the gift-card password through the public,
+  // unauthenticated tracking endpoint. The card code alone is not usable without
+  // the password, which the legitimate owner can retrieve from their account.
   return {
     code: String(selectedCard.code || '').trim(),
-    password: decryptGiftCardPassword(selectedCard.passwordEncrypted),
     balance: Number.isFinite(Number(selectedCard.balance)) ? Number(selectedCard.balance) : 0,
     expiresAt: null,
     recipientName

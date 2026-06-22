@@ -30,6 +30,17 @@ documented startup adaptation in `app.js`).
 > `refund.doubleRequest.characterization.test.js`,
 > `refund.recreditIdempotent.test.js`, `refund.overRefund.test.js`. See
 > `Rapports/version 1/27_rapport_phase1b2_remboursements.md`.
+>
+> **Phase 1B-4 update** - the last P0 is now **fixed**: a 0 EUR order (100% gift
+> card or a genuinely free item) is finalized server-side via
+> `POST /api/client/checkout/finalize-free`, which reuses the SAME finalizer as the
+> Stripe webhook (`processCheckoutStatePurchase`) — no parallel flow. It creates the
+> Sale + booking, debits the gift card atomically, is idempotent on double submit
+> (synthetic `free_<key>` ref on the Phase 1B-1 unique index), and refuses to
+> finalize a partially-paid order for free (`requireZeroRemaining` → 402). The
+> `giftcard.zeroPayment.characterization.test.js` todo is now a full green test. See
+> `Rapports/version 1/32_rapport_phase1b4_zero_payment.md`. **The P0 harness now has
+> zero todo and zero expected-fail.**
 
 ## How to run
 
@@ -69,15 +80,19 @@ Stripe - see "Safety" below.
   slots, while still allowing a slot reopened by a `modify` exception.
 - `tests/p0/booking.slotRevalidation.test.js` - final Stripe-side service booking
   creation is revalidated server-side and refuses a slot that became unavailable.
+- `tests/p0/giftcard.zeroPayment.characterization.test.js` - a 0 EUR order (100% gift
+  card or a free item) is finalized via `POST /api/client/checkout/finalize-free`:
+  Sale + ServiceBooking created, gift card debited (capped to the due amount),
+  double-submit is idempotent (one sale, one debit), and a still-due balance is
+  refused (402 `PAYMENT_REQUIRED`).
 
 ### Expected-fail (`it.fails`)
 
 Currently none in the P0 harness.
 
 ### Todo (`it.todo`) - documented gap not yet automated
-- `tests/p0/giftcard.zeroPayment.characterization.test.js` - the 0 EUR (100% gift
-  card) finalization bug lives in the **frontend** flow + missing backend 0 EUR
-  endpoint; not reproducible via a single backend HTTP call.
+
+Currently none — every P0 scenario is now an executable assertion.
 
 ## How to use these tests to guide the fixes
 

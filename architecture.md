@@ -2427,7 +2427,7 @@ Pour date D, service duree `D_min`, granularite `G_min` :
 - Tests : `booking.doubleSlot.characterization.test.js`, `booking.slotRevalidation.test.js`.
 
 ### Risques encore ouverts (a traiter apres 1B-3)
-- **Achat 0€** : pas d'endpoint backend de finalisation gratuite ; le bug vit cote frontend (`giftcard.zeroPayment` reste `todo`).
+- ~~**Achat 0€** : pas d'endpoint backend de finalisation gratuite~~ → **RESOLU en Phase 1B-4** (voir section "Phase 1B-4"). `POST /api/client/checkout/finalize-free` finalise un achat 0€ (100% carte cadeau ou article gratuit) ; le test `giftcard.zeroPayment` est desormais vert.
 - **Expiration / liberation automatique des `pending_payment`** : pas d'expiration applicative ; les verrous d'un booking `pending_payment` persistent jusqu'a annulation manuelle/admin.
 - **Remboursement automatique si paiement encaisse mais slot devenu indisponible** : le booking est rejete (409) mais aucun remboursement automatique n'est declenche.
 - **Reprise complete des refunds bloques** : pas encore de mecanisme de relance/reconciliation exhaustif.
@@ -2435,3 +2435,39 @@ Pour date D, service duree `D_min`, granularite `G_min` :
 - **`requireStrictDev` / gestion fine des roles** : durcissement a faire.
 - **Rate-limit login / reset password** : a ajouter.
 - **XSS / SVG / responsive / migration React** : reportes plus tard.
+
+## Phase 1B-4 — Finalisation des achats 0 € (100% carte cadeau / gratuite)
+
+> Section ajoutee le 2026-06-23 (branche `phase-0-security-baseline`). Ferme le dernier P0 d'audit : un achat dont le reste a payer est 0 € (100% carte cadeau, ou article reellement gratuit) doit produire exactement les memes effets metier qu'un paiement Stripe reussi. Rapports : `Rapports/version 1/31_audit_phase1b4_zero_payment.md`, `32_rapport_phase1b4_zero_payment.md`.
+
+### Principe : un seul finaliseur metier
+- `processCheckoutStatePurchase(...)` (`controllers/clientController.js`) reste **l'unique** point de finalisation : creation `Sale`, `Purchase`/`ServiceBooking`, reservation session, debit carte cadeau atomique, commission, effets post-vente (email/notif/facture). Il est appele par le webhook Stripe **et** par le nouveau chemin 0 €. **Aucun flow parallele, aucune duplication de la logique de vente/booking/debit.**
+
+### Nouvel endpoint
+- `POST /api/client/checkout/finalize-free` (`requireAuth` + `requireSiteActiveForPurchases`) → handler `finalizeFreeCheckout` (`clientController.js`). Contrairement a `mock-pay`, c'est un endpoint de **production** (pas de garde non-prod).
+- Body : `{ checkoutState, idempotencyKey }`. Le `checkoutState` a la meme forme que pour le flux Stripe (item/cart/service, `appliedGiftCards`, `legal`).
+- Le handler exige `legal.acceptedCgv === true` (pas de contournement des validations), puis appelle `processCheckoutStatePurchase({ ..., requireZeroRemaining: true, stripeSessionId: freeRef, stripePaymentIntentId: freeRef })`.
+
+### Garde anti-contournement
+- Nouveau parametre `requireZeroRemaining` propage dans `processCheckoutStatePurchase`, `processCartCheckoutStatePurchase`, `processServiceCheckoutStatePurchase` et les branches inline (formation / gift-card / product).
+- Apres `planGiftCardUsage` (qui recalcule prix catalogue + couverture carte **reelle** cote serveur), `assertZeroRemainingForFreeOrder(...)` leve **402 `PAYMENT_REQUIRED`** si un montant reste du. Impossible donc de finaliser gratuitement un achat partiellement paye (le client doit passer par Stripe).
+- Pour la prestation, la verification a lieu **avant** `createServiceBookingWithProtection` → aucun `ServiceBooking` orphelin si paiement requis.
+
+### Idempotence (reutilise Phase 1B-1)
+- Reference synthetique deterministe `freeRef = "free_<idempotencyKey>"` ecrite dans `Sale.stripePaymentIntentId`. L'index UNIQUE partiel `uniq_stripe_payment_intent` (Phase 1B-1) garantit **une seule** vente : double soumission concurrente → E11000 → reponse idempotente.
+- `finalizeFreeCheckout` : pre-check `Sale.findOne({ stripePaymentIntentId: freeRef })` (fast path sequentiel) ; sur E11000 concurrent, `waitForExistingFreeSale(freeRef)` attend que la vente gagnante apparaisse (le perdant peut echouer plus tot sur `purchase_unique_product`) puis renvoie le meme `saleId`.
+
+### Debit carte cadeau
+- Inchange : `finalizeGiftCardUsage` → `deductGiftCardBalance` → `debitGiftCardBalanceAtomic` (Phase 1B-1). Solde jamais negatif, debit plafonne au montant du (`useAmount = min(desired, available, remaining)`). Aucune reservation prealable necessaire (finalisation synchrone) ; pas de reservation orpheline.
+
+### Hygiene job frais Stripe
+- `STRIPE_FEE_PENDING_QUERY` (`stripeController.js`) exclut desormais les references `free_*` (`stripePaymentIntentId: { $nin: [null, ''], $not: /^free_/ }`) : une commande 0 € n'a pas de frais Stripe a recuperer.
+
+### Comportement officiel retenu
+- **Cas A** (panier = carte cadeau, reste 0 €) : aucune session Stripe ; vente creee ; carte debitee ; booking cree si prestation ; effets post-vente ; `Sale` coherente.
+- **Cas B** (carte > montant) : debit plafonne au montant du, solde restant conserve, vente creee.
+- **Cas C** (article reellement gratuit, prix 0) : vente creee, flux finalise, aucun Stripe.
+- **Reste a payer > 0** : refus `402 PAYMENT_REQUIRED` (doit passer par Stripe).
+
+### Tests
+- `tests/p0/giftcard.zeroPayment.characterization.test.js` (le `it.todo` devient un test reel) : 100% carte cadeau (sale+booking+debit), carte > montant (debit plafonne), produit gratuit (sans Stripe), double soumission (une seule vente, un seul debit), refus si reste du. Harnais P0 : **0 todo, 0 expected-fail**.

@@ -841,7 +841,7 @@
         "GET /api/stripe/pending-fees-count",
         "GET /api/stripe/config"
       ],
-      "v1Stabilization": "Phase 1B-1: webhook treats E11000 on stripePaymentIntentId as an idempotent success (200, no side effects). Phase 1B-3: create-checkout-session calls assertServiceSlotBookable as preflight before creating the Stripe session."
+      "v1Stabilization": "Phase 1B-1: webhook treats E11000 on stripePaymentIntentId as an idempotent success (200, no side effects). Phase 1B-3: create-checkout-session calls assertServiceSlotBookable as preflight before creating the Stripe session. Phase 1B-4: STRIPE_FEE_PENDING_QUERY now excludes synthetic free_* references ($not /^free_/) so 0EUR orders are not swept by the Stripe-fee recovery job."
     },
     {
       "path": "routers/stripeRouter.js",
@@ -1053,7 +1053,7 @@
         "usedBy": [],
         "exports": []
       },
-      "v1Stabilization": "Phase 1B-1: persistSale writes stripePaymentIntentId/stripeSessionId BEFORE save() on all 4 paths so a concurrent webhook fails on E11000 before any debit/commission. Phase 1B-3: processServiceCheckoutStatePurchase uses createServiceBookingWithProtection (post-payment revalidation; throws SLOT_UNAVAILABLE if slot taken - auto-refund not yet implemented)."
+      "v1Stabilization": "Phase 1B-1: persistSale writes stripePaymentIntentId/stripeSessionId BEFORE save() on all 4 paths so a concurrent webhook fails on E11000 before any debit/commission. Phase 1B-3: processServiceCheckoutStatePurchase uses createServiceBookingWithProtection (post-payment revalidation; throws SLOT_UNAVAILABLE if slot taken - auto-refund not yet implemented). Phase 1B-4: new export finalizeFreeCheckout (POST /api/client/checkout/finalize-free) finalizes a 0EUR order (100% gift card / free item) by reusing processCheckoutStatePurchase — no parallel flow. New requireZeroRemaining param threaded into processCheckoutStatePurchase / processCart... / processService... asserts (402 PAYMENT_REQUIRED) that nothing remains due after planGiftCardUsage. Idempotence via synthetic free_<key> ref on Sale.stripePaymentIntentId (Phase 1B-1 unique index) + waitForExistingFreeSale poll under concurrency."
     },
     {
       "path": "controllers/clientManagementController.js",
@@ -5766,7 +5766,8 @@
           "app.js"
         ],
         "exports": []
-      }
+      },
+      "v1Stabilization": "Phase 1B-4: added production route POST /api/client/checkout/finalize-free (requireAuth + requireSiteActiveForPurchases) -> finalizeFreeCheckout. Not dev-only (unlike mock-pay)."
     },
     {
       "path": "routers/commissionInvoiceRouter.js",
@@ -9277,7 +9278,7 @@
       "Supersedes STEP 21d ad-hoc reschedule check."
     ],
     "remainingRisks": [
-      "Achat 0 EUR (no backend free-finalization endpoint; frontend bug, giftcard.zeroPayment todo).",
+      "RESOLVED in Phase 1B-4: 0 EUR / 100% gift-card finalization (POST /api/client/checkout/finalize-free).",
       "Automatic expiration/release of pending_payment bookings (locks persist until manual/admin cancel).",
       "Automatic refund when payment captured but slot became unavailable (booking rejected 409, no auto-refund).",
       "Full recovery of blocked refunds.",
@@ -9306,5 +9307,39 @@
       "controllers/stripeController.js",
       "controllers/salesController.js"
     ]
+  },
+  "lastZeroPaymentFinalizationUpdate": {
+    "date": "2026-06-23",
+    "phase": "Phase 1B-4",
+    "title": "Finalisation des achats 0 EUR (100% carte cadeau / gratuite)",
+    "reports": [
+      "Rapports/version 1/31_audit_phase1b4_zero_payment.md",
+      "Rapports/version 1/32_rapport_phase1b4_zero_payment.md"
+    ],
+    "endpoint": "POST /api/client/checkout/finalize-free (requireAuth + requireSiteActiveForPurchases)",
+    "principle": "Single finalizer reused: processCheckoutStatePurchase (same as Stripe webhook). No parallel business flow, no duplicated sale/booking/debit logic.",
+    "scope": [
+      "finalizeFreeCheckout handler in clientController.js calls processCheckoutStatePurchase with requireZeroRemaining: true.",
+      "requireZeroRemaining threaded into processCheckoutStatePurchase / processCartCheckoutStatePurchase / processServiceCheckoutStatePurchase + inline branches; assertZeroRemainingForFreeOrder throws 402 PAYMENT_REQUIRED if a balance remains due (after server-side planGiftCardUsage).",
+      "Idempotence reuses Phase 1B-1 unique partial index: synthetic free_<idempotencyKey> stored in Sale.stripePaymentIntentId; double submit -> E11000 -> idempotent; waitForExistingFreeSale resolves the winner under concurrency.",
+      "Gift-card debit unchanged: debitGiftCardBalanceAtomic via finalizeGiftCardUsage (never negative, capped to amount due).",
+      "STRIPE_FEE_PENDING_QUERY excludes free_* refs (no Stripe fees on a 0EUR order)."
+    ],
+    "officialBehavior": {
+      "casA": "Cart fully covered by gift card (remaining 0): no Stripe, Sale created, card debited, booking created if applicable, post-sale effects.",
+      "casB": "Gift card larger than amount: debit capped to amount due, remainder kept, Sale created.",
+      "casC": "Genuinely free item (price 0): Sale created, finalized, no Stripe.",
+      "remainingDue": "Balance still due -> 402 PAYMENT_REQUIRED (must go through Stripe)."
+    },
+    "filesChanged": [
+      "controllers/clientController.js",
+      "controllers/stripeController.js",
+      "routers/clientRouter.js",
+      "tests/p0/giftcard.zeroPayment.characterization.test.js",
+      "tests/README.md",
+      "architecture.md",
+      "projectContext.json"
+    ],
+    "tests": "tests/p0/giftcard.zeroPayment.characterization.test.js (it.todo -> real test): 100% gift card (sale+booking+debit), card > amount (capped debit), free product (no Stripe), double submit (one sale/one debit), refuses if balance due. Harness: 14 files, 42 passed, 0 todo, 0 expected-fail."
   }
 }

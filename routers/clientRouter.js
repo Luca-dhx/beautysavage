@@ -13,6 +13,7 @@ import {
   getMyPresentielSession,
   getPurchaseStatus,
   mockPay,
+  finalizeFreeCheckout,
   changeFormationSession,
   postFormationReview,
   saveCartSnapshot,
@@ -86,6 +87,15 @@ router.post(
   requireAuth(),
   requireSiteActiveForPurchases(),
   mockPay
+);
+// Phase 1B-4: production endpoint to finalize a 0€ order (100% gift card / free item)
+// without Stripe. Unlike mock-pay it is NOT dev-only: it re-validates server-side that
+// nothing remains due (requireZeroRemaining) and reuses the Stripe-success finalizer.
+router.post(
+  '/checkout/finalize-free',
+  requireAuth(),
+  requireSiteActiveForPurchases(),
+  finalizeFreeCheckout
 );
 router.put('/formations/:formationId/change-session', requireAuth(), changeFormationSession);
 router.post('/cart-snapshot', requireAuth(), saveCartSnapshot);

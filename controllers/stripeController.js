@@ -34,8 +34,11 @@ function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY);
 }
 
+// Phase 1B-4: 0€ orders finalized without Stripe carry a synthetic "free_" reference in
+// stripePaymentIntentId (for idempotence via the unique partial index). They have no
+// real Stripe charge, so they must be excluded from the Stripe-fee recovery sweep.
 const STRIPE_FEE_PENDING_QUERY = {
-  stripePaymentIntentId: { $nin: [null, ''] },
+  stripePaymentIntentId: { $nin: [null, ''], $not: /^free_/ },
   stripeFee: null
 };
 

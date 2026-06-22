@@ -1,13 +1,17 @@
 import Stripe from 'stripe';
 
 import Sale from '../models/Sale.js';
-import GiftCard from '../models/GiftCard.js';
 import GiftCardTransaction from '../models/GiftCardTransaction.js';
 import SiteIdentity from '../models/SiteIdentity.js';
 import User from '../models/user.js';
 import ServiceBooking from '../models/ServiceBooking.js';
 import { sendRefundConfirmedEmail } from './mailService.js';
 import { getAppBaseUrl } from '../utils/invoiceUrl.js';
+import { recreditGiftCardPortion } from './refundGiftCardService.js';
+import {
+  applyRefundExecutionCap,
+  claimGiftCardRecredit
+} from './refundRequestService.js';
 
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -127,80 +131,6 @@ export async function sendRefundConfirmedEmailInternal(refundRequest) {
   }
 }
 
-async function recreditGiftCardPortion(sale, amountEur) {
-  const normalizedSaleId = String(sale?.saleId || '').trim();
-  let usages = Array.isArray(sale?.giftCardUsage)
-    ? sale.giftCardUsage.filter(entry => entry?.giftCardId && Number(entry?.amountUsed || 0) > 0)
-    : [];
-  if (!usages.length && normalizedSaleId) {
-    const fallbackRedeems = await GiftCardTransaction.find({
-      saleId: normalizedSaleId,
-      transactionType: 'redeem'
-    })
-      .select({ giftCardId: 1, amount: 1 })
-      .lean();
-    const usageByCardId = new Map();
-    for (const tx of fallbackRedeems) {
-      const cardId = String(tx?.giftCardId || '').trim();
-      const amount = roundToCents(Number(tx?.amount || 0));
-      if (!cardId || amount <= 0) continue;
-      usageByCardId.set(cardId, roundToCents((usageByCardId.get(cardId) || 0) + amount));
-    }
-    usages = Array.from(usageByCardId.entries()).map(([giftCardId, amountUsed]) => ({
-      giftCardId,
-      amountUsed
-    }));
-  }
-
-  const refundNote = normalizedSaleId
-    ? `Remboursement de vente ${normalizedSaleId}`
-    : 'Remboursement carte cadeau';
-  let remaining = roundToCents(amountEur);
-  for (const usage of usages) {
-    if (remaining <= 0) break;
-    const portion = roundToCents(Math.min(remaining, Number(usage?.amountUsed || 0)));
-    if (portion <= 0) continue;
-    if (!usage?.giftCardId) {
-      throw new Error('Gift card usage without giftCardId.');
-    }
-
-    const card = await GiftCard.findById(usage.giftCardId);
-    if (!card) {
-      throw new Error(`Gift card not found: ${String(usage.giftCardId)}`);
-    }
-    const balanceBefore = roundToCents(Number(card.balance || 0));
-    card.balance = roundToCents(balanceBefore + portion);
-    card.status = 'active';
-    await card.save();
-    const balanceAfter = roundToCents(Number(card.balance || 0));
-
-    try {
-      await GiftCardTransaction.create({
-        giftCardId: card._id,
-        transactionType: 'credit',
-        userId: card.userId,
-        actorRole: 'system',
-        amount: portion,
-        balanceBefore,
-        balanceAfter,
-        saleId: normalizedSaleId,
-        note: refundNote,
-        items: []
-      });
-    } catch (transactionError) {
-      card.balance = balanceBefore;
-      card.status = balanceBefore > 0 ? 'active' : 'redeemed';
-      await card.save().catch(() => {});
-      throw transactionError;
-    }
-
-    remaining = roundToCents(remaining - portion);
-  }
-  if (remaining > 0) {
-    throw new Error(`Gift card recredit incomplete. Remaining=${remaining}`);
-  }
-}
-
 export async function triggerRefundExecution(refundRequest, saleInput = null) {
   if (!refundRequest) {
     throw new Error('RefundRequest manquant.');
@@ -224,6 +154,12 @@ export async function triggerRefundExecution(refundRequest, saleInput = null) {
   if (!sale) {
     throw buildConflictError('Vente introuvable pour ce remboursement.');
   }
+
+  await applyRefundExecutionCap({
+    refundRequest,
+    sale,
+    logPrefix: '[triggerRefundExecution]'
+  });
 
   const saleTotal = roundToCents(sale?.totalAmount || 0);
   const hasGiftCardUsage = Array.isArray(sale?.giftCardUsage) && sale.giftCardUsage.length > 0;
@@ -268,18 +204,51 @@ export async function triggerRefundExecution(refundRequest, saleInput = null) {
   refundRequest.giftCardRefundAmount = hasGiftCardPortion ? giftCardRefundAmountEur : null;
 
   if (!hasStripePortion && hasGiftCardPortion) {
-    await recreditGiftCardPortion(sale, giftCardRefundAmountEur);
-    const now = new Date();
-    refundRequest.status = 'succeeded';
-    refundRequest.stripeRefundStatus = 'not_applicable';
-    refundRequest.giftCardRefundStatus = 'succeeded';
-    refundRequest.refundedAt = now;
-    refundRequest.processedAt = now;
-    refundRequest.giftCardRecredited = true;
-    refundRequest.giftCardRecreditAmount = giftCardRefundAmountEur;
-    await refundRequest.save();
-    await sendRefundConfirmedEmailInternal(refundRequest);
-    return { refund: refundRequest, mode: 'gift_card_only', stripeInitiated: false };
+    const claim = await claimGiftCardRecredit(refundRequest._id);
+    if (!claim.claimed) {
+      const latestRefund = claim.refundRequest || refundRequest;
+      if (latestRefund?.giftCardRecredited || normalizeCurrentStatus(latestRefund?.status) === 'succeeded') {
+        return { refund: latestRefund, mode: 'already_succeeded', stripeInitiated: false };
+      }
+      return { refund: latestRefund, mode: 'gift_card_recredit_in_progress', stripeInitiated: false };
+    }
+
+    const claimedRefund = claim.refundRequest || refundRequest;
+    try {
+      await recreditGiftCardPortion(sale, giftCardRefundAmountEur);
+      const now = new Date();
+      claimedRefund.amount = refundAmountEur;
+      claimedRefund.stripeRefundAmount = null;
+      claimedRefund.giftCardRefundAmount = giftCardRefundAmountEur;
+      claimedRefund.status = 'succeeded';
+      claimedRefund.stripeRefundStatus = 'not_applicable';
+      claimedRefund.giftCardRefundStatus = 'succeeded';
+      claimedRefund.refundedAt = now;
+      claimedRefund.processedAt = now;
+      claimedRefund.giftCardRecredited = true;
+      claimedRefund.giftCardRecreditInProgress = false;
+      claimedRefund.giftCardRecreditAmount = giftCardRefundAmountEur;
+      await claimedRefund.save();
+      await sendRefundConfirmedEmailInternal(claimedRefund);
+      return { refund: claimedRefund, mode: 'gift_card_only', stripeInitiated: false };
+    } catch (giftCardError) {
+      claimedRefund.status = 'requested';
+      claimedRefund.stripeRefundStatus = 'not_applicable';
+      claimedRefund.giftCardRefundStatus = 'rollback_needed';
+      claimedRefund.refundedAt = null;
+      claimedRefund.processedAt = null;
+      claimedRefund.giftCardRecredited = false;
+      claimedRefund.giftCardRecreditInProgress = false;
+      claimedRefund.giftCardRecreditAmount = null;
+      claimedRefund.meta = claimedRefund.meta || {};
+      const existingNotes = String(claimedRefund.meta.notes || '').trim();
+      const alertNote = 'Echec recrédit carte cadeau - intervention requise';
+      claimedRefund.meta.notes = existingNotes.includes(alertNote)
+        ? existingNotes
+        : [existingNotes, alertNote].filter(Boolean).join(' | ');
+      await claimedRefund.save().catch(() => {});
+      throw giftCardError;
+    }
   }
 
   if (hasStripePortion) {
@@ -300,6 +269,7 @@ export async function triggerRefundExecution(refundRequest, saleInput = null) {
     refundRequest.processedAt = null;
     refundRequest.refundedAt = null;
     refundRequest.giftCardRecredited = false;
+    refundRequest.giftCardRecreditInProgress = false;
     refundRequest.giftCardRecreditAmount = hasGiftCardPortion ? giftCardRefundAmountEur : null;
     await refundRequest.save();
 

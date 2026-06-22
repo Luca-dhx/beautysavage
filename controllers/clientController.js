@@ -49,6 +49,11 @@ import {
 } from '../services/refundService.js';
 import { triggerRefundExecution } from '../services/refundExecutionService.js';
 import {
+  applyRefundExecutionCap,
+  createRefundRequestOnce,
+  findActiveRefundRequestForSaleItem
+} from '../services/refundRequestService.js';
+import {
   formatSessionDateLabel,
   formatSessionTimeLabel,
   resolveSiteName
@@ -61,6 +66,7 @@ import {
   recreditGiftCardBalanceAtomic
 } from '../services/giftCardReservationService.js';
 import crypto from 'node:crypto';
+import { isActiveRefundRequestStatus } from '../constants/refundRequest.js';
 
 function serializeItem(item) {
   if (!item) return null;
@@ -839,37 +845,19 @@ async function findExistingRefundForPurchase(purchaseDoc) {
   const refundId = String(purchaseDoc?.refundRequestId || '').trim();
   if (refundId) {
     const byId = await RefundRequest.findOne({ refundId }).lean();
-    if (byId) return byId;
+    if (byId && isActiveRefundRequestStatus(byId.status)) return byId;
   }
   const saleId = String(purchaseDoc?.saleId || '').trim();
   if (!saleId || !purchaseDoc?.itemId) return null;
-  return RefundRequest.findOne({
+  const activeRefund = await findActiveRefundRequestForSaleItem({
     saleId,
     itemId: purchaseDoc.itemId,
-    reason: REFUND_REASON_CLIENT_CANCEL_PRESENTIEL
-  })
-    .sort({ requestedAt: -1 })
-    .lean();
-}
-
-async function assertNoActiveRefundRequestForSale(saleId) {
-  const normalizedSaleId = String(saleId || '').trim();
-  if (!normalizedSaleId) {
-    return;
+    itemType: 'formation'
+  });
+  if (activeRefund) {
+    return activeRefund.toObject();
   }
-  const existing = await RefundRequest.findOne({
-    saleId: normalizedSaleId,
-    status: { $nin: ['failed', 'canceled'] }
-  })
-    .sort({ requestedAt: -1 })
-    .lean();
-  if (existing) {
-    const duplicateError = new Error('REFUND_ALREADY_EXISTS');
-    duplicateError.code = 'REFUND_ALREADY_EXISTS';
-    duplicateError.status = 409;
-    duplicateError.refundId = String(existing.refundId || '').trim();
-    throw duplicateError;
-  }
+  return null;
 }
 
 async function loadUserPurchases(userId, itemType, Model) {
@@ -1751,11 +1739,9 @@ async function createPresentielRefundRequest({
     throw missingSaleError;
   }
 
-  await assertNoActiveRefundRequestForSale(sale.saleId);
-
   const totalRefundAmount = roundToCents(amount);
 
-  let refundRequest = new RefundRequest({
+  const refundPayload = {
     refundId: buildRefundId(),
     saleId: String(sale.saleId || '').trim(),
     userId: purchase?.userId || userId,
@@ -1776,27 +1762,35 @@ async function createPresentielRefundRequest({
       formationCoverImage: String(formation?.coverImage || '').trim() || '',
       saleCreatedAt: sale?.createdAt || null
     }
+  };
+  await applyRefundExecutionCap({
+    refundRequest: refundPayload,
+    sale,
+    logPrefix: '[createPresentielRefundRequest]'
   });
 
-  await refundRequest.save();
-  try {
-    await ensureRefundCommissionProvision(refundRequest);
-  } catch (commissionError) {
-    await RefundRequest.deleteOne({ _id: refundRequest._id }).catch(() => {});
-    throw commissionError;
-  }
-
-  try {
-    const execution = await triggerRefundExecution(refundRequest, sale);
-    if (execution?.refund) {
-      refundRequest = execution.refund;
+  const creation = await createRefundRequestOnce(refundPayload);
+  let refundRequest = creation.refundRequest;
+  if (creation.created) {
+    try {
+      await ensureRefundCommissionProvision(refundRequest);
+    } catch (commissionError) {
+      await RefundRequest.deleteOne({ _id: refundRequest._id }).catch(() => {});
+      throw commissionError;
     }
-  } catch (triggerError) {
-    console.error('[createPresentielRefundRequest] triggerRefundExecution failed', {
-      refundId: String(refundRequest?.refundId || ''),
-      saleId: String(sale?.saleId || ''),
-      error: triggerError
-    });
+
+    try {
+      const execution = await triggerRefundExecution(refundRequest, sale);
+      if (execution?.refund) {
+        refundRequest = execution.refund;
+      }
+    } catch (triggerError) {
+      console.error('[createPresentielRefundRequest] triggerRefundExecution failed', {
+        refundId: String(refundRequest?.refundId || ''),
+        saleId: String(sale?.saleId || ''),
+        error: triggerError
+      });
+    }
   }
 
   const refundId = String(refundRequest.refundId || '').trim();

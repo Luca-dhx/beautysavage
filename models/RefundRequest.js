@@ -1,7 +1,11 @@
 import crypto from 'node:crypto';
 import mongoose from 'mongoose';
+import {
+  REFUND_REQUEST_STATUSES,
+  ACTIVE_REFUND_REQUEST_STATUSES,
+  REFUND_REQUEST_ACTIVE_UNIQUE_INDEX_NAME
+} from '../constants/refundRequest.js';
 
-const REFUND_STATUSES = ['requested', 'pending', 'succeeded', 'failed', 'canceled'];
 const STRIPE_REFUND_STATUSES = ['not_applicable', 'pending', 'succeeded', 'failed'];
 const GIFT_CARD_REFUND_STATUSES = [
   'not_applicable',
@@ -55,7 +59,7 @@ const refundRequestSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: REFUND_STATUSES,
+      enum: REFUND_REQUEST_STATUSES,
       default: 'requested'
     },
     requestedAt: {
@@ -128,6 +132,7 @@ const refundRequestSchema = new mongoose.Schema(
     stripeRefundConfirmedAt: { type: Date, default: null },
     refundedAt: { type: Date, default: null },
     giftCardRecredited: { type: Boolean, default: false },
+    giftCardRecreditInProgress: { type: Boolean, default: false },
     giftCardRecreditAmount: { type: Number, default: null },
     creditNoteId: { type: String, default: null },
     creditNotePdfUrl: { type: String, default: null }
@@ -147,6 +152,16 @@ refundRequestSchema.pre('save', function (next) {
 
 refundRequestSchema.index({ userId: 1, requestedAt: -1 });
 refundRequestSchema.index({ saleId: 1, itemId: 1, reason: 1 });
+refundRequestSchema.index(
+  { saleId: 1, itemId: 1, itemType: 1 },
+  {
+    unique: true,
+    name: REFUND_REQUEST_ACTIVE_UNIQUE_INDEX_NAME,
+    partialFilterExpression: {
+      status: { $in: ACTIVE_REFUND_REQUEST_STATUSES }
+    }
+  }
+);
 refundRequestSchema.index({ status: 1, requestedAt: -1 });
 refundRequestSchema.index({ trackingToken: 1 }, { sparse: true });
 refundRequestSchema.index({ stripeRefundId: 1 }, { sparse: true });

@@ -1,27 +1,25 @@
 // tests/p0/refund.doubleRequest.characterization.test.js
-// CHARACTERIZATION (P0): there is no anti-duplicate protection for RefundRequest.
-// The model has only NON-unique indexes on { saleId, itemId, reason } (see model
-// models/RefundRequest.js and report 07), so two refund requests can be created
-// for the same sale/item — enabling double refunds (double Stripe refund + double
-// gift-card recredit).
-//
-// We assert the DESIRED behaviour (the second identical request is rejected by a
-// unique constraint) and wrap it with `it.fails`: the suite stays GREEN while
-// documenting the missing guard. When a partial unique index is added (Phase 1),
-// the second create will reject, the assertion will pass, and `it.fails` flips RED.
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+// P0 (Phase 1B-2): RefundRequest creation is now deduplicated per sale+item.
+// The DB enforces a unique partial index for ACTIVE statuses only, and the
+// creation helper refetches the existing refund on duplicate/E11000 so callers
+// can avoid triggering the financial flow twice.
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import mongoose from 'mongoose';
 
 const { getTestApp } = await import('../setup/testApp.js');
 const { stopMemoryDb, clearDatabase } = await import('../setup/testDb.js');
 const { seedTestData } = await import('../setup/seedTestData.js');
 const RefundRequest = (await import('../../models/RefundRequest.js')).default;
+const {
+  ACTIVE_REFUND_REQUEST_STATUSES,
+  createRefundRequestOnce
+} = await import('../../services/refundRequestService.js');
 
-describe('P0 characterization — duplicate RefundRequest for the same sale', () => {
+describe('P0 regression - duplicate RefundRequest for the same sale item', () => {
   let fixtures;
 
   beforeAll(async () => {
-    await getTestApp(); // boot app => mongoose connected
+    await getTestApp();
   });
 
   afterAll(async () => {
@@ -33,28 +31,35 @@ describe('P0 characterization — duplicate RefundRequest for the same sale', ()
     fixtures = await seedTestData();
   });
 
-  it.fails(
-    'should reject a second active RefundRequest for the same sale+item (no anti-duplicate today)',
-    async () => {
-      const itemId = new mongoose.Types.ObjectId();
-      const base = {
-        saleId: 'SALE-DUP-1',
-        userId: fixtures.client1._id,
-        itemId,
-        itemType: 'service',
-        amount: 80,
-        reason: 'client_cancel_service'
-      };
+  it('DB rejects a second active RefundRequest for the same sale+item+itemType', async () => {
+    const itemId = new mongoose.Types.ObjectId();
+    const base = {
+      saleId: 'SALE-DUP-1',
+      userId: fixtures.client1._id,
+      itemId,
+      itemType: 'service',
+      amount: 80,
+      reason: 'client_cancel_service',
+      status: 'requested'
+    };
 
-      await RefundRequest.create({ ...base, refundId: 'RF-DUP-1' });
+    await RefundRequest.create({ ...base, refundId: 'RF-DUP-1' });
 
-      // DESIRED: a unique constraint should make the second identical request fail.
-      // CURRENT: it succeeds (no unique index) -> this assertion fails -> it.fails => green.
-      await expect(RefundRequest.create({ ...base, refundId: 'RF-DUP-2' })).rejects.toThrow();
-    }
-  );
+    await expect(
+      RefundRequest.create({ ...base, refundId: 'RF-DUP-2' })
+    ).rejects.toMatchObject({ code: 11000 });
 
-  it('documents the current reality: two RefundRequests for the same sale DO co-exist', async () => {
+    const count = await RefundRequest.countDocuments({
+      saleId: 'SALE-DUP-1',
+      itemId,
+      itemType: 'service',
+      status: { $in: ACTIVE_REFUND_REQUEST_STATUSES }
+    });
+    expect(count).toBe(1);
+  });
+
+  it('helper refetches the existing refund and only one financial trigger runs under concurrency', async () => {
+    const executeSpy = vi.fn(async () => {});
     const itemId = new mongoose.Types.ObjectId();
     const base = {
       saleId: 'SALE-DUP-2',
@@ -62,13 +67,34 @@ describe('P0 characterization — duplicate RefundRequest for the same sale', ()
       itemId,
       itemType: 'service',
       amount: 80,
-      reason: 'client_cancel_service'
+      reason: 'client_cancel_service',
+      status: 'requested',
+      eligibleRefund: true
     };
-    await RefundRequest.create({ ...base, refundId: 'RF-DUP-3' });
-    await RefundRequest.create({ ...base, refundId: 'RF-DUP-4' });
 
-    const count = await RefundRequest.countDocuments({ saleId: 'SALE-DUP-2', itemId });
-    // GREEN characterization of the current (buggy) behaviour.
-    expect(count).toBe(2);
+    async function createAndMaybeExecute(refundId) {
+      const result = await createRefundRequestOnce({ ...base, refundId });
+      if (result.created) {
+        await executeSpy(result.refundRequest);
+      }
+      return result;
+    }
+
+    const [first, second] = await Promise.all([
+      createAndMaybeExecute('RF-DUP-3'),
+      createAndMaybeExecute('RF-DUP-4')
+    ]);
+
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+    expect([first.created, second.created].filter(Boolean)).toHaveLength(1);
+    expect(String(first.refundRequest._id)).toBe(String(second.refundRequest._id));
+
+    const activeRefunds = await RefundRequest.find({
+      saleId: 'SALE-DUP-2',
+      itemId,
+      itemType: 'service',
+      status: { $in: ACTIVE_REFUND_REQUEST_STATUSES }
+    }).lean();
+    expect(activeRefunds).toHaveLength(1);
   });
 });

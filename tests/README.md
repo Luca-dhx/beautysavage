@@ -1,25 +1,35 @@
-# BeautySavage — Backend test harness (Phase 0.2)
+# BeautySavage - Backend test harness (Phase 0.2)
 
 A characterization-first test harness put in place **before** any P0/P1 business
 fix, so that financial / booking / refund / security flows can be corrected with a
 safety net. The harness itself changed no business logic (only a minimal,
 documented startup adaptation in `app.js`).
 
-> **Phase 1A update** — the simple security P0s are now **fixed** (mock-pay
+> **Phase 1A update** - the simple security P0s are now **fixed** (mock-pay
 > production guard, removed hardcoded secret fallbacks, gift-card password no
 > longer leaked by the public tracking endpoint, tracking-token debug log
 > removed). New green tests under `tests/p0/security.*` lock these in. The fixtures
 > (`seedTestData`) now also create an **active contract** so API routes pass
-> `contractGuard()` (otherwise it returns 503 CONTRACT_INACTIVE and tests never
+> `contractGuard()` (otherwise it returns 503 `CONTRACT_INACTIVE` and tests never
 > reach the handlers). See `Rapports/version 1/23_rapport_phase1a_securite_p0.md`.
 >
-> **Phase 1B-1 update** — two financial P0s are now **fixed**: (1) Stripe webhook
+> **Phase 1B-1 update** - two financial P0s are now **fixed**: (1) Stripe webhook
 > idempotence is atomic (unique partial index on `Sale.stripePaymentIntentId`, set
-> at insert in `persistSale`, + E11000 handled as idempotent), and (2) gift-card
-> debit is atomic (`debitGiftCardBalanceAtomic` — conditional `findOneAndUpdate`,
-> never negative). `stripe.webhook.idempotence` is no longer a todo (real index +
-> replay + concurrent tests); new `giftcard.concurrentDebit.test.js`. See
+> at insert in `persistSale`, + `E11000` handled as idempotent), and (2) gift-card
+> debit is atomic (`debitGiftCardBalanceAtomic` - conditional `findOneAndUpdate`,
+> never negative). New green tests: `stripe.webhook.idempotence` and
+> `giftcard.concurrentDebit.test.js`. See
 > `Rapports/version 1/25_rapport_phase1b1_stripe_giftcard.md`.
+>
+> **Phase 1B-2 update** - the refund P0 trio is now **fixed**: (1) duplicate
+> `RefundRequest` creation is blocked per active `saleId + itemId + itemType`
+> (unique partial index + `createRefundRequestOnce` refetch on duplicate), (2)
+> gift-card recredit is idempotent under duplicate `charge.refund.updated`
+> delivery (`giftCardRecreditInProgress` claim + single credit transaction), and
+> (3) refund execution is capped to the paid sale total. New green tests:
+> `refund.doubleRequest.characterization.test.js`,
+> `refund.recreditIdempotent.test.js`, `refund.overRefund.test.js`. See
+> `Rapports/version 1/27_rapport_phase1b2_remboursements.md`.
 
 ## How to run
 
@@ -32,49 +42,44 @@ npm run test:p0          # only tests/p0 (P0 characterizations)
 
 Requirements: Node 22+. The first run downloads a `mongodb-memory-server` binary
 (cached afterwards). Tests never touch the real `.env`, real database, Brevo or
-Stripe — see "Safety" below.
+Stripe - see "Safety" below.
 
 ## What passes vs. what is intentionally red
 
-### ✅ Green (these MUST pass — they verify the app + harness)
-- `tests/integration/health.test.js` — the app boots in `NODE_ENV=test` against an
+### Green (these MUST pass)
+- `tests/integration/health.test.js` - the app boots in `NODE_ENV=test` against an
   in-memory MongoDB, is connected to a local (not prod) cluster, and serves a
   public endpoint without leaking secret keys.
-- `tests/integration/auth.test.js` — signup creates an unverified client + issues a
+- `tests/integration/auth.test.js` - signup creates an unverified client + issues a
   code (mail mocked), login is refused while unverified, verify-email activates the
   account and opens a session, and a verified client can login + reach `/auth/me`.
-- `tests/p0/mockPay.exposure.test.js` — documents that `POST /api/client/mock-pay`
-  is still live and reachable by any authenticated client (green characterization).
-- The "current reality" assertions inside the refund test, and the precondition in
-  the gift-card test.
+- `tests/p0/mockPay.exposure.test.js` - documents that `POST /api/client/mock-pay`
+  is blocked in production.
+- `tests/p0/stripe.webhook.idempotence.characterization.test.js` - one sale per
+  Stripe PaymentIntent, including replay/concurrent delivery.
+- `tests/p0/giftcard.concurrentDebit.test.js` - gift-card debit stays atomic.
+- `tests/p0/refund.doubleRequest.characterization.test.js` - duplicate refund
+  creation is rejected/refetched, with one active refund and one financial trigger.
+- `tests/p0/refund.recreditIdempotent.test.js` - duplicate refund webhook delivery
+  recredits the gift card exactly once.
+- `tests/p0/refund.overRefund.test.js` - refund execution is capped to the paid
+  sale total for mixed and gift-card-only refunds.
 
-### 🟠 Expected-fail (`it.fails`) — these CHARACTERIZE known P0 bugs
-These use vitest's `it.fails`: the body asserts the **desired safe behaviour**,
-which does **not** hold today, so the suite stays GREEN while documenting the bug.
-**When the bug is fixed, the assertion will pass and `it.fails` will turn RED** —
-that is your signal to convert it into a normal assertion.
-- `tests/p0/booking.doubleSlot.characterization.test.js` — two clients can both book
-  the same practitioner+slot (no overlap guard). Desired: only 1 booking.
-- `tests/p0/refund.doubleRequest.characterization.test.js` — two `RefundRequest`
-  docs can exist for the same sale+item (no anti-duplicate). Desired: the 2nd is
-  rejected.
+### Expected-fail (`it.fails`) - still-open P0 bug
+- `tests/p0/booking.doubleSlot.characterization.test.js` - two clients can both book
+  the same practitioner+slot (no overlap guard). Desired: only one booking.
 
-### 📝 Todo (`it.todo`) — documented gaps, not yet automatable here
-- `tests/p0/giftcard.zeroPayment.characterization.test.js` — the 0€ (100% gift card)
-  finalization bug lives in the **frontend** flow + missing backend 0€ endpoint;
-  not reproducible via a single backend HTTP call. Needs frontend E2E or a new
-  backend endpoint.
-- `tests/p0/stripe.webhook.idempotence.characterization.test.js` — the real
-  signature util + invalid-signature rejection + "no intent => no sale" are tested;
-  the full "two identical webhooks => one sale" idempotence assertion needs a seeded
-  `StripeCheckoutIntent` + catalog (next step).
+### Todo (`it.todo`) - documented gap not yet automated
+- `tests/p0/giftcard.zeroPayment.characterization.test.js` - the 0 EUR (100% gift
+  card) finalization bug lives in the **frontend** flow + missing backend 0 EUR
+  endpoint; not reproducible via a single backend HTTP call.
 
 ## How to use these tests to guide the fixes
 
-1. Pick a P0 (e.g. double-booking). Find its `it.fails` test.
-2. Implement the fix (e.g. overlap check + partial unique index).
-3. Re-run `npm run test:p0`. The `it.fails` test now **fails** (because the desired
-   behaviour holds): remove `.fails` to turn it into a permanent regression test.
+1. Pick a P0 (for example double-booking). Find its `it.fails` test.
+2. Implement the fix (for example overlap check + partial unique index).
+3. Re-run `npm run test:p0`. When the desired behavior now holds, remove `.fails`
+   to turn it into a permanent regression test.
 4. Repeat. The harness keeps you from breaking the green flows while you fix.
 
 For the `it.todo` items, build the missing fixture/endpoint, then implement the
@@ -82,27 +87,29 @@ assertion described in the todo string.
 
 ## Structure
 
-```
+```text
 tests/
   setup/
-    testEnv.js                 # fake/safe env vars (runs before any import)
-    testDb.js                  # in-memory MongoDB lifecycle + clearDatabase()
-    testApp.js                 # boots app.js against the in-memory DB (guarded)
-    seedTestData.js            # deterministic fixtures
-    stripeWebhookTestUtils.js  # real Stripe webhook signature generator
+    testEnv.js
+    testDb.js
+    testApp.js
+    seedTestData.js
+    stripeWebhookTestUtils.js
   integration/
     health.test.js
     auth.test.js
   p0/
-    mockPay.exposure.test.js                       # FIXED: 404 in production
-    security.secrets.test.js                       # FIXED: no hardcoded secret fallback
-    security.tracking-token.test.js                # FIXED: no gift-card password leak
-    security.logging.test.js                       # FIXED: no trackingToken in console.*
-    stripe.webhook.idempotence.characterization.test.js # FIXED: 1 sale per PaymentIntent
-    giftcard.concurrentDebit.test.js               # FIXED: atomic gift-card debit
-    booking.doubleSlot.characterization.test.js    # it.fails (P0 still open — Phase 1B-2)
-    refund.doubleRequest.characterization.test.js  # it.fails (P0 still open — Phase 1B-2)
-    giftcard.zeroPayment.characterization.test.js  # it.todo (P0 still open — Phase 1B-2)
+    mockPay.exposure.test.js
+    security.secrets.test.js
+    security.tracking-token.test.js
+    security.logging.test.js
+    stripe.webhook.idempotence.characterization.test.js
+    giftcard.concurrentDebit.test.js
+    refund.doubleRequest.characterization.test.js
+    refund.recreditIdempotent.test.js
+    refund.overRefund.test.js
+    booking.doubleSlot.characterization.test.js
+    giftcard.zeroPayment.characterization.test.js
 ```
 
 ## Safety (no real secrets / no real DB)
@@ -112,5 +119,6 @@ tests/
   vars, the real `.env` values can never enter a test run.
 - `tests/setup/testApp.js` refuses to boot unless `MONGODB_URI` points to a local
   in-memory server (guards against connecting to a real cluster).
-- The mail service is mocked in tests that would otherwise send email.
+- The mail service is mocked or outbound HTTP is stubbed in tests that would
+  otherwise send email.
 - `app.js` skips background schedulers and `app.listen()` when `NODE_ENV==='test'`.

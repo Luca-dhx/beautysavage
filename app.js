@@ -67,6 +67,8 @@ import CommissionPayment from './models/CommissionPayment.js';
 import Service from './models/Service.js';
 import ScheduleException from './models/ScheduleException.js';
 import Sale from './models/Sale.js';
+import RefundRequest from './models/RefundRequest.js';
+import { REFUND_REQUEST_ACTIVE_UNIQUE_INDEX_NAME } from './constants/refundRequest.js';
 
 import { startSessionCancellationAutoRefundScheduler } from './automatisme/sessionCancellationAutoRefundJob.js';
 import { startContractPaymentSyncJob } from './automatisme/contractPaymentSyncJob.js';
@@ -341,6 +343,25 @@ try {
     '[DB] Could not build the unique stripePaymentIntentId index — likely pre-existing ' +
       'duplicate PaymentIntent ids. Resolve duplicate sales then restart to enforce it.',
     saleIndexError?.message || saleIndexError
+  );
+}
+try {
+  await RefundRequest.collection.createIndex(
+    { saleId: 1, itemId: 1, itemType: 1 },
+    {
+      unique: true,
+      name: REFUND_REQUEST_ACTIVE_UNIQUE_INDEX_NAME,
+      partialFilterExpression: {
+        status: { $in: ['requested', 'pending', 'succeeded'] }
+      }
+    }
+  );
+  console.log('[DB] RefundRequest active sale+item unique partial index ensured');
+} catch (refundIndexError) {
+  console.error(
+    '[DB] Could not build the unique active RefundRequest index - likely pre-existing ' +
+      'duplicate active refunds. Resolve legacy duplicates then restart to enforce it.',
+    refundIndexError?.message || refundIndexError
   );
 }
 // Drop non-unique legacy index on ScheduleException before adding unique one

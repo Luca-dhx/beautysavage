@@ -13,7 +13,15 @@ import RefundRequest from '../models/RefundRequest.js';
 import { getSessionUserId } from '../utils/session.js';
 import { extractClientIp } from '../utils/requestClientIp.js';
 import { runPostSaleSideEffects } from './clientController.js';
-import { getServiceRefundEligibility, buildRefundId } from '../services/refundService.js';
+import {
+  getServiceRefundEligibility,
+  buildRefundId,
+  resolveSaleAcceptedText
+} from '../services/refundService.js';
+import {
+  applyRefundExecutionCap,
+  createRefundRequestOnce
+} from '../services/refundRequestService.js';
 import {
   createOrRefreshServiceCancellationFlow,
   notifyServiceCancellationChoiceForFlow,
@@ -365,7 +373,7 @@ export async function cancelMyBooking(req, res) {
         ? sale.items.find(it => it.type === 'service')
         : null;
       try {
-        refundRequest = await RefundRequest.create({
+        const refundPayload = {
           refundId: buildRefundId(),
           saleId: String(sale.saleId),
           userId: booking.clientId?._id || booking.clientId,
@@ -373,8 +381,10 @@ export async function cancelMyBooking(req, res) {
           itemType: 'service',
           amount: Number(sale.totalAmount),
           currency: 'EUR',
-          status: 'pending',
+          status: 'requested',
           reason: 'client_cancel_presentiel',
+          clientIp: extractClientIp(req),
+          purchaseAcceptedText: resolveSaleAcceptedText(sale),
           eligibleRefund: true,
           sessionStartAt: booking.startAt || null,
           meta: {
@@ -382,16 +392,25 @@ export async function cancelMyBooking(req, res) {
             formationTitle: booking.serviceId?.name || '',
             saleCreatedAt: sale.createdAt || null
           }
+        };
+        await applyRefundExecutionCap({
+          refundRequest: refundPayload,
+          sale,
+          logPrefix: '[cancelMyBooking]'
         });
-        try {
+        const createdRefund = await createRefundRequestOnce(refundPayload);
+        refundRequest = createdRefund.refundRequest;
+        if (createdRefund.created) {
           const { triggerRefundExecution } = await import('../services/refundExecutionService.js');
-          await triggerRefundExecution(refundRequest, sale);
-          refundRequest = await RefundRequest.findById(refundRequest._id).lean() || refundRequest;
-        } catch (refundErr) {
-          console.error('[cancelMyBooking] triggerRefundExecution error', refundErr.message);
+          try {
+            await triggerRefundExecution(refundRequest, sale);
+            refundRequest = await RefundRequest.findById(refundRequest._id).lean() || refundRequest;
+          } catch (refundErr) {
+            console.error('[cancelMyBooking] triggerRefundExecution error', refundErr.message);
+          }
         }
       } catch (createErr) {
-        console.error('[cancelMyBooking] RefundRequest.create error', createErr.message);
+        console.error('[cancelMyBooking] createRefundRequestOnce error', createErr.message);
       }
     }
 

@@ -23,6 +23,11 @@ import {
   resolveSaleForFormationPurchase
 } from './refundService.js';
 import { triggerRefundExecution } from './refundExecutionService.js';
+import {
+  applyRefundExecutionCap,
+  createRefundRequestOnce,
+  findActiveRefundRequestForSaleItem
+} from './refundRequestService.js';
 import { createCompensationGiftCard } from './giftCardService.js';
 import { getPresentielWaiverExpectation } from '../utils/consumerWaiver.js';
 import { getAppBaseUrl } from '../utils/invoiceUrl.js';
@@ -35,6 +40,7 @@ import {
   sendSessionUpdatedChoiceEmail
 } from './mailService.js';
 import { triggerNotification } from './notificationService.js';
+import { isActiveRefundRequestStatus } from '../constants/refundRequest.js';
 
 export const SESSION_CANCELLATION_TOKEN_TTL_DAYS = 7;
 export const FLOW_DECISION_PENDING = 'pending';
@@ -318,24 +324,6 @@ async function resolveFlowSaleAndAmount(flow) {
 function sanitizeRenunciationText(value) {
   const text = sanitizeText(value);
   return text || null;
-}
-
-async function assertNoActiveRefundRequestForSale(saleId) {
-  const normalizedSaleId = sanitizeText(saleId);
-  if (!normalizedSaleId) return;
-  const existing = await RefundRequest.findOne({
-    saleId: normalizedSaleId,
-    status: { $nin: ['failed', 'canceled'] }
-  })
-    .sort({ requestedAt: -1 })
-    .lean();
-  if (existing) {
-    const duplicateError = new Error('REFUND_ALREADY_EXISTS');
-    duplicateError.code = 'REFUND_ALREADY_EXISTS';
-    duplicateError.status = 409;
-    duplicateError.refundId = sanitizeText(existing.refundId);
-    throw duplicateError;
-  }
 }
 
 async function markPurchaseDecision(purchaseId, payload = {}) {
@@ -786,7 +774,10 @@ export async function applyFlowRefundDecision({
   let refundRequest = null;
   const existingRefundRequestId = sanitizeText(flow.refundRequestId);
   if (existingRefundRequestId) {
-    refundRequest = await RefundRequest.findOne({ refundId: existingRefundRequestId });
+    const refundById = await RefundRequest.findOne({ refundId: existingRefundRequestId });
+    if (refundById && isActiveRefundRequestStatus(refundById.status)) {
+      refundRequest = refundById;
+    }
   }
 
   const { sale, amount } = await resolveFlowSaleAndAmount(flow);
@@ -798,17 +789,15 @@ export async function applyFlowRefundDecision({
 
   const refundReason = buildFlowRefundReason(flow.flowType);
   if (!refundRequest) {
-    refundRequest = await RefundRequest.findOne({
+    refundRequest = await findActiveRefundRequestForSaleItem({
       saleId: sanitizeText(sale.saleId),
-      userId: flow.userId,
-      formationId: flow.formationId,
-      reason: refundReason
+      itemId: flow.formationId,
+      itemType: 'formation'
     });
   }
 
   if (!refundRequest) {
-    await assertNoActiveRefundRequestForSale(sale.saleId);
-    refundRequest = new RefundRequest({
+    const refundPayload = {
       refundId: buildRefundId(),
       saleId: sanitizeText(sale.saleId),
       userId: flow.userId,
@@ -833,26 +822,34 @@ export async function applyFlowRefundDecision({
         formationTitle: sanitizeText(flow?.formationSnapshot?.name),
         saleCreatedAt: sale.createdAt || null
       }
+    };
+    await applyRefundExecutionCap({
+      refundRequest: refundPayload,
+      sale,
+      logPrefix: '[applyFlowRefundDecision]'
     });
-    await refundRequest.save();
-    try {
-      await ensureRefundCommissionProvision(refundRequest);
-    } catch (error) {
-      await RefundRequest.deleteOne({ _id: refundRequest._id }).catch(() => {});
-      throw error;
-    }
-    try {
-      const execution = await triggerRefundExecution(refundRequest, sale);
-      if (execution?.refund) {
-        refundRequest = execution.refund;
+    const creation = await createRefundRequestOnce(refundPayload);
+    refundRequest = creation.refundRequest;
+    if (creation.created) {
+      try {
+        await ensureRefundCommissionProvision(refundRequest);
+      } catch (error) {
+        await RefundRequest.deleteOne({ _id: refundRequest._id }).catch(() => {});
+        throw error;
       }
-    } catch (triggerError) {
-      console.error('[applyFlowRefundDecision] triggerRefundExecution failed', {
-        flowId: sanitizeText(flow?.flowId),
-        refundId: sanitizeText(refundRequest?.refundId),
-        saleId: sanitizeText(sale?.saleId),
-        error: triggerError
-      });
+      try {
+        const execution = await triggerRefundExecution(refundRequest, sale);
+        if (execution?.refund) {
+          refundRequest = execution.refund;
+        }
+      } catch (triggerError) {
+        console.error('[applyFlowRefundDecision] triggerRefundExecution failed', {
+          flowId: sanitizeText(flow?.flowId),
+          refundId: sanitizeText(refundRequest?.refundId),
+          saleId: sanitizeText(sale?.saleId),
+          error: triggerError
+        });
+      }
     }
   }
 
@@ -914,7 +911,10 @@ async function applyServiceFlowRefundDecision({ flow, clientIp, triggeredBy, now
   let refundRequest = null;
   const existingRefundRequestId = sanitizeText(flow.refundRequestId);
   if (existingRefundRequestId) {
-    refundRequest = await RefundRequest.findOne({ refundId: existingRefundRequestId });
+    const refundById = await RefundRequest.findOne({ refundId: existingRefundRequestId });
+    if (refundById && isActiveRefundRequestStatus(refundById.status)) {
+      refundRequest = refundById;
+    }
   }
 
   // Find sale directly by saleId
@@ -928,16 +928,15 @@ async function applyServiceFlowRefundDecision({ flow, clientIp, triggeredBy, now
   const amount = roundToCents(Number(sale.totalAmount) || 0);
 
   if (!refundRequest) {
-    refundRequest = await RefundRequest.findOne({
+    refundRequest = await findActiveRefundRequestForSaleItem({
       saleId,
-      userId: flow.userId,
-      reason: refundReason
+      itemId: flow.serviceId,
+      itemType: 'service'
     });
   }
 
   if (!refundRequest) {
-    await assertNoActiveRefundRequestForSale(saleId);
-    refundRequest = new RefundRequest({
+    const refundPayload = {
       refundId: buildRefundId(),
       saleId,
       userId: flow.userId,
@@ -957,26 +956,34 @@ async function applyServiceFlowRefundDecision({ flow, clientIp, triggeredBy, now
         formationTitle: sanitizeText(flow?.serviceSnapshot?.name),
         saleCreatedAt: sale.createdAt || null
       }
+    };
+    await applyRefundExecutionCap({
+      refundRequest: refundPayload,
+      sale,
+      logPrefix: '[applyServiceFlowRefundDecision]'
     });
-    await refundRequest.save();
-    try {
-      await ensureRefundCommissionProvision(refundRequest);
-    } catch (error) {
-      await RefundRequest.deleteOne({ _id: refundRequest._id }).catch(() => {});
-      throw error;
-    }
-    try {
-      const execution = await triggerRefundExecution(refundRequest, sale);
-      if (execution?.refund) {
-        refundRequest = execution.refund;
+    const creation = await createRefundRequestOnce(refundPayload);
+    refundRequest = creation.refundRequest;
+    if (creation.created) {
+      try {
+        await ensureRefundCommissionProvision(refundRequest);
+      } catch (error) {
+        await RefundRequest.deleteOne({ _id: refundRequest._id }).catch(() => {});
+        throw error;
       }
-    } catch (triggerError) {
-      console.error('[applyServiceFlowRefundDecision] triggerRefundExecution failed', {
-        flowId: sanitizeText(flow?.flowId),
-        refundId: sanitizeText(refundRequest?.refundId),
-        saleId,
-        error: triggerError
-      });
+      try {
+        const execution = await triggerRefundExecution(refundRequest, sale);
+        if (execution?.refund) {
+          refundRequest = execution.refund;
+        }
+      } catch (triggerError) {
+        console.error('[applyServiceFlowRefundDecision] triggerRefundExecution failed', {
+          flowId: sanitizeText(flow?.flowId),
+          refundId: sanitizeText(refundRequest?.refundId),
+          saleId,
+          error: triggerError
+        });
+      }
     }
   }
 

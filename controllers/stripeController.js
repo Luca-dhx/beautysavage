@@ -999,6 +999,15 @@ export async function createCheckoutSession(req, res) {
  * POST /api/stripe/webhook  (raw body)
  * Listens to payment_intent.succeeded — sole trigger for sale creation.
  */
+// Phase 1B-1: a concurrent/duplicate webhook racing to create the same sale hits
+// the unique partial index on Sale.stripePaymentIntentId → MongoDB E11000. We treat
+// that as "already processed" (idempotent), not a critical failure.
+function isDuplicateStripePaymentSaleError(error) {
+  if (!error || Number(error.code) !== 11000) return false;
+  if (error.keyPattern && error.keyPattern.stripePaymentIntentId) return true;
+  return String(error.message || '').includes('stripePaymentIntentId');
+}
+
 export async function handleWebhook(req, res) {
   const stripe = getStripe();
   const sig = req.headers['stripe-signature'];
@@ -1144,6 +1153,14 @@ export async function handleWebhook(req, res) {
         processingError = null;
         break;
       } catch (error) {
+        // Concurrent/duplicate webhook lost the race to insert the sale → idempotent.
+        if (isDuplicateStripePaymentSaleError(error)) {
+          console.log(
+            '[Stripe Webhook] Vente deja creee par un webhook concurrent (E11000), idempotent',
+            stripeSessionId
+          );
+          return res.status(200).json({ received: true, idempotent: true });
+        }
         processingError = error;
         const retryable = isRetryablePurchaseProcessingError(error);
         console.error(

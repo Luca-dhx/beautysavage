@@ -209,6 +209,58 @@ export async function reserveGiftCardAmountsForPaymentIntent({
   return { reserved, totalReservedAmount };
 }
 
+/**
+ * Phase 1B-1: atomic gift-card debit. Decrements `balance` by `amount` ONLY if the
+ * current balance is sufficient, in a single conditional findOneAndUpdate. This
+ * prevents over-debit under concurrency (two concurrent debits can no longer both
+ * read the same balance and overwrite it). Reservation fields are intentionally NOT
+ * touched here — reservation release stays a separate, already-atomic step.
+ * @returns {{ balanceBefore:number, balanceAfter:number, card:object }}
+ * @throws  {Error} status 400 / code GIFT_CARD_BALANCE_INSUFFICIENT when balance < amount
+ */
+export async function debitGiftCardBalanceAtomic({ giftCardId, amount } = {}) {
+  const debitAmount = roundToCents(amount);
+  if (!giftCardId || !(debitAmount > 0)) {
+    const error = new Error('Parametres de debit carte cadeau invalides.');
+    error.status = 400;
+    error.code = 'INVALID_GIFT_CARD_DEBIT';
+    throw error;
+  }
+  const updated = await GiftCard.findOneAndUpdate(
+    { _id: giftCardId, balance: { $gte: debitAmount } },
+    [
+      { $set: { balance: { $round: [{ $subtract: [{ $ifNull: ['$balance', 0] }, debitAmount] }, 2] } } },
+      { $set: { status: { $cond: [{ $gt: ['$balance', 0] }, 'active', 'redeemed'] } } }
+    ],
+    { new: true }
+  );
+  if (!updated) {
+    const error = new Error('Solde carte cadeau insuffisant.');
+    error.status = 400;
+    error.code = 'GIFT_CARD_BALANCE_INSUFFICIENT';
+    throw error;
+  }
+  const balanceAfter = roundToCents(updated.balance);
+  return { balanceBefore: roundToCents(balanceAfter + debitAmount), balanceAfter, card: updated };
+}
+
+/**
+ * Phase 1B-1: atomic gift-card recredit, used to compensate a debit on rollback.
+ * @returns {object|null} the updated card, or null on invalid input.
+ */
+export async function recreditGiftCardBalanceAtomic({ giftCardId, amount } = {}) {
+  const creditAmount = roundToCents(amount);
+  if (!giftCardId || !(creditAmount > 0)) return null;
+  return GiftCard.findOneAndUpdate(
+    { _id: giftCardId },
+    [
+      { $set: { balance: { $round: [{ $add: [{ $ifNull: ['$balance', 0] }, creditAmount] }, 2] } } },
+      { $set: { status: 'active' } }
+    ],
+    { new: true }
+  );
+}
+
 export async function releaseGiftCardReservationsForPaymentIntent(
   paymentIntentId,
   { reason = '' } = {}

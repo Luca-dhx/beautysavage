@@ -1,30 +1,33 @@
 // tests/p0/stripe.webhook.idempotence.characterization.test.js
-// CHARACTERIZATION (P0): the Stripe webhook (`payment_intent.succeeded`) is the
-// single source of truth for sale creation, but its idempotency is not atomic
-// (no unique DB constraint on stripePaymentIntentId — see report 06). A duplicate
-// delivery could create two sales on the happy path.
+// P0 (Phase 1B-1 — FIXED): the Stripe webhook (`payment_intent.succeeded`) now
+// creates AT MOST ONE Sale per PaymentIntent, enforced at the DB level by a unique
+// partial index on Sale.stripePaymentIntentId (set AT INSERT in persistSale) plus
+// idempotent E11000 handling in the webhook.
 //
-// What this file DOES (fully working):
-//   - provides a real Stripe signature utility (tests/setup/stripeWebhookTestUtils.js)
-//   - verifies the webhook REJECTS an invalid signature (400)
-//   - verifies that, with a VALID signature but no matching StripeCheckoutIntent,
-//     no Sale is created (and a replay stays at the same count)
-//
-// What this file does NOT do yet (documented gap, see it.todo):
-//   - drive the full happy path that actually creates a Sale, which requires
-//     seeding a StripeCheckoutIntent + catalog refs matching the PaymentIntent.
-//     Only then can the "two identical webhooks -> two sales" bug be asserted.
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+// Covers:
+//   - invalid signature is rejected (400)
+//   - DB unique partial index: two sales with the same stripePaymentIntentId is
+//     rejected (E11000); null PaymentIntent ids are NOT constrained (mock/internal)
+//   - realistic webhook: sequential replay AND concurrent delivery of the same
+//     payment_intent.succeeded create exactly ONE Sale
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+
+vi.mock('../../services/notificationService.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, triggerNotification: async () => {} };
+});
 
 const { getAgent } = await import('../setup/testApp.js');
 const { stopMemoryDb, clearDatabase } = await import('../setup/testDb.js');
+const { seedTestData } = await import('../setup/seedTestData.js');
 const Sale = (await import('../../models/Sale.js')).default;
+const StripeCheckoutIntent = (await import('../../models/StripeCheckoutIntent.js')).default;
 const {
   buildPaymentIntentSucceededEvent,
   postSignedWebhook
 } = await import('../setup/stripeWebhookTestUtils.js');
 
-describe('P0 characterization — Stripe webhook signature + idempotence', () => {
+describe('P0 — Stripe webhook idempotence (atomic)', () => {
   let agent;
 
   beforeAll(async () => {
@@ -37,44 +40,94 @@ describe('P0 characterization — Stripe webhook signature + idempotence', () =>
 
   beforeEach(async () => {
     await clearDatabase();
+    // Neutralize outbound HTTP (Brevo) so post-sale side effects don't hit network.
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => ''
+    })));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('rejects a webhook with an invalid signature (400)', async () => {
-    const event = buildPaymentIntentSucceededEvent({ id: 'evt_badsig', paymentIntentId: 'pi_badsig' });
+    const event = buildPaymentIntentSucceededEvent({ id: 'evt_bad', paymentIntentId: 'pi_bad' });
     const res = await agent
       .post('/api/stripe/webhook')
-      .set('stripe-signature', 't=123,v1=deadbeef') // wrong signature
+      .set('stripe-signature', 't=1,v1=deadbeef')
       .set('content-type', 'application/json')
       .send(JSON.stringify(event));
-
     expect(res.status).toBe(400);
   });
 
-  it('accepts a validly-signed event and (with no matching intent) creates no Sale; replay is stable', async () => {
+  it('DB enforces ONE sale per stripePaymentIntentId; null ids are unconstrained', async () => {
+    // First sale with a concrete PaymentIntent id is fine.
+    await Sale.collection.insertOne({ saleId: 'IDX-A', stripePaymentIntentId: 'pi_unique_1' });
+    // Second with the SAME id must be rejected by the unique partial index.
+    await expect(
+      Sale.collection.insertOne({ saleId: 'IDX-B', stripePaymentIntentId: 'pi_unique_1' })
+    ).rejects.toMatchObject({ code: 11000 });
+
+    // null PaymentIntent ids (mock / internal gift-card / legacy sales) are NOT
+    // constrained — multiple nulls coexist.
+    await Sale.collection.insertOne({ saleId: 'IDX-C', stripePaymentIntentId: null });
+    await Sale.collection.insertOne({ saleId: 'IDX-D', stripePaymentIntentId: null });
+    const nullCount = await Sale.countDocuments({ stripePaymentIntentId: null });
+    expect(nullCount).toBe(2);
+  });
+
+  async function seedProductCheckoutIntent(paymentIntentId) {
+    const fixtures = await seedTestData();
+    const intent = await StripeCheckoutIntent.create({
+      userId: fixtures.client1._id,
+      clientIp: '127.0.0.1',
+      stripeSessionId: paymentIntentId,
+      checkoutState: {
+        item: { type: 'product', id: String(fixtures.product._id) },
+        appliedGiftCards: []
+      }
+    });
+    return { fixtures, intent };
+  }
+
+  it('sequential replay of the same payment_intent.succeeded creates exactly ONE sale', async () => {
+    const pi = 'pi_replay_seq';
+    const { intent } = await seedProductCheckoutIntent(pi);
     const event = buildPaymentIntentSucceededEvent({
-      id: 'evt_replay_1',
-      paymentIntentId: 'pi_replay_1',
-      amount: 5000
+      id: 'evt_seq',
+      paymentIntentId: pi,
+      amount: 4000,
+      metadata: { intentId: String(intent._id) }
     });
 
     const first = await postSignedWebhook(agent, event);
-    // The signature is valid, so it is NOT a 400 (signature rejection).
-    expect(first.status).not.toBe(400);
+    expect(first.status).toBe(200);
+    const second = await postSignedWebhook(agent, event); // replay
+    expect(second.status).toBe(200);
+    expect(second.body).toMatchObject({ idempotent: true });
 
-    const second = await postSignedWebhook(agent, event); // identical replay
-    expect(second.status).not.toBe(400);
-
-    // Without a seeded StripeCheckoutIntent for pi_replay_1, no sale is created.
-    const count = await Sale.countDocuments({ stripePaymentIntentId: 'pi_replay_1' });
-    expect(count).toBe(0);
+    const count = await Sale.countDocuments({ stripePaymentIntentId: pi });
+    expect(count).toBe(1);
   });
 
-  // The TRUE idempotence assertion (two identical succeeded events must create at
-  // most ONE Sale on the happy path) needs a seeded StripeCheckoutIntent + catalog
-  // matching the PaymentIntent. Building that fixture is the next step and is
-  // intentionally left as a documented TODO so this characterization stays honest.
-  it.todo(
-    'happy-path idempotence: two identical payment_intent.succeeded events must create at most ONE Sale ' +
-      '(requires seeding StripeCheckoutIntent + catalog; see report 06)'
-  );
+  it('concurrent delivery of the same payment_intent.succeeded creates exactly ONE sale', async () => {
+    const pi = 'pi_replay_concurrent';
+    const { intent } = await seedProductCheckoutIntent(pi);
+    const event = buildPaymentIntentSucceededEvent({
+      id: 'evt_concurrent',
+      paymentIntentId: pi,
+      amount: 4000,
+      metadata: { intentId: String(intent._id) }
+    });
+
+    // Fire both at once; whichever loses the race is caught by the findOne guard
+    // or the unique-index E11000 handler — either way only ONE sale exists.
+    await Promise.allSettled([postSignedWebhook(agent, event), postSignedWebhook(agent, event)]);
+
+    const count = await Sale.countDocuments({ stripePaymentIntentId: pi });
+    expect(count).toBe(1);
+  });
 });

@@ -12,6 +12,14 @@ documented startup adaptation in `app.js`).
 > (`seedTestData`) now also create an **active contract** so API routes pass
 > `contractGuard()` (otherwise it returns 503 CONTRACT_INACTIVE and tests never
 > reach the handlers). See `Rapports/version 1/23_rapport_phase1a_securite_p0.md`.
+>
+> **Phase 1B-1 update** — two financial P0s are now **fixed**: (1) Stripe webhook
+> idempotence is atomic (unique partial index on `Sale.stripePaymentIntentId`, set
+> at insert in `persistSale`, + E11000 handled as idempotent), and (2) gift-card
+> debit is atomic (`debitGiftCardBalanceAtomic` — conditional `findOneAndUpdate`,
+> never negative). `stripe.webhook.idempotence` is no longer a todo (real index +
+> replay + concurrent tests); new `giftcard.concurrentDebit.test.js`. See
+> `Rapports/version 1/25_rapport_phase1b1_stripe_giftcard.md`.
 
 ## How to run
 
@@ -90,10 +98,11 @@ tests/
     security.secrets.test.js                       # FIXED: no hardcoded secret fallback
     security.tracking-token.test.js                # FIXED: no gift-card password leak
     security.logging.test.js                       # FIXED: no trackingToken in console.*
-    booking.doubleSlot.characterization.test.js    # it.fails (P0 still open)
-    refund.doubleRequest.characterization.test.js  # it.fails (P0 still open)
-    giftcard.zeroPayment.characterization.test.js  # it.todo (P0 still open)
-    stripe.webhook.idempotence.characterization.test.js # it.todo (P0 still open)
+    stripe.webhook.idempotence.characterization.test.js # FIXED: 1 sale per PaymentIntent
+    giftcard.concurrentDebit.test.js               # FIXED: atomic gift-card debit
+    booking.doubleSlot.characterization.test.js    # it.fails (P0 still open — Phase 1B-2)
+    refund.doubleRequest.characterization.test.js  # it.fails (P0 still open — Phase 1B-2)
+    giftcard.zeroPayment.characterization.test.js  # it.todo (P0 still open — Phase 1B-2)
 ```
 
 ## Safety (no real secrets / no real DB)

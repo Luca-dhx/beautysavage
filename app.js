@@ -66,6 +66,7 @@ import Contract from './models/Contract.js';
 import CommissionPayment from './models/CommissionPayment.js';
 import Service from './models/Service.js';
 import ScheduleException from './models/ScheduleException.js';
+import Sale from './models/Sale.js';
 
 import { startSessionCancellationAutoRefundScheduler } from './automatisme/sessionCancellationAutoRefundJob.js';
 import { startContractPaymentSyncJob } from './automatisme/contractPaymentSyncJob.js';
@@ -319,6 +320,29 @@ await CommissionPayment.syncIndexes();
 console.log('[DB] CommissionPayment indexes synchronized');
 await Service.syncIndexes();
 console.log('[DB] Service indexes synchronized');
+// Phase 1B-1: deterministically ensure the unique partial index on
+// Sale.stripePaymentIntentId (one sale per Stripe PaymentIntent). Targeted
+// createIndex (not syncIndexes) to avoid touching unrelated legacy index defs.
+// Guarded: if legacy data already contains duplicate PaymentIntent ids, log a
+// remediation message instead of crashing the boot (the runtime findOne guard +
+// webhook E11000 handling still apply; the unique index activates once resolved).
+try {
+  await Sale.collection.createIndex(
+    { stripePaymentIntentId: 1 },
+    {
+      unique: true,
+      name: 'uniq_stripe_payment_intent',
+      partialFilterExpression: { stripePaymentIntentId: { $type: 'string' } }
+    }
+  );
+  console.log('[DB] Sale.stripePaymentIntentId unique partial index ensured');
+} catch (saleIndexError) {
+  console.error(
+    '[DB] Could not build the unique stripePaymentIntentId index — likely pre-existing ' +
+      'duplicate PaymentIntent ids. Resolve duplicate sales then restart to enforce it.',
+    saleIndexError?.message || saleIndexError
+  );
+}
 // Drop non-unique legacy index on ScheduleException before adding unique one
 try { await ScheduleException.collection.dropIndex('practitionerId_1_date_1'); } catch (_) {}
 await ScheduleException.syncIndexes();

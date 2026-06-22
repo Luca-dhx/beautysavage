@@ -56,7 +56,9 @@ import {
 import { triggerNotification } from '../services/notificationService.js';
 import {
   computeAvailableGiftCardBalance,
-  releaseGiftCardReservationsForPaymentIntent
+  releaseGiftCardReservationsForPaymentIntent,
+  debitGiftCardBalanceAtomic,
+  recreditGiftCardBalanceAtomic
 } from '../services/giftCardReservationService.js';
 import crypto from 'node:crypto';
 
@@ -209,11 +211,15 @@ function sanitizeGiftCardAmount(value) {
 }
 
 async function deductGiftCardBalance(card, amount) {
-  const balanceBefore = Number(card.balance || 0);
-  const balanceAfter = Math.max(0, roundToCents(balanceBefore - amount));
+  // Phase 1B-1: atomic conditional debit (no over-debit under concurrency).
+  // Throws GIFT_CARD_BALANCE_INSUFFICIENT if the balance is no longer sufficient.
+  const { balanceBefore, balanceAfter } = await debitGiftCardBalanceAtomic({
+    giftCardId: card._id,
+    amount
+  });
+  // Keep the in-memory document consistent for downstream reads (no extra save).
   card.balance = balanceAfter;
   card.status = balanceAfter > 0 ? 'active' : 'redeemed';
-  await card.save();
   return { balanceBefore, balanceAfter };
 }
 
@@ -358,6 +364,7 @@ async function finalizeGiftCardUsage({
       applied.push({
         card: entry.card,
         balanceBefore,
+        amount: entry.amount,
         transactionId: transaction._id
       });
       appliedUsageEntries.push({
@@ -389,9 +396,15 @@ async function finalizeGiftCardUsage({
       }).catch(() => {});
       await Promise.all(
         applied.map(async entry => {
-          entry.card.balance = entry.balanceBefore;
-          entry.card.status = entry.balanceBefore > 0 ? 'active' : 'redeemed';
-          await entry.card.save();
+          // Phase 1B-1: atomic compensating recredit (no stale-doc overwrite).
+          const recredited = await recreditGiftCardBalanceAtomic({
+            giftCardId: entry.card._id,
+            amount: entry.amount
+          });
+          if (recredited) {
+            entry.card.balance = recredited.balance;
+            entry.card.status = recredited.status;
+          }
         })
       ).catch(() => {});
     }
@@ -620,6 +633,8 @@ async function persistSale({
   giftCardUsage,
   consumerWaiver,
   clientIp,
+  stripePaymentIntentId = null,
+  stripeSessionId = null,
   skipPostSaleSideEffects = false
 }) {
   if (!userId || !items?.length) return null;
@@ -680,6 +695,14 @@ async function persistSale({
     sale.consumerWaiverAcceptedText = renonciationText;
     sale.consumerWaiverAcceptedAt = consumerWaiver?.consumerWaiverAcceptedAt || sale.date_achat;
   }
+  // Phase 1B-1: set the Stripe PaymentIntent id AT INSERT so the unique partial
+  // index on stripePaymentIntentId rejects a concurrent/duplicate webhook with an
+  // E11000 BEFORE any side effect (gift-card debit, commission) runs — preventing
+  // both a duplicate Sale and an orphan Sale.
+  const normalizedPi = String(stripePaymentIntentId || '').trim();
+  const normalizedSession = String(stripeSessionId || '').trim();
+  if (normalizedPi) sale.stripePaymentIntentId = normalizedPi;
+  if (normalizedSession) sale.stripeSessionId = normalizedSession;
   const saved = await sale.save();
   if (!skipPostSaleSideEffects) {
     await runPostSaleSideEffects(saved);
@@ -2495,6 +2518,8 @@ async function processCartCheckoutStatePurchase({
       giftCardUsage: giftPlan.saleEntries,
       consumerWaiver,
       clientIp: normalizedIp,
+      stripePaymentIntentId: normalizedStripePaymentIntentId,
+      stripeSessionId: normalizedStripeSessionId,
       skipPostSaleSideEffects: true
     });
 
@@ -2941,6 +2966,8 @@ export async function processCheckoutStatePurchase({
         giftCardUsage: giftPlan.saleEntries,
         consumerWaiver,
         clientIp: normalizedIp,
+        stripePaymentIntentId: normalizedStripePaymentIntentId,
+        stripeSessionId: normalizedStripeSessionId,
         skipPostSaleSideEffects: true
       });
 
@@ -3037,6 +3064,8 @@ export async function processCheckoutStatePurchase({
         giftCardUsage: giftPlan.saleEntries,
         consumerWaiver,
         clientIp: normalizedIp,
+        stripePaymentIntentId: normalizedStripePaymentIntentId,
+        stripeSessionId: normalizedStripeSessionId,
         skipPostSaleSideEffects: true
       });
 
@@ -3121,6 +3150,8 @@ export async function processCheckoutStatePurchase({
       giftCardUsage: giftPlan.saleEntries,
       consumerWaiver,
       clientIp: normalizedIp,
+      stripePaymentIntentId: normalizedStripePaymentIntentId,
+      stripeSessionId: normalizedStripeSessionId,
       skipPostSaleSideEffects: true
     });
 

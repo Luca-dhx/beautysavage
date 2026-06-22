@@ -27,7 +27,11 @@ import {
 import User from '../models/user.js';
 import { extractClientIp } from '../utils/requestClientIp.js';
 import { validateAndBuildConsumerWaiver } from '../utils/consumerWaiver.js';
-import { computeAvailableGiftCardBalance } from '../services/giftCardReservationService.js';
+import {
+  computeAvailableGiftCardBalance,
+  debitGiftCardBalanceAtomic,
+  recreditGiftCardBalanceAtomic
+} from '../services/giftCardReservationService.js';
 
 const { Types } = mongoose;
 const GIFT_CARD_PASSWORD_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -479,11 +483,13 @@ function buildResponsePayload(createdPurchases) {
 }
 
 async function deductGiftCardBalance(card, amount) {
-  const balanceBefore = Number(card.balance || 0);
-  const balanceAfter = Math.max(0, balanceBefore - amount);
+  // Phase 1B-1: atomic conditional debit (no over-debit under concurrency).
+  const { balanceBefore, balanceAfter } = await debitGiftCardBalanceAtomic({
+    giftCardId: card._id,
+    amount
+  });
   card.balance = balanceAfter;
   card.status = balanceAfter > 0 ? 'active' : 'redeemed';
-  await card.save();
   return { balanceBefore, balanceAfter };
 }
 
@@ -871,9 +877,13 @@ export async function redeemGiftCard(req, res) {
         await GiftCardTransaction.deleteOne({ _id: savedTransactionId }).catch(() => {});
       }
       if (debitSnapshot) {
-        card.balance = debitSnapshot.balanceBefore;
-        card.status = Number(card.balance || 0) > 0 ? 'active' : 'redeemed';
-        await card.save().catch(() => {});
+        // Phase 1B-1: atomic compensating recredit (no stale-doc overwrite).
+        const debited = Math.max(0, Number(debitSnapshot.balanceBefore || 0) - Number(debitSnapshot.balanceAfter || 0));
+        const recredited = await recreditGiftCardBalanceAtomic({ giftCardId: card._id, amount: debited }).catch(() => null);
+        if (recredited) {
+          card.balance = recredited.balance;
+          card.status = recredited.status;
+        }
       }
       if (createdPurchases.length) {
         const ids = createdPurchases.map(entry => entry.purchase._id);

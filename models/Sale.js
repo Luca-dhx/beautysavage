@@ -292,7 +292,19 @@ saleSchema.index({ userId: 1 });
 saleSchema.index({ 'items.itemId': 1, 'items.type': 1 });
 saleSchema.index({ 'items.formationId': 1, 'items.type': 1 });
 saleSchema.index({ stripeSessionId: 1 }, { sparse: true });
-saleSchema.index({ stripePaymentIntentId: 1 }, { sparse: true });
+// Phase 1B-1: enforce ONE sale per Stripe PaymentIntent at the DB level. This unique
+// partial index (string values only) also covers lookups by stripePaymentIntentId,
+// so it replaces the previous non-unique sparse index on the same field. Sales with
+// stripePaymentIntentId=null (mock / internal gift-card / legacy) are NOT constrained
+// and never collide. Built deterministically at boot (app.js) before traffic.
+saleSchema.index(
+  { stripePaymentIntentId: 1 },
+  {
+    unique: true,
+    name: 'uniq_stripe_payment_intent',
+    partialFilterExpression: { stripePaymentIntentId: { $type: 'string' } }
+  }
+);
 
 const Sale = mongoose.model('Sale', saleSchema);
 export default Sale;

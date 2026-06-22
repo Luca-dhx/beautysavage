@@ -7,7 +7,11 @@
         "clean-port": "node scripts/cleanPort.js",
         "prestart": "npm run clean-port",
         "start": "nodemon app.js",
-        "support:cleanup": "node scripts/supportWorkflowCleanup.js"
+        "support:cleanup": "node scripts/supportWorkflowCleanup.js",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:p0": "vitest run tests/p0",
+        "test:integration": "vitest run tests/integration"
     },
     "dependencies": {
         "argon2": "^0.41.1",
@@ -23,6 +27,10 @@
         "stripe": "^20.4.0"
     },
     "devDependencies": {
-        "nodemon": "^3.1.7"
+        "cross-env": "^10.1.0",
+        "mongodb-memory-server": "^11.2.0",
+        "nodemon": "^3.1.7",
+        "supertest": "^7.2.2",
+        "vitest": "^4.1.9"
     }
 }

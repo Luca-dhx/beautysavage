@@ -404,7 +404,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (_req, res) => res.redirect('/vitrine.html'));
 
-await startSessionCancellationAutoRefundScheduler();
+// Test harness: in NODE_ENV==='test' (vitest), skip background schedulers and the
+// HTTP listener so the Express app can be imported by supertest with no open
+// handles or side effects. Business logic is unchanged — only startup side
+// effects are gated behind this flag. The app instance is exported below.
+if (process.env.NODE_ENV !== 'test') {
+  await startSessionCancellationAutoRefundScheduler();
 startCommissionReminderJob();
 // Booking reminders — check every hour
 setInterval(() => { void runBookingRemindersJob(); }, 3600000);
@@ -434,6 +439,9 @@ app.listen(PORT, () => {
     console.log('  customer.subscription.deleted  -> Resiliation -> contrat annule');
     console.log('═══════════════════════════════════════════════════════');
   } else {
-    console.warn('[Stripe] NGROK_DOMAIN non defini dans .env — webhooks Stripe non configures');
-  }
-});
+      console.warn('[Stripe] NGROK_DOMAIN non defini dans .env — webhooks Stripe non configures');
+    }
+  });
+}
+
+export default app;

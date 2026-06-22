@@ -129,7 +129,7 @@
 
 ### Idempotence webhook
 - Avant de traiter, le webhook verifie : `Sale.findOne({ stripePaymentIntentId | stripeSessionId })` - si existe, retourne 200 sans retraiter.
-- `stripePaymentIntentId` (et `stripeSessionId` pour compat) est indexe (`sparse: true`) sur le schema Sale.
+- `stripePaymentIntentId` porte un index UNIQUE partiel (`name: 'uniq_stripe_payment_intent'`, `partialFilterExpression: { stripePaymentIntentId: { $type: 'string' } }`) depuis la Phase 1B-1 : l'unicite est garantie au niveau base, et la livraison concurrente du meme webhook echoue en `E11000` avant tout effet de bord. Voir la section "Reprise V1 — Phase 0 a Phase 1B-3". `stripeSessionId` reste indexe pour compat. (Ancien etat documente: index `sparse` non unique — desormais obsolete.)
 
 ### Regle de securite resultat paiement
 - Le webhook Stripe payment_intent.succeeded est la seule source de verite pour la creation de vente.
@@ -2339,3 +2339,99 @@ Pour date D, service duree `D_min`, granularite `G_min` :
   2. `FormationSession.find(buildActiveFormationSessionFilter({ instructorId: profile.userId }))` → compare en minutes → overlap → throw `SLOT_UNAVAILABLE`
 - `controllers/sessionCancellationFlowController.js` : catch `SLOT_UNAVAILABLE` avant le catch générique → `409 { code: 'SLOT_UNAVAILABLE' }`.
 - `public/js/modules/sessionCanceledDecisionModule.js` : dans `onSubmitServiceReschedule` catch `error.code === 'SLOT_UNAVAILABLE'` → toast erreur + reset `rescheduleStep=1` + reset `selectedSlot*` + `renderDecision()` (retour au calendrier sans recharger le flow).
+
+## Reprise V1 — Phase 0 a Phase 1B-3
+
+> Section de synchronisation (2026-06-22). Documente l'etat reel du code apres la reprise de stabilisation V1 (branche `phase-0-security-baseline`, dernier commit `f1f0b73 Prevent service booking double-booking`). Rapports sources : `Rapports/version 1/20` a `29`. Cette section fait autorite sur les sections plus anciennes lorsqu'elles divergent.
+
+### Phase 0 — Initialisation Git / GitHub
+- Depot Git initialise (`git init`), branche par defaut `main` + branche de travail `phase-0-security-baseline`. Remote GitHub ajoute, les deux branches poussees.
+- Commit baseline `Initial audit baseline before V1 stabilization` (~394 fichiers suivis ; `node_modules/`, `uploads/`, `Rapports/`, `memory/` exclus).
+- `.gitignore` reecrit : `node_modules/`, `.env`, `.env.*` (sauf `.env.example`), `uploads/`, `logs/`, `Rapports/`, `memory/`, scripts one-off (`insert_*.py`, `inspect_*.py`, etc.), fichiers temporaires.
+- Aucun secret present dans l'historique Git (verifie via `git grep --cached` sur `sk_live_`, `xkeysib-`, `whsec_`, `mongodb+srv://...`). `.env` non suivi ; `.env.example` ne contient que des placeholders.
+- Rapports d'audit initiaux crees dans `Rapports/version 1/` (00 a 19), puis rapports de reprise 20 a 29.
+
+### Phase 0 — Harnais de tests
+- Stack de test : **Vitest** (runner ESM), **Supertest** (HTTP), **mongodb-memory-server** (Mongo en memoire isole), `cross-env`.
+- Scripts npm : `test` = `vitest run` ; `test:watch` = `vitest` ; `test:p0` = `vitest run tests/p0` ; `test:integration` = `vitest run tests/integration`.
+- `tests/setup/` :
+  - `testEnv.js` : pre-definit toutes les variables d'environnement sensibles AVANT l'import de `app.js` (empeche dotenv de charger le vrai `.env`).
+  - `testDb.js` : cycle de vie mongodb-memory-server, exporte `clearDatabase()`.
+  - `testApp.js` : boot de `app` sur la base en memoire, garde-fou exigeant un `MONGODB_URI` local uniquement.
+  - `seedTestData.js` : fixtures deterministes, cree un contrat actif pour passer `contractGuard()`.
+  - `stripeWebhookTestUtils.js` : genere de vraies signatures de webhook Stripe pour les tests.
+- `tests/integration/` : `health.test.js` (boot en `NODE_ENV=test`, pas de fuite de cle), `auth.test.js` (signup→code mocke, login refuse tant que non verifie, verify-email, `/auth/me`).
+- `tests/p0/` (tests de non-regression P0) :
+  - `mockPay.exposure.test.js` — `/api/client/mock-pay` joignable en test, 404 en production.
+  - `security.secrets.test.js` — `requireSecret()` (valeur, fallback, throw sans rien).
+  - `security.tracking-token.test.js` — le suivi public n'expose jamais le mot de passe carte cadeau.
+  - `security.logging.test.js` — aucun log ne contient `trackingToken`.
+  - `stripe.webhook.idempotence.characterization.test.js` — une seule vente par PaymentIntent (replay + concurrence).
+  - `giftcard.concurrentDebit.test.js` — debit carte cadeau atomique.
+  - `refund.doubleRequest.characterization.test.js` — demande de remboursement dupliquee rejetee/refetchee.
+  - `refund.recreditIdempotent.test.js` — webhook duplique recredite exactement une fois.
+  - `refund.overRefund.test.js` — remboursement plafonne au total de la vente.
+  - `booking.doubleSlot.characterization.test.js` — rejette double-booking exact, chevauchement partiel, slot passe / hors planning / bloque.
+  - `booking.slotRevalidation.test.js` — revalidation serveur du slot a la creation finale (webhook).
+  - `giftcard.zeroPayment.characterization.test.js` — **todo** : le bug du paiement 0€ vit dans le frontend, l'endpoint backend manque (gap documente, hors perimetre 1B).
+- Etat des tests au commit `f1f0b73` (verifie 2026-06-22) :
+  - `npm test` → 14 fichiers, 37 passes, 1 todo.
+  - `npm run test:p0` → 12 fichiers, 31 passes, 1 todo.
+  - `npm run test:integration` → 2 fichiers, 6 passes.
+
+### Phase 1A — Securite P0
+- **Garde production sur `/api/client/mock-pay`** : middleware `requireNonProductionMockPayment` (`routers/clientRouter.js`) renvoie **404** quand `NODE_ENV === 'production'` (404 plutot que 403 pour ne pas reveler l'existence de l'endpoint). `mock-pay` n'est donc plus utilisable en production. Verrouille par `tests/p0/mockPay.exposure.test.js`.
+- **Suppression des fallbacks de secrets** : les litteraux de repli en dur (`'beautysavage-gift-card-secret'`, `'beautysavage-email-verification-secret'`) sont supprimes et remplaces par `requireSecret(...)`. Plus aucun secret n'a de valeur par defaut publique.
+- **`utils/secretEnv.js`** (NOUVEAU) : exporte `requireSecret(name, { fallback } = {})` — retourne la valeur trimmee de la variable primaire ; sinon celle du fallback ; sinon **leve une erreur** (refus de continuer avec un defaut non securise). Utilise dans `controllers/giftCardController.js`, `services/giftCardService.js`, `routers/authRouter.js`, `controllers/salesController.js`.
+- **Fuite mot de passe carte cadeau supprimee** dans `/api/refund-tracking/:token` (`getRefundByTrackingToken`, `salesController.js`) : le champ `password` n'est plus inclus dans le payload de carte cadeau recreditee. Le suivi public expose uniquement `code`, `balance`, `expiresAt`, `recipientName`. Le frontend (`refundTrackingModule.js`) n'affiche plus le mot de passe et redirige vers le compte / le contact institut. Verrouille par `security.tracking-token.test.js`.
+- **Logs `trackingToken` supprimes** (`sessionCancellationFlowController.js`). Garde de regression statique : `security.logging.test.js`.
+
+### Phase 1B-1 — Stripe / carte cadeau (idempotence)
+- **Index UNIQUE partiel sur `Sale.stripePaymentIntentId`** (`models/Sale.js`) : `{ stripePaymentIntentId: 1 }`, `unique: true`, `name: 'uniq_stripe_payment_intent'`, `partialFilterExpression: { stripePaymentIntentId: { $type: 'string' } }`. Remplace l'ancien index `sparse` non unique. Les ventes mock/internes/legacy (`null`) sont exclues de la contrainte. L'idempotence Stripe n'est plus seulement applicative : elle est garantie au niveau base.
+- **Gestion E11000 dans le webhook** (`stripeController.js`) : la violation de cle unique sur `stripePaymentIntentId` est traitee comme un succes idempotent (HTTP 200, aucun effet de bord, pas de log critique), en complement du garde `findOne` pour le replay sequentiel.
+- **`persistSale` ecrit le PaymentIntent des l'insert** (`clientController.js`) : `stripePaymentIntentId` / `stripeSessionId` sont poses AVANT `save()`, sur les 4 chemins (formation, carte cadeau, produit, panier). Un webhook concurrent echoue donc en `E11000` avant tout debit/commission.
+- **Debit carte cadeau atomique** — `debitGiftCardBalanceAtomic({ giftCardId, amount })` (`services/giftCardReservationService.js`) : `GiftCard.findOneAndUpdate({ _id, balance: { $gte: montant } }, [pipeline de soustraction arrondi 2 decimales + maj status redeemed/active])`. Le solde ne passe jamais negatif ; le perdant d'une course concurrente leve `GIFT_CARD_BALANCE_INSUFFICIENT` (400). Retourne `{ balanceBefore, balanceAfter, card }`.
+- **Recredit carte cadeau atomique** — `recreditGiftCardBalanceAtomic({ giftCardId, amount })` : pipeline `$add` + status `active`.
+- Tests : `stripe.webhook.idempotence.characterization.test.js`, `giftcard.concurrentDebit.test.js`.
+
+### Phase 1B-2 — Remboursements
+- **`constants/refundRequest.js`** (NOUVEAU) : `ACTIVE_REFUND_REQUEST_STATUSES = ['requested','pending','succeeded']`, `INACTIVE_REFUND_REQUEST_STATUSES = ['failed','canceled']`, `REFUND_REQUEST_STATUSES`, `REFUND_REQUEST_ACTIVE_UNIQUE_INDEX_NAME = 'uniq_active_refundrequest_sale_item'`.
+- **Index UNIQUE partiel `RefundRequest`** (`models/RefundRequest.js`) : `{ saleId: 1, itemId: 1, itemType: 1 }`, `unique: true`, `partialFilterExpression: { status: { $in: ACTIVE_REFUND_REQUEST_STATUSES } }`. Empeche tout doublon de remboursement actif pour un meme article ; un remboursement `failed`/`canceled` peut etre recree.
+- **`services/refundRequestService.js`** (NOUVEAU) — anti-doublon RefundRequest actif :
+  - `findActiveRefundRequestForSaleItem({ saleId, itemId, itemType })`.
+  - `createRefundRequestOnce(payload)` : si un remboursement actif existe → `{ refundRequest, created:false, duplicate:true }` ; sinon creation ; sur `E11000` concurrent → refetch et retour de l'existant.
+  - `assertNoActiveRefundRequestForSaleItem(...)` → throw `REFUND_ALREADY_EXISTS` (409).
+  - `calculateRefundExecutionCap({ refundRequest, sale })` → `cappedAmount = min(requestedAmount, saleTotal - somme des autres remboursements actifs de la vente)`.
+  - `applyRefundExecutionCap(...)` : mute `refundRequest.amount` au plafond, ajoute une note si plafonne.
+  - `claimGiftCardRecredit(refundId)` : `findOneAndUpdate` conditionnel (`giftCardRecredited != true` ET `giftCardRecreditInProgress != true`) → claim atomique avant recredit.
+- **Plafond `saleTotal` (anti sur-remboursement)** : `calculateRefundExecutionCap` applique a la creation ET a l'execution (`triggerRefundExecution`). La somme des remboursements actifs d'une vente ne depasse jamais `saleTotal`.
+- **Recredit carte cadeau idempotent** : `claimGiftCardRecredit` (flag `giftCardRecreditInProgress`/`giftCardRecredited` sur `RefundRequest`) garantit qu'un webhook `charge.refund.updated` duplique ne recredite pas deux fois et ne cree pas de second `GiftCardTransaction`.
+- **`services/refundGiftCardService.js`** (NOUVEAU) : `recreditGiftCardPortion(sale, amountEur)` — resout les usages carte cadeau (`sale.giftCardUsage`, fallback `GiftCardTransaction` redeem), recredite via `recreditGiftCardBalanceAtomic`, cree un `GiftCardTransaction` type `credit`, rollback du debit si l'enregistrement de la transaction echoue.
+- Tests : `refund.doubleRequest.characterization.test.js`, `refund.recreditIdempotent.test.js`, `refund.overRefund.test.js`.
+
+### Phase 1B-3 — Booking / disponibilites
+- **`services/serviceAvailabilityService.js`** (NOUVEAU) — source unique de verite des creneaux reservables :
+  - `assertServiceSlotBookable({ practitionerId, serviceId, startAt, endAt, now, ignoreBookingId, session })` : revalidation serveur. Codes d'erreur : `SERVICE_NOT_BOOKABLE`, `PRACTITIONER_NOT_FOUND`, `PRACTITIONER_SERVICE_MISMATCH`, `INVALID_START_AT`/`INVALID_END_AT`, `INVALID_SLOT_RANGE`, `INVALID_SLOT_DURATION`, `SLOT_PAST` (slot passe), `SLOT_OUTSIDE_SCHEDULE` (hors planning), `SLOT_UNAVAILABLE` (indisponible/bloque/double). Retourne `{ service, practitioner, schedule, startAt, endAt, slot }`.
+  - `computeAvailableSlotsForPractitioner({ practitioner, schedule, service, dateStr, ... })` : applique `weeklySchedule` + `lunchBreak` ; applique les `ScheduleException` (`modify` remplace les creneaux du jour, `block` plein jour ferme, `block` partiel soustrait, `add` etend) ; filtre les slots passes, ceux couverts par des bookings actifs, par des sessions de formation de la formatrice, et applique `service.duration` / `slotGranularity` / `bufferTime`.
+  - `createServiceBookingWithProtection({ bookingData, service, now, ignoreBookingId, session })` : appelle `assertServiceSlotBookable`, pose des verrous minute par minute sur `[startAt, endAt + bufferTime)` via `BookingSlotLock.insertMany(..., { ordered:true })`, insere le `ServiceBooking` ; sur cle dupliquee (11000) libere les verrous et leve `SLOT_UNAVAILABLE` (409).
+  - `releaseServiceBookingSlotLocks({ bookingId, session })` : supprime les verrous d'un booking.
+- **`models/BookingSlotLock.js`** (NOUVEAU) : collection `booking_slot_locks`. Champs `practitionerId`, `bookingId`, `slotStartAt` (Date, granularite minute), `createdAt`. Index UNIQUE `{ practitionerId: 1, slotStartAt: 1 }` (empeche la collision exacte / le double-booking concurrent) + index `{ bookingId: 1 }` (nettoyage). Un document par minute occupee.
+- **`constants/serviceBooking.js`** (NOUVEAU) : `ACTIVE_SERVICE_BOOKING_STATUSES = ['pending_payment','confirmed']` (statuts bloquant un creneau ; `cancelled`/`no_show`/`completed` non bloquants), `SERVICE_SLOT_ERROR_CODES`, `isActiveServiceBookingStatus(value)`.
+- **Anti double-booking exact** : index unique `{ practitionerId, slotStartAt }` sur `BookingSlotLock`. **Anti chevauchement partiel** : couverture minute par minute incluant le `bufferTime`. **Refus slot passe** : controle `now` dans `assertServiceSlotBookable`. **Hors planning** : `computeAvailableSlotsForPractitioner` vs `weeklySchedule` + exceptions. **Slot bloque** : exceptions `block` (plein jour / creneau) soustraites. Support coherent des `ScheduleException`.
+- **Recablage** :
+  - `controllers/serviceBookingController.js` : `createBooking` → `createServiceBookingWithProtection` (statut `pending_payment` avant paiement, service gratuit → Sale immediate `paid`) ; `cancelMyBooking` et `cancelBookingByAdmin` → `releaseServiceBookingSlotLocks`.
+  - `controllers/clientController.js` : `processServiceCheckoutStatePurchase` → `createServiceBookingWithProtection` (revalidation post-paiement, statut `confirmed`). Si le slot est devenu indisponible apres encaissement → throw `SLOT_UNAVAILABLE` (remboursement auto non encore implemente, voir risques).
+  - `controllers/stripeController.js` : `create-checkout-session` → `assertServiceSlotBookable` en preflight avant toute creation de session Stripe.
+  - `controllers/availabilityController.js` : consomme `computeAvailableSlotsForPractitioner` (alias `computeBookableSlotsForPractitioner`) → l'affichage vitrine reste aligne sur la validation serveur.
+  - `services/sessionCancellationFlowService.js` : `applyFlowServiceRescheduleDecision` (report d'une prestation annulee) passe par `createServiceBookingWithProtection` — **remplace** le correctif ad hoc decrit en "STEP 21d" (double passe `findOne`/`FormationSession`), desormais obsolete.
+- Tests : `booking.doubleSlot.characterization.test.js`, `booking.slotRevalidation.test.js`.
+
+### Risques encore ouverts (a traiter apres 1B-3)
+- **Achat 0€** : pas d'endpoint backend de finalisation gratuite ; le bug vit cote frontend (`giftcard.zeroPayment` reste `todo`).
+- **Expiration / liberation automatique des `pending_payment`** : pas d'expiration applicative ; les verrous d'un booking `pending_payment` persistent jusqu'a annulation manuelle/admin.
+- **Remboursement automatique si paiement encaisse mais slot devenu indisponible** : le booking est rejete (409) mais aucun remboursement automatique n'est declenche.
+- **Reprise complete des refunds bloques** : pas encore de mecanisme de relance/reconciliation exhaustif.
+- **Credit notes / factures d'avoir Stripe totalement idempotentes** : non encore garanties.
+- **`requireStrictDev` / gestion fine des roles** : durcissement a faire.
+- **Rate-limit login / reset password** : a ajouter.
+- **XSS / SVG / responsive / migration React** : reportes plus tard.

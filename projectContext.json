@@ -840,7 +840,8 @@
         "GET /api/stripe/transaction-fees",
         "GET /api/stripe/pending-fees-count",
         "GET /api/stripe/config"
-      ]
+      ],
+      "v1Stabilization": "Phase 1B-1: webhook treats E11000 on stripePaymentIntentId as an idempotent success (200, no side effects). Phase 1B-3: create-checkout-session calls assertServiceSlotBookable as preflight before creating the Stripe session."
     },
     {
       "path": "routers/stripeRouter.js",
@@ -886,7 +887,8 @@
           "app.js"
         ],
         "exports": []
-      }
+      },
+      "v1Stabilization": "Phase 1B-1: exposes debitGiftCardBalanceAtomic({giftCardId,amount}) (findOneAndUpdate with balance>=amount guard, pipeline subtract+status, never negative, throws GIFT_CARD_BALANCE_INSUFFICIENT) and recreditGiftCardBalanceAtomic({giftCardId,amount})."
     },
     {
       "path": "automatisme/monthlyCommissionInvoiceJob.js",
@@ -1050,7 +1052,8 @@
         ],
         "usedBy": [],
         "exports": []
-      }
+      },
+      "v1Stabilization": "Phase 1B-1: persistSale writes stripePaymentIntentId/stripeSessionId BEFORE save() on all 4 paths so a concurrent webhook fails on E11000 before any debit/commission. Phase 1B-3: processServiceCheckoutStatePurchase uses createServiceBookingWithProtection (post-payment revalidation; throws SLOT_UNAVAILABLE if slot taken - auto-refund not yet implemented)."
     },
     {
       "path": "controllers/clientManagementController.js",
@@ -1843,7 +1846,8 @@
           "routers/salesRouter.js"
         ],
         "exports": []
-      }
+      },
+      "v1Stabilization": "Phase 1A: getRefundByTrackingToken no longer exposes the gift-card password in /api/refund-tracking/:token payload; uses requireSecret for secrets."
     },
     {
       "path": "controllers/siteIdentityController.js",
@@ -2677,7 +2681,8 @@
           "controllers/salesController.js"
         ],
         "exports": []
-      }
+      },
+      "v1Stabilization": "Phase 1B-2: partial UNIQUE index {saleId,itemId,itemType} (name uniq_active_refundrequest_sale_item) over active statuses only; new fields giftCardRecreditInProgress / giftCardRecredited support idempotent recredit. Blocks duplicate active refunds per item."
     },
     {
       "path": "models/Review.js",
@@ -2722,7 +2727,8 @@
         ],
         "usedBy": [],
         "exports": []
-      }
+      },
+      "v1Stabilization": "Phase 1B-1: stripePaymentIntentId now carries a PARTIAL UNIQUE index (name uniq_stripe_payment_intent, partialFilterExpression {stripePaymentIntentId:{$type:string}}), replacing the old sparse non-unique index. DB-level Stripe idempotence; null sales excluded."
     },
     {
       "path": "models/SiteIdentity.js",
@@ -8194,6 +8200,112 @@
           "renderModule"
         ]
       }
+    },
+    {
+      "path": "utils/secretEnv.js",
+      "type": "util",
+      "role": "Phase 1A: secure environment-secret resolution. Exports requireSecret(name, { fallback }) which returns the trimmed primary env var, else the fallback env var, else throws (refuses to continue with an insecure default). Removes all hard-coded secret fallbacks across giftCardController, giftCardService, authRouter, salesController.",
+      "functions": [
+        {
+          "name": "requireSecret",
+          "description": "requireSecret(name, { fallback }={}) -> trimmed primary, else fallback var, else throws. No public default ever returned."
+        }
+      ]
+    },
+    {
+      "path": "constants/refundRequest.js",
+      "type": "constants",
+      "role": "Phase 1B-2: refund-request status constants. ACTIVE_REFUND_REQUEST_STATUSES=[requested,pending,succeeded], INACTIVE_REFUND_REQUEST_STATUSES=[failed,canceled], REFUND_REQUEST_STATUSES, REFUND_REQUEST_ACTIVE_UNIQUE_INDEX_NAME=uniq_active_refundrequest_sale_item. Active statuses feed the RefundRequest partial unique index that blocks duplicate active refunds."
+    },
+    {
+      "path": "constants/serviceBooking.js",
+      "type": "constants",
+      "role": "Phase 1B-3: service-booking constants. ACTIVE_SERVICE_BOOKING_STATUSES=[pending_payment,confirmed] (statuses that block a slot; cancelled/no_show/completed are non-blocking), SERVICE_SLOT_ERROR_CODES map, isActiveServiceBookingStatus(value)."
+    },
+    {
+      "path": "models/BookingSlotLock.js",
+      "type": "model",
+      "role": "Phase 1B-3: minute-by-minute slot lock (collection booking_slot_locks) preventing concurrent double-booking. Fields: practitionerId, bookingId, slotStartAt (Date, minute granularity), createdAt. Indexes: UNIQUE {practitionerId:1, slotStartAt:1} (exact-collision guard) + {bookingId:1} (cleanup). One document per occupied minute."
+    },
+    {
+      "path": "services/serviceAvailabilityService.js",
+      "type": "service",
+      "role": "Phase 1B-3: single source of truth for bookable slots and protected booking creation.",
+      "functions": [
+        {
+          "name": "assertServiceSlotBookable",
+          "description": "Server-side slot revalidation. Throws SERVICE_NOT_BOOKABLE / PRACTITIONER_NOT_FOUND / PRACTITIONER_SERVICE_MISMATCH / INVALID_* / SLOT_PAST / SLOT_OUTSIDE_SCHEDULE / SLOT_UNAVAILABLE. Returns {service, practitioner, schedule, startAt, endAt, slot}."
+        },
+        {
+          "name": "computeAvailableSlotsForPractitioner",
+          "description": "Computes valid slots from weeklySchedule + lunchBreak; applies ScheduleException (modify replaces, block full-day closes, block partial subtracts, add extends); filters past slots, active bookings, formation sessions; applies service.duration / slotGranularity / bufferTime."
+        },
+        {
+          "name": "createServiceBookingWithProtection",
+          "description": "assertServiceSlotBookable -> insert minute-by-minute BookingSlotLock over [startAt, endAt+bufferTime) ordered -> insert ServiceBooking; on 11000 releases locks and throws SLOT_UNAVAILABLE (409)."
+        },
+        {
+          "name": "releaseServiceBookingSlotLocks",
+          "description": "Removes all BookingSlotLock docs for a bookingId (on cancellation/reschedule)."
+        }
+      ]
+    },
+    {
+      "path": "services/refundRequestService.js",
+      "type": "service",
+      "role": "Phase 1B-2: refund-request anti-duplication and over-refund cap.",
+      "functions": [
+        {
+          "name": "findActiveRefundRequestForSaleItem",
+          "description": "Finds latest active refund by (saleId,itemId,itemType) or null."
+        },
+        {
+          "name": "createRefundRequestOnce",
+          "description": "Returns existing active refund as {created:false,duplicate:true} if present; else creates; on concurrent E11000 refetches existing."
+        },
+        {
+          "name": "assertNoActiveRefundRequestForSaleItem",
+          "description": "Throws REFUND_ALREADY_EXISTS (409) if an active refund exists for the item."
+        },
+        {
+          "name": "calculateRefundExecutionCap",
+          "description": "cappedAmount = min(requestedAmount, saleTotal - sum(other active refunds of the sale))."
+        },
+        {
+          "name": "applyRefundExecutionCap",
+          "description": "Mutates refundRequest.amount to the cap, appends a note when capped, logs."
+        },
+        {
+          "name": "claimGiftCardRecredit",
+          "description": "Atomic findOneAndUpdate (giftCardRecredited!=true AND giftCardRecreditInProgress!=true) -> claims the recredit so duplicate webhooks cannot recredit twice."
+        }
+      ]
+    },
+    {
+      "path": "services/refundGiftCardService.js",
+      "type": "service",
+      "role": "Phase 1B-2: gift-card portion recredit on refund.",
+      "functions": [
+        {
+          "name": "recreditGiftCardPortion",
+          "description": "recreditGiftCardPortion(sale, amountEur): resolves gift-card usages (sale.giftCardUsage, fallback GiftCardTransaction redeem), recredits via recreditGiftCardBalanceAtomic, creates a GiftCardTransaction type credit, rolls back the debit if recording the transaction fails."
+        }
+      ]
+    },
+    {
+      "path": "controllers/serviceBookingController.js",
+      "type": "controller",
+      "role": "Service-booking endpoints. Phase 1B-3 rewiring: createBooking -> createServiceBookingWithProtection (pending_payment before payment; free service -> immediate paid Sale); cancelMyBooking and cancelBookingByAdmin -> releaseServiceBookingSlotLocks."
+    },
+    {
+      "path": "controllers/availabilityController.js",
+      "type": "controller",
+      "role": "Practitioner availability + calendar endpoints (/api/gestion/availability). Phase 1B-3: consumes computeAvailableSlotsForPractitioner (alias computeBookableSlotsForPractitioner) so the vitrine slot display stays aligned with server-side validation."
+    },
+    {
+      "path": "services/sessionCancellationFlowService.js",
+      "type": "service",
+      "role": "Tokenized session/service cancellation decision flow. Phase 1B-3: applyFlowServiceRescheduleDecision now routes through createServiceBookingWithProtection (supersedes the ad-hoc STEP 21d findOne/FormationSession double-check) so reschedules cannot double-book."
     }
   ],
   "project": "Beauty Savage",
@@ -8212,7 +8324,15 @@
     "saleModel": "backend/models/Sale.js",
     "refundRequestModel": "backend/models/RefundRequest.js",
     "giftCardController": "backend/controllers/giftCardController.js",
-    "giftCardPurchaseModule": "backend/public/js/modules/giftCardPurchaseModule.js"
+    "giftCardPurchaseModule": "backend/public/js/modules/giftCardPurchaseModule.js",
+    "secretEnvUtil": "backend/utils/secretEnv.js",
+    "bookingSlotLockModel": "backend/models/BookingSlotLock.js",
+    "serviceAvailabilityService": "backend/services/serviceAvailabilityService.js",
+    "refundRequestService": "backend/services/refundRequestService.js",
+    "refundGiftCardService": "backend/services/refundGiftCardService.js",
+    "refundRequestConstants": "backend/constants/refundRequest.js",
+    "serviceBookingConstants": "backend/constants/serviceBooking.js",
+    "testsReadme": "backend/tests/README.md"
   },
   "businessRules": {
     "stripeCommission": {
@@ -9063,5 +9183,128 @@
       "frontend": "sessionCanceledDecisionModule.onSubmitServiceReschedule — catch error.code=SLOT_UNAVAILABLE → toast + reset step 1"
     },
     "errorCode": "SLOT_UNAVAILABLE — thrown as Error with .code and .status=409"
+  },
+  "lastV1StabilizationPhases": {
+    "date": "2026-06-22",
+    "branch": "phase-0-security-baseline",
+    "lastCommit": "f1f0b73 Prevent service booking double-booking",
+    "title": "Reprise V1 - Phase 0 a Phase 1B-3",
+    "reports": [
+      "Rapports/version 1/20_rapport_init_git_phase0.md",
+      "Rapports/version 1/21_audit_harnais_tests.md",
+      "Rapports/version 1/22_rapport_harnais_tests_phase0.md",
+      "Rapports/version 1/23_rapport_phase1a_securite_p0.md",
+      "Rapports/version 1/24_audit_phase1b1_stripe_giftcard.md",
+      "Rapports/version 1/25_rapport_phase1b1_stripe_giftcard.md",
+      "Rapports/version 1/26_audit_phase1b2_remboursements.md",
+      "Rapports/version 1/27_rapport_phase1b2_remboursements.md",
+      "Rapports/version 1/28_audit_phase1b3_booking_disponibilites.md",
+      "Rapports/version 1/29_rapport_phase1b3_booking_disponibilites.md"
+    ],
+    "phase0Git": [
+      "git init; default branch main + work branch phase-0-security-baseline; GitHub remote; baseline commit \"Initial audit baseline before V1 stabilization\" (~394 files).",
+      ".gitignore rewritten (node_modules, .env*, uploads, logs, Rapports, memory, one-off scripts).",
+      "No secret in git history (git grep --cached sk_live_/xkeysib-/whsec_/mongodb+srv)."
+    ],
+    "phase0Tests": {
+      "libs": [
+        "vitest",
+        "supertest",
+        "mongodb-memory-server",
+        "cross-env"
+      ],
+      "scripts": {
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:p0": "vitest run tests/p0",
+        "test:integration": "vitest run tests/integration"
+      },
+      "setup": [
+        "tests/setup/testEnv.js",
+        "tests/setup/testDb.js",
+        "tests/setup/testApp.js",
+        "tests/setup/seedTestData.js",
+        "tests/setup/stripeWebhookTestUtils.js"
+      ],
+      "p0Tests": [
+        "mockPay.exposure",
+        "security.secrets",
+        "security.tracking-token",
+        "security.logging",
+        "stripe.webhook.idempotence.characterization",
+        "giftcard.concurrentDebit",
+        "refund.doubleRequest.characterization",
+        "refund.recreditIdempotent",
+        "refund.overRefund",
+        "booking.doubleSlot.characterization",
+        "booking.slotRevalidation",
+        "giftcard.zeroPayment.characterization (todo)"
+      ],
+      "integrationTests": [
+        "health",
+        "auth"
+      ],
+      "results": {
+        "npmTest": "14 files, 37 passed, 1 todo",
+        "test:p0": "12 files, 31 passed, 1 todo",
+        "test:integration": "2 files, 6 passed"
+      }
+    },
+    "phase1aSecurity": [
+      "requireNonProductionMockPayment guard on POST /api/client/mock-pay -> 404 in production.",
+      "utils/secretEnv.js requireSecret removes all hard-coded secret fallbacks.",
+      "Gift-card password removed from /api/refund-tracking/:token payload (getRefundByTrackingToken).",
+      "trackingToken debug logs removed (sessionCancellationFlowController)."
+    ],
+    "phase1b1StripeGiftcard": [
+      "Sale.stripePaymentIntentId partial UNIQUE index uniq_stripe_payment_intent.",
+      "Webhook E11000 treated as idempotent success.",
+      "persistSale writes PaymentIntent before insert.",
+      "debitGiftCardBalanceAtomic / recreditGiftCardBalanceAtomic in giftCardReservationService."
+    ],
+    "phase1b2Refunds": [
+      "constants/refundRequest.js status constants.",
+      "refundRequestService createRefundRequestOnce anti-duplicate + claimGiftCardRecredit.",
+      "RefundRequest partial UNIQUE index over active statuses.",
+      "saleTotal over-refund cap (calculateRefundExecutionCap).",
+      "refundGiftCardService recreditGiftCardPortion (idempotent recredit)."
+    ],
+    "phase1b3Booking": [
+      "serviceAvailabilityService: assertServiceSlotBookable, computeAvailableSlotsForPractitioner, createServiceBookingWithProtection, releaseServiceBookingSlotLocks.",
+      "BookingSlotLock unique {practitionerId,slotStartAt} minute-by-minute (anti exact double + partial overlap incl bufferTime).",
+      "Rejects past / outside-schedule / blocked slots; coherent ScheduleException support.",
+      "Rewired: serviceBookingController, clientController, stripeController, availabilityController, sessionCancellationFlowService.",
+      "Supersedes STEP 21d ad-hoc reschedule check."
+    ],
+    "remainingRisks": [
+      "Achat 0 EUR (no backend free-finalization endpoint; frontend bug, giftcard.zeroPayment todo).",
+      "Automatic expiration/release of pending_payment bookings (locks persist until manual/admin cancel).",
+      "Automatic refund when payment captured but slot became unavailable (booking rejected 409, no auto-refund).",
+      "Full recovery of blocked refunds.",
+      "Fully idempotent Stripe credit notes / invoices.",
+      "requireStrictDev / fine-grained roles hardening.",
+      "Rate-limit on login / password reset.",
+      "XSS / SVG / responsive / React migration (later)."
+    ],
+    "filesAdded": [
+      "utils/secretEnv.js",
+      "constants/refundRequest.js",
+      "constants/serviceBooking.js",
+      "models/BookingSlotLock.js",
+      "services/serviceAvailabilityService.js",
+      "services/refundRequestService.js",
+      "services/refundGiftCardService.js",
+      "controllers/serviceBookingController.js",
+      "controllers/availabilityController.js",
+      "services/sessionCancellationFlowService.js"
+    ],
+    "filesAnnotated": [
+      "models/Sale.js",
+      "models/RefundRequest.js",
+      "services/giftCardReservationService.js",
+      "controllers/clientController.js",
+      "controllers/stripeController.js",
+      "controllers/salesController.js"
+    ]
   }
 }

@@ -5,6 +5,10 @@ import FormationSession from '../models/FormationSession.js';
 import ServiceBooking from '../models/ServiceBooking.js';
 import Service from '../models/Service.js';
 import User from '../models/user.js';
+import {
+  computeAvailableSlotsForPractitioner as computeBookableSlotsForPractitioner,
+  sortSlotsByStart
+} from '../services/serviceAvailabilityService.js';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -652,17 +656,16 @@ export async function getAvailableSlots(req, res) {
     for (const p of practitioners) {
       const schedule = await PractitionerSchedule.findOne({ practitionerId: p._id }).lean();
       if (!schedule) continue;
-      const slots = await computeSlotsForPractitioner({
-        practitionerId: p._id,
+      const slots = await computeBookableSlotsForPractitioner({
+        practitioner: p,
+        schedule,
         dateStr: date,
-        service,
-        schedule
+        service
       });
       allSlots.push(...slots);
     }
 
-    allSlots.sort((a, b) => a.start.localeCompare(b.start));
-    return res.json({ ok: true, slots: allSlots });
+    return res.json({ ok: true, slots: sortSlotsByStart(allSlots) });
   } catch (error) {
     console.error('getAvailableSlots error', error);
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
@@ -715,11 +718,11 @@ export async function getAvailableDays(req, res) {
       if (daysFromToday >= leadDays) {
         let hasSlots = false;
         for (const { practitioner, schedule } of practitionerSchedules) {
-          const slots = await computeSlotsForPractitioner({
-            practitionerId: practitioner._id,
+          const slots = await computeBookableSlotsForPractitioner({
+            practitioner,
+            schedule,
             dateStr,
-            service,
-            schedule
+            service
           });
           if (slots.length) { hasSlots = true; break; }
         }

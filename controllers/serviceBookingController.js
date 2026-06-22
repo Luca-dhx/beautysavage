@@ -28,6 +28,10 @@ import {
   SESSION_CANCELLATION_TOKEN_TTL_DAYS
 } from '../services/sessionCancellationFlowService.js';
 import { triggerNotification } from '../services/notificationService.js';
+import {
+  createServiceBookingWithProtection,
+  releaseServiceBookingSlotLocks
+} from '../services/serviceAvailabilityService.js';
 
 function formatDateFR(date) {
   if (!date) return '—';
@@ -195,25 +199,29 @@ export async function createBooking(req, res) {
       return null;
     })();
 
-    const booking = await ServiceBooking.create({
-      serviceId: service._id,
-      practitionerId: practitioner._id,
-      clientId: userId,
-      bookingId: buildBookingId(),
-      startAt: startDate,
-      endAt: endDate,
-      selectedOptions: normalizedOptions,
-      totalPrice,
-      depositAmount,
-      paymentType: service.paymentType,
-      paymentStatus: 'pending',
-      status: 'pending_payment',
-      consumerWaiverSnapshot: {
-        refundDays: service.cancellationDays,
-        retractationDays: 14,
-        waiverType,
-        waiverAcceptedAt: null
-      }
+    const { booking } = await createServiceBookingWithProtection({
+      bookingData: {
+        serviceId: service._id,
+        practitionerId: practitioner._id,
+        clientId: userId,
+        bookingId: buildBookingId(),
+        startAt: startDate,
+        endAt: endDate,
+        selectedOptions: normalizedOptions,
+        totalPrice,
+        depositAmount,
+        paymentType: service.paymentType,
+        paymentStatus: 'pending',
+        status: 'pending_payment',
+        consumerWaiverSnapshot: {
+          refundDays: service.cancellationDays,
+          retractationDays: 14,
+          waiverType,
+          waiverAcceptedAt: null
+        }
+      },
+      service,
+      now
     });
 
     // Free service → create Sale immediately
@@ -286,6 +294,9 @@ export async function createBooking(req, res) {
       paymentType: service.paymentType
     });
   } catch (error) {
+    if (error?.status) {
+      return res.status(error.status).json({ ok: false, code: error.code || null, error: error.message });
+    }
     console.error('createBooking error', error);
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
   }
@@ -355,6 +366,7 @@ export async function cancelMyBooking(req, res) {
       cancelledAt: new Date(),
       cancelledBy: 'client'
     });
+    await releaseServiceBookingSlotLocks({ bookingId: booking.bookingId }).catch(() => {});
 
     // Notification annulation client
     void triggerNotification('booking_cancelled_client', {
@@ -716,6 +728,7 @@ export async function cancelBookingByAdmin(req, res) {
     booking.cancelledAt = new Date();
     booking.cancelledBy = 'admin';
     await booking.save();
+    await releaseServiceBookingSlotLocks({ bookingId: booking.bookingId }).catch(() => {});
 
     const client = booking.clientId;
     const service = booking.serviceId;

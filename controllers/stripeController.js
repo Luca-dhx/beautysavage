@@ -25,6 +25,7 @@ import {
 import { recreditGiftCardPortion } from '../services/refundGiftCardService.js';
 import { claimGiftCardRecredit } from '../services/refundRequestService.js';
 import { getAppBaseUrl } from '../utils/invoiceUrl.js';
+import { assertServiceSlotBookable } from '../services/serviceAvailabilityService.js';
 
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -737,6 +738,21 @@ export async function createCheckoutSession(req, res) {
         ok: false,
         error: 'Données de réservation incomplètes.',
         code: 'CHECKOUT_CONTEXT_INVALID'
+      });
+    }
+    try {
+      await assertServiceSlotBookable({
+        practitionerId: checkoutState.service.practitionerId,
+        serviceId: checkoutState.service.serviceId,
+        startAt: checkoutState.service.slotStart,
+        endAt: checkoutState.service.slotEnd,
+        now: new Date()
+      });
+    } catch (validationError) {
+      return res.status(Number(validationError?.status || 400)).json({
+        ok: false,
+        error: validationError?.message || 'Ce creneau n est plus disponible.',
+        code: validationError?.code || 'CHECKOUT_CONTEXT_INVALID'
       });
     }
   } else if (isCart) {

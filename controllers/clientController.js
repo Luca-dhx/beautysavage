@@ -67,6 +67,7 @@ import {
 } from '../services/giftCardReservationService.js';
 import crypto from 'node:crypto';
 import { isActiveRefundRequestStatus } from '../constants/refundRequest.js';
+import { createServiceBookingWithProtection } from '../services/serviceAvailabilityService.js';
 
 function serializeItem(item) {
   if (!item) return null;
@@ -2654,6 +2655,12 @@ async function processServiceCheckoutStatePurchase({
     const practitioner = await PractitionerProfile.findById(rawPractitionerId).lean();
     if (practitioner?.isActive) practitionerObjectId = practitioner._id;
   }
+  if (!practitionerObjectId) {
+    throw Object.assign(new Error('Praticienne introuvable.'), {
+      status: 404,
+      code: 'PRACTITIONER_NOT_FOUND'
+    });
+  }
 
   // Generate bookingId
   const bookingIdSuffix = crypto.randomUUID().split('-')[0];
@@ -2663,21 +2670,24 @@ async function processServiceCheckoutStatePurchase({
   const endAt = new Date(serviceData.slotEnd);
 
   // Create ServiceBooking
-  const booking = await ServiceBooking.create({
-    bookingId: newBookingId,
-    clientId: userId,
-    serviceId: service._id,
-    practitionerId: practitionerObjectId,
-    startAt,
-    endAt,
-    totalPrice,
-    depositAmount,
-    paymentType: service.paymentType || 'full',
-    paymentStatus: service.paymentType === 'deposit' ? 'deposit_paid' : 'paid',
-    status: 'confirmed',
-    selectedOptions: validatedOptions,
-    consumerWaiverSnapshot,
-    stripePaymentIntentId: normalizedStripePaymentIntentId || null
+  const { booking } = await createServiceBookingWithProtection({
+    bookingData: {
+      bookingId: newBookingId,
+      clientId: userId,
+      serviceId: service._id,
+      practitionerId: practitionerObjectId,
+      startAt,
+      endAt,
+      totalPrice,
+      depositAmount,
+      paymentType: service.paymentType || 'full',
+      paymentStatus: service.paymentType === 'deposit' ? 'deposit_paid' : 'paid',
+      status: 'confirmed',
+      selectedOptions: validatedOptions,
+      consumerWaiverSnapshot,
+      stripePaymentIntentId: normalizedStripePaymentIntentId || null
+    },
+    service
   });
 
   // For deposit payments, totalAmount = deposit charged now (not full service price)

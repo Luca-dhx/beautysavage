@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { ACTIVE_SERVICE_BOOKING_STATUSES } from '../constants/serviceBooking.js';
 
 const selectedOptionSchema = new mongoose.Schema({
   optionId: { type: mongoose.Schema.Types.ObjectId },
@@ -77,7 +78,16 @@ const serviceBookingSchema = new mongoose.Schema({
 
 serviceBookingSchema.index({ bookingId: 1 }, { unique: true });
 serviceBookingSchema.index({ clientId: 1, startAt: -1 });
-serviceBookingSchema.index({ practitionerId: 1, startAt: 1 });
+serviceBookingSchema.index({ practitionerId: 1, startAt: -1 });
+serviceBookingSchema.index(
+  { practitionerId: 1, startAt: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      status: { $in: ACTIVE_SERVICE_BOOKING_STATUSES }
+    }
+  }
+);
 serviceBookingSchema.index({ serviceId: 1 });
 
 const ServiceBooking = mongoose.model('ServiceBooking', serviceBookingSchema);

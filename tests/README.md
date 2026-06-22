@@ -64,10 +64,15 @@ Stripe - see "Safety" below.
   recredits the gift card exactly once.
 - `tests/p0/refund.overRefund.test.js` - refund execution is capped to the paid
   sale total for mixed and gift-card-only refunds.
+- `tests/p0/booking.doubleSlot.characterization.test.js` - service booking rejects
+  exact double-booking, partial overlap, past slots, off-schedule slots and blocked
+  slots, while still allowing a slot reopened by a `modify` exception.
+- `tests/p0/booking.slotRevalidation.test.js` - final Stripe-side service booking
+  creation is revalidated server-side and refuses a slot that became unavailable.
 
-### Expected-fail (`it.fails`) - still-open P0 bug
-- `tests/p0/booking.doubleSlot.characterization.test.js` - two clients can both book
-  the same practitioner+slot (no overlap guard). Desired: only one booking.
+### Expected-fail (`it.fails`)
+
+Currently none in the P0 harness.
 
 ### Todo (`it.todo`) - documented gap not yet automated
 - `tests/p0/giftcard.zeroPayment.characterization.test.js` - the 0 EUR (100% gift
@@ -76,11 +81,10 @@ Stripe - see "Safety" below.
 
 ## How to use these tests to guide the fixes
 
-1. Pick a P0 (for example double-booking). Find its `it.fails` test.
-2. Implement the fix (for example overlap check + partial unique index).
-3. Re-run `npm run test:p0`. When the desired behavior now holds, remove `.fails`
-   to turn it into a permanent regression test.
-4. Repeat. The harness keeps you from breaking the green flows while you fix.
+1. Add or update a characterization/regression test for the P0.
+2. Implement the fix behind the failing assertion.
+3. Re-run `npm run test:p0` until the regression is permanently green.
+4. Repeat. The harness keeps you from breaking the already-green flows while you fix.
 
 For the `it.todo` items, build the missing fixture/endpoint, then implement the
 assertion described in the todo string.
@@ -109,6 +113,7 @@ tests/
     refund.recreditIdempotent.test.js
     refund.overRefund.test.js
     booking.doubleSlot.characterization.test.js
+    booking.slotRevalidation.test.js
     giftcard.zeroPayment.characterization.test.js
 ```
 

@@ -26,6 +26,15 @@ import { hashPassword } from '../../utils/password.js';
 
 export const TEST_PASSWORD = 'Test1234';
 
+function buildNextWorkingBookingSlot() {
+  const slot = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  slot.setHours(10, 0, 0, 0);
+  while (slot.getDay() === 0 || slot.getDay() === 6) {
+    slot.setDate(slot.getDate() + 1);
+  }
+  return slot;
+}
+
 export async function seedTestData() {
   const { hash, salt } = await hashPassword(TEST_PASSWORD);
   const cred = { passwordHash: hash, passwordSalt: salt };
@@ -158,9 +167,8 @@ export async function seedTestData() {
     status: 'active'
   });
 
-  // A fixed future bookable slot (in +7 days at 10:00) for booking tests.
-  const bookingSlot = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  bookingSlot.setHours(10, 0, 0, 0);
+  // A fixed future bookable slot on a working day for booking tests.
+  const bookingSlot = buildNextWorkingBookingSlot();
 
   return {
     password: TEST_PASSWORD,

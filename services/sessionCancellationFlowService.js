@@ -29,6 +29,7 @@ import {
   findActiveRefundRequestForSaleItem
 } from './refundRequestService.js';
 import { createCompensationGiftCard } from './giftCardService.js';
+import { createServiceBookingWithProtection } from './serviceAvailabilityService.js';
 import { getPresentielWaiverExpectation } from '../utils/consumerWaiver.js';
 import { getAppBaseUrl } from '../utils/invoiceUrl.js';
 import {
@@ -1165,22 +1166,26 @@ export async function applyFlowServiceRescheduleDecision({
   const bookingIdSuffix = crypto.default.randomUUID().split('-')[0];
   const newBookingId = `BKG-${Date.now()}-${bookingIdSuffix}`;
 
-  const newBooking = await ServiceBooking.create({
-    bookingId: newBookingId,
-    serviceId: flow.serviceId,
-    practitionerId: resolvedPractitionerId,
-    clientId: flow.userId,
-    startAt: startDate,
-    endAt: endDate,
-    selectedOptions: Array.isArray(flow.bookingSnapshot?.selectedOptions)
-      ? flow.bookingSnapshot.selectedOptions
-      : [],
-    totalPrice: Number(flow.bookingSnapshot?.totalPrice) || 0,
-    depositAmount: 0,
-    paymentType: 'free',
-    paymentStatus: 'paid',
-    status: 'confirmed',
-    saleId: sanitizeText(flow.saleId) || null
+  const { booking: newBooking } = await createServiceBookingWithProtection({
+    bookingData: {
+      bookingId: newBookingId,
+      serviceId: flow.serviceId,
+      practitionerId: resolvedPractitionerId,
+      clientId: flow.userId,
+      startAt: startDate,
+      endAt: endDate,
+      selectedOptions: Array.isArray(flow.bookingSnapshot?.selectedOptions)
+        ? flow.bookingSnapshot.selectedOptions
+        : [],
+      totalPrice: Number(flow.bookingSnapshot?.totalPrice) || 0,
+      depositAmount: 0,
+      paymentType: 'free',
+      paymentStatus: 'paid',
+      status: 'confirmed',
+      saleId: sanitizeText(flow.saleId) || null
+    },
+    service,
+    now
   });
 
   flow.decision = FLOW_DECISION_RESCHEDULE;

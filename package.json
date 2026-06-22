@@ -1,0 +1,28 @@
+{
+    "name": "chronia-gestion",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "app.js",
+    "scripts": {
+        "clean-port": "node scripts/cleanPort.js",
+        "prestart": "npm run clean-port",
+        "start": "nodemon app.js",
+        "support:cleanup": "node scripts/supportWorkflowCleanup.js"
+    },
+    "dependencies": {
+        "argon2": "^0.41.1",
+        "cookie-parser": "^1.4.6",
+        "dotenv": "^16.4.5",
+        "express": "^4.21.1",
+        "express-rate-limit": "^7.2.0",
+        "helmet": "^7.2.0",
+        "mongoose": "^8.6.0",
+        "morgan": "^1.10.0",
+        "multer": "^2.0.2",
+        "pdfkit": "^0.17.2",
+        "stripe": "^20.4.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.7"
+    }
+}

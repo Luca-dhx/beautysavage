@@ -1,0 +1,155 @@
+import crypto from 'node:crypto';
+import mongoose from 'mongoose';
+
+const REFUND_STATUSES = ['requested', 'pending', 'succeeded', 'failed', 'canceled'];
+const STRIPE_REFUND_STATUSES = ['not_applicable', 'pending', 'succeeded', 'failed'];
+const GIFT_CARD_REFUND_STATUSES = [
+  'not_applicable',
+  'pending',
+  'succeeded',
+  'failed',
+  'rollback_needed'
+];
+
+const refundRequestSchema = new mongoose.Schema(
+  {
+    refundId: {
+      type: String,
+      required: true,
+      trim: true,
+      unique: true
+    },
+    saleId: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    itemId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true
+    },
+    itemType: {
+      type: String,
+      enum: ['formation', 'product', 'gift-card', 'service'],
+      required: true
+    },
+    formationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Formation',
+      default: null
+    },
+    amount: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    currency: {
+      type: String,
+      trim: true,
+      default: 'EUR'
+    },
+    status: {
+      type: String,
+      enum: REFUND_STATUSES,
+      default: 'requested'
+    },
+    requestedAt: {
+      type: Date,
+      default: () => new Date()
+    },
+    processedAt: {
+      type: Date,
+      default: null
+    },
+    reason: {
+      type: String,
+      trim: true,
+      default: 'client_cancel_presentiel'
+    },
+    clientIp: {
+      type: String,
+      trim: true,
+      default: '0.0.0.0'
+    },
+    purchaseAcceptedText: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    sessionStartAt: {
+      type: Date,
+      default: null
+    },
+    eligibleRefund: {
+      type: Boolean,
+      default: false
+    },
+    meta: {
+      notes: {
+        type: String,
+        trim: true,
+        default: ''
+      },
+      formationTitle: {
+        type: String,
+        trim: true,
+        default: ''
+      },
+      formationCoverImage: {
+        type: String,
+        trim: true,
+        default: ''
+      },
+      saleCreatedAt: {
+        type: Date,
+        default: null
+      }
+    },
+    stripeRefundId: { type: String, default: null },
+    trackingToken: { type: String, sparse: true },
+    trackingTokenExpiresAt: { type: Date },
+    stripeRefundStatus: {
+      type: String,
+      enum: STRIPE_REFUND_STATUSES,
+      default: 'not_applicable'
+    },
+    giftCardRefundStatus: {
+      type: String,
+      enum: GIFT_CARD_REFUND_STATUSES,
+      default: 'not_applicable'
+    },
+    stripeRefundAmount: { type: Number, default: null },
+    giftCardRefundAmount: { type: Number, default: null },
+    stripeRefundConfirmedAt: { type: Date, default: null },
+    refundedAt: { type: Date, default: null },
+    giftCardRecredited: { type: Boolean, default: false },
+    giftCardRecreditAmount: { type: Number, default: null },
+    creditNoteId: { type: String, default: null },
+    creditNotePdfUrl: { type: String, default: null }
+  },
+  {
+    collection: 'refundrequests'
+  }
+);
+
+refundRequestSchema.pre('save', function (next) {
+  if (this.isNew && !this.trackingToken) {
+    this.trackingToken = crypto.randomBytes(32).toString('hex');
+    this.trackingTokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  }
+  next();
+});
+
+refundRequestSchema.index({ userId: 1, requestedAt: -1 });
+refundRequestSchema.index({ saleId: 1, itemId: 1, reason: 1 });
+refundRequestSchema.index({ status: 1, requestedAt: -1 });
+refundRequestSchema.index({ trackingToken: 1 }, { sparse: true });
+refundRequestSchema.index({ stripeRefundId: 1 }, { sparse: true });
+
+const RefundRequest = mongoose.model('RefundRequest', refundRequestSchema);
+export default RefundRequest;

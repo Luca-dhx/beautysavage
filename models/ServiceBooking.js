@@ -1,0 +1,84 @@
+import mongoose from 'mongoose';
+
+const selectedOptionSchema = new mongoose.Schema({
+  optionId: { type: mongoose.Schema.Types.ObjectId },
+  name: { type: String },
+  price: { type: Number }
+}, { _id: false });
+
+const consumerWaiverSnapshotSchema = new mongoose.Schema({
+  refundDays: { type: Number },
+  retractationDays: { type: Number, default: 14 },
+  waiverType: {
+    type: String,
+    enum: ['legal', 'institut', 'both', null],
+    default: null
+  },
+  waiverAcceptedAt: { type: Date, default: null }
+}, { _id: false });
+
+const serviceBookingSchema = new mongoose.Schema({
+  serviceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Service',
+    required: true
+  },
+  practitionerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PractitionerProfile',
+    required: true
+  },
+  clientId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+
+  bookingId: { type: String, required: true, unique: true },
+
+  startAt: { type: Date, required: true },
+  endAt: { type: Date, required: true },
+
+  selectedOptions: { type: [selectedOptionSchema], default: [] },
+
+  totalPrice: { type: Number, required: true },
+  depositAmount: { type: Number, default: 0 },
+
+  paymentType: {
+    type: String,
+    enum: ['full', 'deposit', 'free'],
+    default: 'full'
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'deposit_paid', 'paid', 'refunded', 'cancelled'],
+    default: 'pending'
+  },
+  stripePaymentIntentId: { type: String, default: null, sparse: true },
+
+  status: {
+    type: String,
+    enum: ['pending_payment', 'confirmed', 'cancelled', 'no_show', 'completed'],
+    default: 'pending_payment'
+  },
+  cancelledAt: { type: Date, default: null },
+  cancelledBy: { type: String, enum: ['client', 'admin', null], default: null },
+  noShowAt: { type: Date, default: null },
+
+  consumerWaiverSnapshot: { type: consumerWaiverSnapshotSchema, default: () => ({}) },
+
+  saleId: { type: String, default: null, trim: true },
+
+  remindersSent: [{ type: String }],
+
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+}, { collection: 'service_bookings' });
+
+serviceBookingSchema.index({ bookingId: 1 }, { unique: true });
+serviceBookingSchema.index({ clientId: 1, startAt: -1 });
+serviceBookingSchema.index({ practitionerId: 1, startAt: 1 });
+serviceBookingSchema.index({ serviceId: 1 });
+
+const ServiceBooking = mongoose.model('ServiceBooking', serviceBookingSchema);
+export default ServiceBooking;

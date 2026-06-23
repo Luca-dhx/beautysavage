@@ -156,8 +156,9 @@
   - `POST /auth/signup`: cree un compte `role=client` en `emailVerified=false`, hash mot de passe, genere un code 6 chiffres, stocke uniquement le hash du code, expiration 10 min, tentatives reset, envoi email.
   - `POST /auth/verify-email`: verifie email+code (hash compare en timing-safe), limite de tentatives, expiration stricte, active `emailVerified=true`, purge les champs de verification puis cree la session (auto-login).
   - `POST /auth/resend-verification`: renvoi code avec throttling serveur 30s.
-  - `POST /auth/login`: refuse les comptes non verifies avec `code=EMAIL_NOT_VERIFIED` (message explicite), sans casser login admin/dev existant.
-  - Rate limits dedies sur signup/verify/resend via `express-rate-limit`.
+  - `POST /auth/login`: refuse les comptes non verifies avec `code=EMAIL_NOT_VERIFIED` (message explicite), sans casser login admin/dev existant, et applique un rate-limit dedie (5 tentatives / 15 min / IP, succes non comptes).
+  - `POST /auth/password-reset/request|validate|complete`: rate limits dedies par route via `express-rate-limit` pour eviter spam et brute-force de token.
+  - Rate limits dedies sur signup/verify/resend/login/password-reset via `express-rate-limit`.
 - Modele `User` et compat:
   - Nouveaux champs: `emailVerified`, `emailVerificationCodeHash`, `emailVerificationExpiresAt`, `emailVerificationAttempts`, `emailVerificationLastSentAt`.
   - Compat legacy: les anciens comptes sans champ restent consideres verifies (`isEmailVerified` fallback true), pour eviter tout lock involontaire.
@@ -1812,7 +1813,7 @@ Pour date D, service duree `D_min`, granularite `G_min` :
 - **C1 — Bouton "Modifier" adaptatif** : `updateEditViewBtn()` est appelé dans `datesSet` ET `viewDidMount`. Le label change dynamiquement selon la vue (Jour/Semaine/Mois). Aucune modification requise.
 - **C2 — Dropdown time picker en position fixed** : `attachTimePickerEvents` appende le dropdown au `document.body` en `position:fixed` pour éviter tout clipping. Aucune modification requise.
 - **C3 — Anti-chevauchement à l'ouverture** : `revalidateDay(dayRow)` est appelé avant l'ouverture du dropdown pour pré-calculer les `disabledSlots`. Aucune modification requise.
-- **C5 — Guard `requireDev`** : `requireDev = createRoleGuard(['dev', 'admin'])` — admin est déjà autorisé. Aucune modification requise.
+- **C5 — Guards roles** : `requireDev` reste inclusif (`dev` + `admin`) pour le périmètre gestion classique, tandis que `requireStrictDev` est maintenant strictement `dev`-only. Aucune modification requise sur le planning.
 
 ### Correctif 4 — Modal "Voir les détails" formation
 
@@ -1830,7 +1831,7 @@ Pour date D, service duree `D_min`, granularite `G_min` :
 
 ### Correctif 5 — Annulation session depuis le planning
 
-- Guard `requireDev` déjà inclusif (dev + admin). Aucune modification backend.
+- Guard `requireDev` déjà inclusif (dev + admin) ; `requireStrictDev` strict dev-only. Aucune modification backend.
 - Flow annulation : modal confirmation → `DELETE /api/gestion/formations/:formationId/sessions/:sessionId` → controller existant `deleteSession` gère tout (status + emails clients).
 
 ### CSS ajoutés (`public/css/planningModule.css`)
@@ -2433,8 +2434,8 @@ Pour date D, service duree `D_min`, granularite `G_min` :
 - **Remboursement automatique si paiement encaisse mais slot devenu indisponible** : le booking est rejete (409) mais aucun remboursement automatique n'est declenche.
 - **Reprise complete des refunds bloques** : pas encore de mecanisme de relance/reconciliation exhaustif.
 - **Credit notes / factures d'avoir Stripe totalement idempotentes** : non encore garanties.
-- **`requireStrictDev` / gestion fine des roles** : durcissement a faire.
-- **Rate-limit login / reset password** : a ajouter.
+- ~~**`requireStrictDev` / gestion fine des roles**~~ -> **RESOLU en Phase P1-1** : `requireStrictDev` est dev-only, `gestionUsersRouter` passe par `requireAdminOrDev` et `gestionUsersController` bloque l assignation/promotion vers `dev` pour les admins.
+- ~~**Rate-limit login / reset password**~~ -> **RESOLU en Phase P1-1** : login et password-reset ont des rate-limits dedies par route.
 - **XSS / SVG / responsive / migration React** : reportes plus tard.
 
 ## Phase 1B-4 — Finalisation des achats 0 € (100% carte cadeau / gratuite)
@@ -2532,3 +2533,53 @@ Pour date D, service duree `D_min`, granularite `G_min` :
   - le calcul du montant du ;
   - le POST vers `/api/client/checkout/finalize-free` avec `checkoutState + idempotencyKey` ;
   - la remontee claire d une erreur `402 PAYMENT_REQUIRED`.
+
+## Phase P1-1 -- Durcissement roles dev/admin + rate-limit auth
+
+> Section ajoutee le 2026-06-23. Cette phase ferme deux risques P1 visibles dans les audits 09/13/19/35 : la confusion entre `dev` et `admin`, et l absence de rate-limits dedies sur les routes d authentification sensibles.
+
+### Principe
+- `middlewares/requireDev.js` distingue maintenant clairement :
+  - `requireDev` / `requireAdminOrDev` -> `admin` + `dev` autorises ;
+  - `requireStrictDev` -> `dev` uniquement.
+- `routers/gestionUsersRouter.js` passe par `requireAdminOrDev` pour laisser un admin gerer les comptes usuels.
+- `controllers/gestionUsersController.js` refuse a un admin de creer ou promouvoir un compte `dev`, tout en gardant la gestion des comptes `admin` / `client`.
+
+### Auth rate-limit
+- `routers/authRouter.js` applique un rate-limit dedie a `POST /auth/login` (5 tentatives / 15 min / IP, successful logins skipped).
+- `routers/passwordResetRouter.js` applique des rate-limits dedies a `POST /request`, `POST /validate` et `POST /complete`.
+- Les messages de rate-limit restent generiques et ne revelent ni existence d email ni etat du token.
+
+### Routes concernees
+- Strict dev :
+  - `POST /api/dev/create-user`
+  - toutes les routes deja branchees sur `requireStrictDev` (site status, mail templates, themes, etc.)
+- Admin/dev :
+  - `GET /api/gestion/users`
+  - `POST /api/gestion/users`
+  - `PUT /api/gestion/users/:id`
+  - les routes deja branchees sur `requireAdminOrDev` (clients, editorial content, admins, etc.)
+- Auth rate-limited :
+  - `POST /auth/login`
+  - `POST /auth/password-reset/request`
+  - `POST /auth/password-reset/validate`
+  - `POST /auth/password-reset/complete`
+
+### Impact metier
+- Un admin ne peut plus utiliser les routes de gestion utilisateurs pour creer ou promouvoir un compte `dev`.
+- Les routes admin/dev classiques restent accessibles aux admins lorsque c est voulu.
+- Le brute-force login et le spam / token brute-force sur les resets sont ralentis sans casser le flux normal.
+
+### Tests
+- `tests/p1/security.roles.test.js` :
+  - dev -> route strict dev OK ;
+  - admin -> route strict dev refuse ;
+  - client -> route strict dev refuse ;
+  - admin -> gestion users OK pour client, refuse pour `dev` ;
+  - dev -> gestion users OK pour `dev`.
+- `tests/p1/auth.rateLimit.test.js` :
+  - login normal OK ;
+  - login -> 429 apres repetitions ;
+  - password reset request -> 429 apres repetitions ;
+  - password reset validate -> 429 apres repetitions ;
+  - password reset complete -> 429 apres repetitions.

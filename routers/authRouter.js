@@ -52,13 +52,21 @@ const RESEND_RATE_LIMIT = buildAuthRateLimiter({
   code: 'RESEND_VERIFICATION_RATE_LIMIT',
   error: 'Trop de demandes de renvoi. Reessayez plus tard.'
 });
+const LOGIN_RATE_LIMIT = buildAuthRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  code: 'LOGIN_RATE_LIMIT',
+  error: 'Trop de tentatives de connexion. Reessayez plus tard.',
+  skipSuccessfulRequests: true
+});
 
-function buildAuthRateLimiter({ windowMs, max, code, error }) {
+function buildAuthRateLimiter({ windowMs, max, code, error, skipSuccessfulRequests = false }) {
   return rateLimit({
     windowMs,
     max,
     standardHeaders: true,
     legacyHeaders: false,
+    skipSuccessfulRequests,
     handler(_req, res) {
       return res.status(429).json({
         ok: false,
@@ -487,7 +495,7 @@ router.post('/resend-verification', RESEND_RATE_LIMIT, async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', LOGIN_RATE_LIMIT, async (req, res) => {
   try {
     const { email, password } = req.body || {};
     const normalizedEmail = normalizeEmail(email);

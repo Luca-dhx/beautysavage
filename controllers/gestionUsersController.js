@@ -38,6 +38,10 @@ function normalizeRole(value) {
   return ALLOWED_ROLES.includes(candidate) ? candidate : null;
 }
 
+function getRequesterRole(req) {
+  return String(req?.sessionUser?.role || '').trim().toLowerCase();
+}
+
 export async function listGestionUsers(_req, res) {
   try {
     const users = await User.find().sort({ createdAt: 1 }).lean();
@@ -54,6 +58,13 @@ export async function createGestionUser(req, res) {
   const normalizedRole = normalizeRole(role);
   if (!normalizedEmail || !password || !normalizedRole) {
     return res.status(400).json({ ok: false, error: 'Email, mot de passe et rÃ´le requis.' });
+  }
+  const requesterRole = getRequesterRole(req);
+  if (normalizedRole === 'dev' && requesterRole !== 'dev') {
+    return res.status(403).json({
+      ok: false,
+      error: 'Seul un compte dev peut creer ou promouvoir un compte dev.'
+    });
   }
   try {
     const existing = await User.findOne({ email: normalizedEmail }).lean();
@@ -99,6 +110,13 @@ export async function updateGestionUser(req, res) {
     const normalizedRole = normalizeRole(req.body?.role);
     const isSelf = String(req.sessionUserId) === String(user._id);
     if (typeof normalizedRole === 'string') {
+      const requesterRole = getRequesterRole(req);
+      if (normalizedRole === 'dev' && requesterRole !== 'dev') {
+        return res.status(403).json({
+          ok: false,
+          error: 'Seul un compte dev peut creer ou promouvoir un compte dev.'
+        });
+      }
       if (isSelf) {
         return res.status(403).json({ ok: false, error: 'Impossible de changer votre propre rÃ´le.' });
       }

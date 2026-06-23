@@ -1,7 +1,7 @@
 import express from 'express';
 
 import { requireAuth } from '../utils/session.js';
-import { requireStrictDev } from '../middlewares/requireDev.js';
+import { requireAdminOrDev } from '../middlewares/requireDev.js';
 import { requireMode } from '../middlewares/modeGuard.js';
 import {
   listGestionUsers,
@@ -11,7 +11,7 @@ import {
 
 const router = express.Router();
 
-router.use(requireAuth(), requireMode('gestion'), requireStrictDev);
+router.use(requireAuth(), requireMode('gestion'), requireAdminOrDev);
 
 router.get('/', listGestionUsers);
 router.post('/', createGestionUser);

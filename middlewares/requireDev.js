@@ -45,6 +45,6 @@ function createRoleGuard(roles = []) {
 export const requireDev = createRoleGuard(['dev', 'admin']);
 // Explicit alias kept for clarity when a route wants to be inclusive.
 export const requireAdminOrDev = requireDev;
-// Test-environment alias: admins share the same route access as dev accounts.
+// Strict dev-only guard: admin/client must be refused here.
 // Account-disabled and suspension/maintenance checks still run in createRoleGuard().
-export const requireStrictDev = createRoleGuard(['dev', 'admin']);
+export const requireStrictDev = createRoleGuard(['dev']);

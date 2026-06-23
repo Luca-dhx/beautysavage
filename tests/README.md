@@ -57,6 +57,12 @@ documented startup adaptation in `app.js`).
 > `booking.pendingPaymentCleanup.test.js` covers the expiration, idempotence, and
 > success-before-expiration cases. See
 > `Rapports/version 1/37_rapport_phase1b5_pending_payment.md`.
+>
+> **Phase P1-1 update** - the role split is now real: `requireStrictDev` is dev-only,
+> admin/dev routes stay inclusive where expected, and admins cannot create or
+> promote `dev` accounts through user management. Dedicated rate limits now cover
+> `POST /auth/login` and the password-reset routes. The new focused tests live in
+> `tests/p1/`. See `Rapports/version 1/39_rapport_p1_roles_rate_limit.md`.
 
 ## How to run
 
@@ -70,6 +76,7 @@ npm run test:p0          # only tests/p0 (P0 characterizations)
 Requirements: Node 22+. The first run downloads a `mongodb-memory-server` binary
 (cached afterwards). Tests never touch the real `.env`, real database, Brevo or
 Stripe - see "Safety" below.
+`npm run test:p1` runs only the new P1 security harness.
 
 ## What passes vs. what is intentionally red
 
@@ -107,6 +114,13 @@ Stripe - see "Safety" below.
 - `tests/p0/purchaseFlowService.zeroPayment.wiring.test.js` - frontend wiring:
   zero-payment checkout posts to `/api/client/checkout/finalize-free`, sends a
   stable `idempotencyKey`, and surfaces `402 PAYMENT_REQUIRED` clearly.
+
+### P1 (these MUST pass before the next security phase)
+- `tests/p1/security.roles.test.js` - `requireStrictDev` is dev-only, admin/dev
+  access remains available where expected, and admins cannot create/promote `dev`
+  via user management.
+- `tests/p1/auth.rateLimit.test.js` - dedicated rate limits for login and
+  password-reset routes.
 
 ### Expected-fail (`it.fails`)
 
@@ -153,6 +167,9 @@ tests/
     booking.slotRevalidation.test.js
     booking.pendingPaymentCleanup.test.js
     giftcard.zeroPayment.characterization.test.js
+  p1/
+    security.roles.test.js
+    auth.rateLimit.test.js
 ```
 
 ## Safety (no real secrets / no real DB)

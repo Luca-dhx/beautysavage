@@ -1540,11 +1540,19 @@
     {
       "path": "controllers/gestionUsersController.js",
       "type": "controller",
-      "role": "Lists and manages user accounts for the CMS.",
+      "role": "Lists and manages user accounts for the CMS, while blocking admins from creating or promoting dev accounts.",
       "functions": [
         {
-          "name": "listUsers",
-          "description": ""
+          "name": "listGestionUsers",
+          "description": "Returns the CMS user list."
+        },
+        {
+          "name": "createGestionUser",
+          "description": "Creates a user and blocks admin actor from assigning role dev."
+        },
+        {
+          "name": "updateGestionUser",
+          "description": "Updates a user and blocks admin actor from promoting to role dev."
         }
       ],
       "stateVariables": [],
@@ -1552,12 +1560,12 @@
       "dependencies": {
         "imports": [
           "mongoose",
-          "models/Product",
-          "models/Formation",
-          "services/promotionService",
-          "services/commissionService"
+          "models/user.js",
+          "utils/password.js"
         ],
-        "usedBy": [],
+        "usedBy": [
+          "routers/gestionUsersRouter.js"
+        ],
         "exports": []
       }
     },
@@ -2174,11 +2182,15 @@
       "functions": [
         {
           "name": "requireDev",
-          "description": "Verifies session + isActive flag while enforcing role === 'dev'."
+          "description": "Verifies session + isActive flag while allowing admin or dev roles."
         },
         {
           "name": "requireAdminOrDev",
           "description": "Reuses the same session checks to allow either admin or dev roles."
+        },
+        {
+          "name": "requireStrictDev",
+          "description": "Reuses the same session checks but allows dev only."
         }
       ],
       "stateVariables": [],
@@ -5608,11 +5620,11 @@
     {
       "path": "routers/authRouter.js",
       "type": "router",
-      "role": "Auth router for login/logout/dev bootstrap plus client signup with email verification code flow (signup, verify, resend) and login guard for non-verified accounts.",
+      "role": "Auth router for login/logout/dev bootstrap plus client signup with email verification code flow (signup, verify, resend), login guard for non-verified accounts, and a dedicated login rate-limit.",
       "functions": [
         {
           "name": "defineRoutes",
-          "description": "Attaches login/logout/dev bootstrap and verification endpoints with account-state checks, rate limits, and suspended-admin protections."
+          "description": "Attaches login/logout/dev bootstrap and verification endpoints with account-state checks, dedicated rate limits, and suspended-admin protections."
         }
       ],
       "stateVariables": [],
@@ -5635,6 +5647,34 @@
           "services/mailService",
           "services/siteStatusService",
           "middlewares/siteStatusGuards"
+        ],
+        "usedBy": [
+          "app.js"
+        ],
+        "exports": []
+      }
+    },
+    {
+      "path": "routers/passwordResetRouter.js",
+      "type": "router",
+      "role": "Dedicated password reset flow with route-level rate limits for request, validate, and complete.",
+      "functions": [
+        {
+          "name": "defineRoutes",
+          "description": "Attaches password-reset handlers with dedicated IP-based rate limits."
+        }
+      ],
+      "stateVariables": [],
+      "routes": [
+        "POST /request",
+        "POST /validate",
+        "POST /complete"
+      ],
+      "dependencies": {
+        "imports": [
+          "express",
+          "express-rate-limit",
+          "controllers/passwordResetController.js"
         ],
         "usedBy": [
           "app.js"
@@ -6090,7 +6130,7 @@
     {
       "path": "routers/gestionUsersRouter.js",
       "type": "router",
-      "role": "Lists/updates user accounts.",
+      "role": "Lists/updates user accounts for admin and dev, with controller-side blocking of dev role assignment from admin accounts.",
       "functions": [
         {
           "name": "defineRoutes",
@@ -6105,7 +6145,10 @@
       "dependencies": {
         "imports": [
           "express",
-          "middlewares"
+          "utils/session.js",
+          "middlewares/modeGuard.js",
+          "middlewares/requireDev.js",
+          "controllers/gestionUsersController.js"
         ],
         "usedBy": [
           "app.js"
@@ -9218,6 +9261,7 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "test:p0": "vitest run tests/p0",
+        "test:p1": "vitest run tests/p1",
         "test:integration": "vitest run tests/integration"
       },
       "setup": [
@@ -9247,8 +9291,13 @@
         "health",
         "auth"
       ],
+      "p1Tests": [
+        "security.roles",
+        "auth.rateLimit"
+      ],
       "results": {
-        "npmTest": "16 files, 50 passed, 0 todo, 0 expected-fail",
+        "npmTest": "18 files, 60 passed, 0 todo, 0 expected-fail",
+        "test:p1": "2 files, 10 passed",
         "test:p0": "14 files, 44 passed, 0 todo",
         "test:integration": "2 files, 6 passed"
       }
@@ -9285,14 +9334,21 @@
       "Cleanup releases BookingSlotLock, marks stale pending_payment bookings cancelled/system, and skips paid or confirmed bookings.",
       "Covered by tests/p0/booking.pendingPaymentCleanup.test.js."
     ],
+    "phase1p1RolesRateLimit": [
+      "requireStrictDev is dev-only; requireAdminOrDev remains admin+dev.",
+      "gestionUsersRouter uses requireAdminOrDev, while gestionUsersController blocks admin create/update when role=dev.",
+      "authRouter login now has a dedicated 5/15min/IP rate-limit with successful logins skipped.",
+      "password-reset request/validate/complete each have dedicated rate-limits.",
+      "Covered by tests/p1/security.roles.test.js and tests/p1/auth.rateLimit.test.js."
+    ],
     "remainingRisks": [
       "RESOLVED in Phase 1B-4: 0 EUR / 100% gift-card finalization (POST /api/client/checkout/finalize-free).",
       "RESOLVED in Phase 1B-5: pending_payment bookings now expire automatically after 30 minutes via a dedicated cleanup job that releases slot locks and marks them cancelled/system.",
       "Automatic refund when payment captured but slot became unavailable (booking rejected 409, no auto-refund).",
       "Full recovery of blocked refunds.",
       "Fully idempotent Stripe credit notes / invoices.",
-      "requireStrictDev / fine-grained roles hardening.",
-      "Rate-limit on login / password reset.",
+      "RESOLVED in Phase P1-1: requireStrictDev / fine-grained roles hardening.",
+      "RESOLVED in Phase P1-1: rate-limit on login / password reset.",
       "XSS / SVG / responsive / React migration (later)."
     ],
     "filesAdded": [
@@ -9348,7 +9404,7 @@
       "architecture.md",
       "projectContext.json"
     ],
-    "tests": "tests/p0/giftcard.zeroPayment.characterization.test.js (it.todo -> real test): 100% gift card (sale+booking+debit), card > amount (capped debit), free product (no Stripe), double submit (one sale/one debit), refuses if balance due. Harness: 16 files, 50 passed, 0 todo, 0 expected-fail."
+    "tests": "tests/p0/giftcard.zeroPayment.characterization.test.js (it.todo -> real test): 100% gift card (sale+booking+debit), card > amount (capped debit), free product (no Stripe), double submit (one sale/one debit), refuses if balance due. Harness: 18 files, 60 passed, 0 todo, 0 expected-fail."
   },
   "lastZeroPaymentFrontendWiringUpdate": {
     "date": "2026-06-23",

@@ -2471,3 +2471,39 @@ Pour date D, service duree `D_min`, granularite `G_min` :
 
 ### Tests
 - `tests/p0/giftcard.zeroPayment.characterization.test.js` (le `it.todo` devient un test reel) : 100% carte cadeau (sale+booking+debit), carte > montant (debit plafonne), produit gratuit (sans Stripe), double soumission (une seule vente, un seul debit), refus si reste du. Harnais P0 : **0 todo, 0 expected-fail**.
+
+## Phase 1B-4B â€” Cablage frontend achat 0 EUR vers `finalize-free`
+
+> Section ajoutee le 2026-06-23. Cette phase ne touche pas le backend metier ; elle branche uniquement le frontend sur `POST /api/client/checkout/finalize-free`.
+
+### Principe
+- Tout checkout dont le montant du **maintenant** est nul ne charge plus Stripe.
+- Le frontend cree quand meme un `checkoutToken`, puis navigue vers `slug=payment&checkoutToken=...&freeCheckout=1`.
+- `public/js/vitrine.js` force `paymentResultModule` pour `payment_intent` **ou** `freeCheckout=1`, ce qui donne le meme ecran premium succes/echec que le retour Stripe.
+
+### `checkoutModule.js`
+- Achat simple : `remainingToPay > 0` -> Stripe inchange ; `remainingToPay === 0` -> ecran `payment` en mode free.
+- Panier : meme branchement sur `remainingToPay`.
+- Prestation : meme idee, mais la decision se fait sur `amountToPay` (montant du maintenant), pas sur `remainingToPay`.
+- Les paths 0 EUR reutilisent un `checkoutToken` stable par tentative (fingerprint du `checkoutState` sans timestamps volatils) afin qu un double-clic ne regenere pas une nouvelle cle.
+
+### `paymentResultModule.js`
+- Si `payment_intent` est present : flow Stripe historique, inchange.
+- Si `freeCheckout=1` :
+  - relit le `checkoutState` via `readCheckoutStateToken(checkoutToken)` ;
+  - verifie cote front que `getCheckoutAmountDue(checkoutState) === 0` ;
+  - appelle `submitFreeCheckoutRequest({ checkoutState, idempotencyKey: checkoutToken })` ;
+  - n appelle jamais Stripe et ne touche jamais `create-checkout-session`.
+- En succes : meme ecran de confirmation que Stripe.
+- En `402 PAYMENT_REQUIRED` : ecran d echec clair avec retry vers `origin`.
+
+### `purchaseFlowService.js`
+- Nouveau helper `getCheckoutAmountDue(checkoutState)` : utilise `amountToPay` s il existe, sinon `remainingToPay`.
+- Nouveau helper `submitFreeCheckoutRequest({ checkoutState, idempotencyKey })` : `POST /api/client/checkout/finalize-free`.
+- `finalizePurchase(...)` ne depend plus de `mock-pay` : tout path 0 EUR legacy reutilise `finalize-free`.
+
+### Tests frontend
+- `tests/p0/purchaseFlowService.zeroPayment.wiring.test.js` verrouille :
+  - le calcul du montant du ;
+  - le POST vers `/api/client/checkout/finalize-free` avec `checkoutState + idempotencyKey` ;
+  - la remontee claire d une erreur `402 PAYMENT_REQUIRED`.

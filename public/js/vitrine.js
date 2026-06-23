@@ -1379,9 +1379,11 @@ function handleBurgerTouchStart(event) {
   burgerTouchStartX = event.touches?.[0]?.clientX ?? null;
 }
 
-function hasPaymentIntentQuery(query) {
+function shouldUsePaymentResultModule(query) {
   if (!query || typeof query !== 'object') return false;
-  return String(query.payment_intent || '').trim().length > 0;
+  const paymentIntentId = String(query.payment_intent || '').trim();
+  const freeCheckout = String(query.freeCheckout || '').trim().toLowerCase();
+  return Boolean(paymentIntentId) || freeCheckout === '1' || freeCheckout === 'true';
 }
 
 function handleBurgerTouchMove(event) {
@@ -1531,7 +1533,9 @@ async function loadPage(name, { signal, navigationId, query } = {}) {
       if (!n.endsWith('Module')) n += 'Module';
       return n;
     }
-    const resolvedModuleName = hasPaymentIntentQuery(query) ? 'paymentResultModule' : resolveModuleName(payload.module);
+    const resolvedModuleName = shouldUsePaymentResultModule(query)
+      ? 'paymentResultModule'
+      : resolveModuleName(payload.module);
     const pageModule = await import(`/js/modules/${resolvedModuleName}.js`);
     if (navigationId && navigationId !== currentNavigationId) {
       logNavigation('load-page-stale-after-import', { slug, navigationId, currentNavigationId });

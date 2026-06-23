@@ -41,6 +41,15 @@ documented startup adaptation in `app.js`).
 > `giftcard.zeroPayment.characterization.test.js` todo is now a full green test. See
 > `Rapports/version 1/32_rapport_phase1b4_zero_payment.md`. **The P0 harness now has
 > zero todo and zero expected-fail.**
+>
+> **Phase 1B-4B update** - the frontend is now wired to consume that backend fix:
+> any checkout whose due-now amount is `0 EUR` goes through
+> `checkoutToken + freeCheckout=1` to the payment result screen, which calls
+> `POST /api/client/checkout/finalize-free` with `idempotencyKey = checkoutToken`
+> and never loads Stripe. A focused frontend regression test,
+> `purchaseFlowService.zeroPayment.wiring.test.js`, locks the request shape and the
+> clear `402 PAYMENT_REQUIRED` error path. See
+> `Rapports/version 1/34_rapport_phase1b4b_front_zero_payment.md`.
 
 ## How to run
 
@@ -85,6 +94,9 @@ Stripe - see "Safety" below.
   Sale + ServiceBooking created, gift card debited (capped to the due amount),
   double-submit is idempotent (one sale, one debit), and a still-due balance is
   refused (402 `PAYMENT_REQUIRED`).
+- `tests/p0/purchaseFlowService.zeroPayment.wiring.test.js` - frontend wiring:
+  zero-payment checkout posts to `/api/client/checkout/finalize-free`, sends a
+  stable `idempotencyKey`, and surfaces `402 PAYMENT_REQUIRED` clearly.
 
 ### Expected-fail (`it.fails`)
 

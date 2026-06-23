@@ -8,7 +8,7 @@ import { triggerFlyToTarget } from '../ui/acquisitionAnimationService.js';
 const CHECKOUT_STATE_PREFIX = 'beautysavage_checkout_state_';
 const CHECKOUT_STATE_TTL_MS = 1000 * 60 * 15;
 const CHECKOUT_RESULT_KEY = 'beautysavage_checkout_result';
-const MOCK_PAY_ENDPOINT = '/api/client/mock-pay';
+const FREE_CHECKOUT_ENDPOINT = '/api/client/checkout/finalize-free';
 
 function roundToCents(value) {
   return Math.round(Number(value || 0) * 100) / 100;
@@ -95,6 +95,14 @@ function normalizeTotals(totals = {}) {
   };
 }
 
+export function getCheckoutAmountDue(checkoutState = {}) {
+  const totals = checkoutState?.totals || {};
+  if (totals?.amountToPay !== undefined && totals?.amountToPay !== null) {
+    return toAmount(totals.amountToPay);
+  }
+  return toAmount(totals.remainingToPay);
+}
+
 function normalizeLegalState(legalState, item = {}) {
   const legacyWaiverAccepted =
     typeof legalState === 'boolean' ? legalState : Boolean(legalState?.waiverAccepted);
@@ -158,47 +166,30 @@ function navigateToOrigin(origin, fallbackItem) {
   });
 }
 
-async function submitMockPurchase(checkoutState) {
-  const legal = checkoutState?.legal || {};
-  const payload = {
-    type: checkoutState.item.type,
-    id: checkoutState.item.id,
-    giftCards: checkoutState.appliedGiftCards.map(entry => ({
-      code: entry.code,
-      password: entry.password,
-      amount: entry.amount
-    })),
-    paymentProvider: checkoutState.paymentProvider || 'stripe',
-    paymentIntentId: checkoutState.paymentIntentId || null,
-    paymentOutcome: 'success',
-    requireGiftCardPassword: checkoutState.appliedGiftCards.length > 0,
-    accepted_cgv: Boolean(legal.acceptedCgv),
-    renonciation_text: String(legal.waiverText || '').trim() || null
-  };
-  if (checkoutState.item.sessionId) {
-    payload.sessionId = checkoutState.item.sessionId;
-  }
-  if (Array.isArray(checkoutState.item.selectedOptions) && checkoutState.item.selectedOptions.length > 0) {
-    payload.selectedOptions = checkoutState.item.selectedOptions;
-  }
-  if (legal.dateFormation) {
-    payload.date_formation = legal.dateFormation;
-  }
-  if (payload.renonciation_text) {
-    payload.consumerWaiverAcceptedText = payload.renonciation_text;
-  }
-  const response = await fetch(MOCK_PAY_ENDPOINT, {
+export async function submitFreeCheckoutRequest({ checkoutState, idempotencyKey } = {}) {
+  const response = await fetch(FREE_CHECKOUT_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      checkoutState,
+      idempotencyKey: String(idempotencyKey || '').trim() || undefined
+    })
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
+    const isPaymentRequired =
+      response.status === 402 ||
+      String(data?.code || data?.error || '').trim().toUpperCase() === 'PAYMENT_REQUIRED';
     const error = new Error(
-      data?.message || data?.error || 'Impossible de confirmer votre achat.'
+      data?.message ||
+        data?.error ||
+        (isPaymentRequired
+          ? 'Un paiement complementaire est requis pour finaliser cette commande.'
+          : 'Impossible de confirmer votre achat.')
     );
     error.code = data?.code || data?.error || 'PURCHASE_FAILED';
+    error.status = response.status;
     throw error;
   }
   return data;
@@ -396,31 +387,84 @@ export function buildCartCheckoutState(
   };
 }
 
-export async function finalizePurchase({ outcome, checkoutState, sourceElement } = {}) {
+function resolveCheckoutContext(checkoutState) {
+  if (checkoutState?.cart === true) {
+    const firstItem =
+      Array.isArray(checkoutState?.items) && checkoutState.items.length > 0
+        ? checkoutState.items[0]
+        : null;
+    return {
+      fallbackItem: firstItem || { type: 'formation', id: '' },
+      itemType: 'cart',
+      itemId: 'cart'
+    };
+  }
+  const item =
+    checkoutState?.item && typeof checkoutState.item === 'object' ? checkoutState.item : {};
+  return {
+    fallbackItem: item,
+    itemType: String(item?.type || checkoutState?.itemType || '').trim().toLowerCase(),
+    itemId: String(item?.id || '').trim()
+  };
+}
+
+export async function finalizePurchase({
+  outcome,
+  checkoutState,
+  sourceElement,
+  idempotencyKey
+} = {}) {
   const normalizedOutcome = outcome === 'failed' ? 'failed' : 'success';
   const state = checkoutState || null;
-  if (!state?.item?.id) {
+  const { fallbackItem, itemType, itemId } = resolveCheckoutContext(state);
+  if (!state || (!state?.cart && !itemId)) {
     return { ok: false, code: 'MISSING_CHECKOUT_STATE' };
   }
   if (!isLegalStateValid(state)) {
     saveCheckoutResult({
       status: 'failed',
       message: 'Veuillez accepter les conditions pour continuer.',
-      itemType: state.item.type,
-      itemId: state.item.id
+      itemType,
+      itemId
     });
-    navigateToOrigin(state.origin, state.item);
+    navigateToOrigin(state.origin, fallbackItem);
     return { ok: false, code: 'LEGAL_VALIDATION_REQUIRED' };
   }
   if (normalizedOutcome === 'failed') {
     saveCheckoutResult({
       status: 'failed',
       message: 'Paiement non valide. Aucun debit n a ete effectue et votre achat n est pas confirme.',
-      itemType: state.item.type,
-      itemId: state.item.id
+      itemType,
+      itemId
     });
-    navigateToOrigin(state.origin, state.item);
+    navigateToOrigin(state.origin, fallbackItem);
     return { ok: false, code: 'PAYMENT_FAILED' };
+  }
+
+  if (getCheckoutAmountDue(state) === 0) {
+    try {
+      const response = await submitFreeCheckoutRequest({ checkoutState: state, idempotencyKey });
+      triggerAcquisitionForFormation(state, sourceElement);
+      saveCheckoutResult({
+        status: 'success',
+        message: 'Paiement valide. Votre achat est confirme.',
+        itemType,
+        itemId
+      });
+      navigateToOrigin(state.origin, fallbackItem);
+      return { ok: true, response };
+    } catch (error) {
+      saveCheckoutResult({
+        status: 'failed',
+        message:
+          error?.message ||
+          'Paiement non valide. Aucun debit n a ete effectue et votre achat n est pas confirme.',
+        itemType,
+        itemId
+      });
+      navigateToOrigin(state.origin, fallbackItem);
+      return { ok: false, code: error?.code || 'PURCHASE_FAILED', error };
+    }
   }
 
   // Stripe: purchase already handled server-side by webhook, skip backend call
@@ -429,34 +473,12 @@ export async function finalizePurchase({ outcome, checkoutState, sourceElement }
     saveCheckoutResult({
       status: 'success',
       message: 'Paiement valide. Votre achat est confirme.',
-      itemType: state.item.type,
-      itemId: state.item.id
+      itemType,
+      itemId
     });
-    navigateToOrigin(state.origin, state.item);
+    navigateToOrigin(state.origin, fallbackItem);
     return { ok: true };
   }
 
-  try {
-    const response = await submitMockPurchase(state);
-    triggerAcquisitionForFormation(state, sourceElement);
-    saveCheckoutResult({
-      status: 'success',
-      message: 'Paiement valide. Votre achat est confirme.',
-      itemType: state.item.type,
-      itemId: state.item.id
-    });
-    navigateToOrigin(state.origin, state.item);
-    return { ok: true, response };
-  } catch (error) {
-    saveCheckoutResult({
-      status: 'failed',
-      message:
-        error?.message ||
-        'Paiement non valide. Aucun debit n a ete effectue et votre achat n est pas confirme.',
-      itemType: state.item.type,
-      itemId: state.item.id
-    });
-    navigateToOrigin(state.origin, state.item);
-    return { ok: false, code: error?.code || 'PURCHASE_FAILED', error };
-  }
+  return { ok: false, code: 'UNSUPPORTED_PAYMENT_PROVIDER' };
 }

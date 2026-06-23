@@ -16,8 +16,7 @@ import { requestVitrineNavigation } from './vitrineNavigationHelper.js';
 import {
   buildCheckoutState,
   buildCartCheckoutState,
-  createCheckoutStateToken,
-  finalizePurchase
+  createCheckoutStateToken
 } from './purchaseFlowService.js';
 import { getItems } from './cartService.js';
 
@@ -621,6 +620,42 @@ function buildOrigin(itemType, itemId, sessionId, query) {
   const originSession = String(query.originSessionId || sessionId || '').trim();
   if (originSession) origin.query.sessionId = originSession;
   return origin;
+}
+
+function buildFreeCheckoutStateFingerprint(checkoutState) {
+  const stripVolatileFields = value => {
+    if (Array.isArray(value)) return value.map(stripVolatileFields);
+    if (!value || typeof value !== 'object') return value;
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([key]) => !['acceptedAt', 'createdAt', 'waiverAcceptedAt'].includes(key))
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nestedValue]) => [key, stripVolatileFields(nestedValue)])
+    );
+  };
+  try {
+    return JSON.stringify(stripVolatileFields(checkoutState));
+  } catch (_error) {
+    return '';
+  }
+}
+
+function getOrCreateFreeCheckoutToken(state, checkoutState) {
+  const fingerprint = buildFreeCheckoutStateFingerprint(checkoutState);
+  if (
+    state &&
+    state.freeCheckoutToken &&
+    state.freeCheckoutFingerprint &&
+    state.freeCheckoutFingerprint === fingerprint
+  ) {
+    return state.freeCheckoutToken;
+  }
+  const token = createCheckoutStateToken(checkoutState);
+  if (state && token) {
+    state.freeCheckoutToken = token;
+    state.freeCheckoutFingerprint = fingerprint;
+  }
+  return token;
 }
 
 function setFeedback(container, message, status = '') {
@@ -1550,18 +1585,13 @@ async function runCartCheckout(container, context) {
         });
       }
 
-      const button = container.querySelector('[data-proceed]');
-      const startedAt = Date.now();
-      button.disabled = true;
-      setInlineLoader(container, true, 'Finalisation de votre achat...');
-      const result = await finalizePurchase({
-        outcome: 'success',
-        checkoutState,
-        sourceElement: container.querySelector('.checkoutp-summary') || container
+      const token = getOrCreateFreeCheckoutToken(state, checkoutState);
+      if (!token) return setFeedback(container, 'Impossible d ouvrir le paiement.', 'error');
+      return requestVitrineNavigation('payment', {
+        source: 'cart-checkout-free',
+        skipThrottle: true,
+        query: { checkoutToken: token, freeCheckout: '1' }
       });
-      await waitMin(startedAt, FINALIZE_MIN_MS);
-      if (container.isConnected) { setInlineLoader(container, false, ''); button.disabled = false; }
-      showToast({ type: result.ok ? 'success' : 'error', message: result.ok ? 'Achat confirmé' : '\u00c9chec', durationMs: 1000 });
     });
   } catch (error) {
     console.error('Erreur checkout panier', error);
@@ -2316,6 +2346,15 @@ async function runServiceCheckout(container, context, { serviceSlug, slotStart, 
           waiverText: state.waiverText,
           waiverAcceptedAt
         },
+        origin: {
+          slug: 'checkout',
+          query: {
+            serviceSlug,
+            slotStart: state.slotStart,
+            slotEnd: state.slotEnd,
+            practitionerId: state.practitionerId || ''
+          }
+        },
         paymentProvider: 'stripe'
       };
 
@@ -2330,22 +2369,13 @@ async function runServiceCheckout(container, context, { serviceSlug, slotStart, 
       }
 
       // Free service → finalize directly
-      const button = container.querySelector('[data-proceed]');
-      const startedAt = Date.now();
-      button.disabled = true;
-      setInlineLoader(container, true, 'Finalisation de votre réservation...');
-      const result = await finalizePurchase({
-        outcome: 'success',
-        checkoutState,
-        sourceElement: container.querySelector('.checkoutp-summary') || container
+      const token = getOrCreateFreeCheckoutToken(state, checkoutState);
+      if (!token) return setFeedback(container, 'Impossible d\'ouvrir le paiement.', 'error');
+      return requestVitrineNavigation('payment', {
+        source: 'service-checkout-free',
+        skipThrottle: true,
+        query: { checkoutToken: token, freeCheckout: '1' }
       });
-      await waitMin(startedAt, FINALIZE_MIN_MS);
-      if (container.isConnected) { setInlineLoader(container, false, ''); button.disabled = false; }
-      if (result.ok) {
-        requestVitrineNavigation('my-services', { source: 'service-checkout-free', skipThrottle: true });
-      } else {
-        showToast({ type: 'error', message: 'Échec de la réservation', durationMs: 2000 });
-      }
     });
 
   } catch (error) {
@@ -2879,21 +2909,13 @@ export async function renderPage(container, context = {}) {
         });
       }
 
-      const button = container.querySelector('[data-proceed]');
-      const startedAt = Date.now();
-      button.disabled = true;
-      setInlineLoader(container, true, 'Finalisation de votre achat...');
-      const result = await finalizePurchase({
-        outcome: 'success',
-        checkoutState,
-        sourceElement: container.querySelector('.checkoutp-summary') || container
+      const token = getOrCreateFreeCheckoutToken(state, checkoutState);
+      if (!token) return setFeedback(container, 'Impossible dâ€™ouvrir le paiement.', 'error');
+      return requestVitrineNavigation('payment', {
+        source: 'checkout-free',
+        skipThrottle: true,
+        query: { checkoutToken: token, freeCheckout: '1' }
       });
-      await waitMin(startedAt, FINALIZE_MIN_MS);
-      if (container.isConnected) {
-        setInlineLoader(container, false, '');
-        button.disabled = false;
-      }
-      showToast({ type: result.ok ? 'success' : 'error', message: result.ok ? 'Achat confirmé' : '\u00c9chec', durationMs: 1000 });
     });
   } catch (error) {
     console.error('Erreur checkout', error);

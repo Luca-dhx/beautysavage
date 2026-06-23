@@ -1,6 +1,11 @@
 import { showToast } from '../helpers/toastService.js';
 import { requestVitrineNavigation } from './vitrineNavigationHelper.js';
 import {
+  getCheckoutAmountDue,
+  readCheckoutStateToken,
+  submitFreeCheckoutRequest
+} from './purchaseFlowService.js';
+import {
   ACQUISITION_PAGES,
   incrementAcquisitionNotifications
 } from './acquisitionNotificationService.js';
@@ -40,6 +45,11 @@ function formatDate(value) {
 
 function wait(ms) {
   return new Promise(resolve => window.setTimeout(resolve, ms));
+}
+
+function isFreeCheckoutQuery(query = {}) {
+  const raw = String(query?.freeCheckout || '').trim().toLowerCase();
+  return raw === '1' || raw === 'true';
 }
 
 function readProcessedIntents() {
@@ -123,7 +133,13 @@ function launchConfetti(root) {
   }, 2600);
 }
 
-function renderLoading(container, attempt = 0) {
+function renderLoading(container, attempt = 0, options = {}) {
+  let title = 'Verification du paiement';
+  let text = 'Nous confirmons votre achat de facon securisee...';
+  let hint = `Tentative ${attempt + 1} / ${MAX_PENDING_POLLS + 1}`;
+  title = options.title || title;
+  text = options.text || text;
+  hint = options.hint === undefined ? hint : options.hint;
   container.innerHTML = `
     <section class="payment-result payment-result--pending" data-payment-result-root>
       <article class="payment-result__panel">
@@ -136,11 +152,9 @@ function renderLoading(container, attempt = 0) {
             </div>
           </div>
         </div>
-        <h2 class="payment-result__title">Verification du paiement</h2>
-        <p class="payment-result__text">
-          Nous confirmons votre achat de facon securisee...
-        </p>
-        <p class="payment-result__hint">Tentative ${attempt + 1} / ${MAX_PENDING_POLLS + 1}</p>
+        <h2 class="payment-result__title">${escapeHtml(title)}</h2>
+        <p class="payment-result__text">${escapeHtml(text)}</p>
+        ${hint ? `<p class="payment-result__hint">${escapeHtml(hint)}</p>` : ''}
       </article>
     </section>
   `;
@@ -149,7 +163,16 @@ function renderLoading(container, attempt = 0) {
 function buildSummaryMarkup(purchase = {}) {
   const title = String(purchase?.formationTitle || purchase?.itemTitle || 'Votre achat').trim();
   const type = String(purchase?.type || '').trim().toLowerCase();
-  const typeLabel = type === 'formation' ? 'Formation' : type === 'gift-card' ? 'Carte cadeau' : 'Achat';
+  const typeLabel =
+    type === 'formation'
+      ? 'Formation'
+      : type === 'gift-card'
+        ? 'Carte cadeau'
+        : type === 'service'
+          ? 'Prestation'
+          : type === 'product'
+            ? 'Produit'
+            : 'Achat';
   const sessionDate = formatDate(purchase?.sessionDate);
   return `
     <div class="payment-result__summary">
@@ -164,14 +187,43 @@ function buildSummaryMarkup(purchase = {}) {
   `;
 }
 
+function resolveSuccessPrimaryAction(purchase = {}, payload = {}) {
+  const purchaseType = String(purchase?.type || '').trim().toLowerCase();
+  if (purchaseType === 'gift-card') {
+    return {
+      slug: 'my-gift-cards',
+      query: null,
+      label: 'Acceder a mes cartes cadeaux',
+      successText: 'Votre carte cadeau est creee et disponible dans votre espace.'
+    };
+  }
+  if (purchaseType === 'service') {
+    return {
+      slug: 'my-services',
+      query: null,
+      label: 'Acceder a mes prestations',
+      successText: 'Votre reservation est validee. Tout est pret.'
+    };
+  }
+  if (purchaseType === 'product' || purchaseType === 'cart') {
+    return {
+      slug: payload?.origin?.slug || 'home',
+      query: payload?.origin?.query || null,
+      label: purchaseType === 'cart' ? 'Retour au panier' : 'Continuer mes achats',
+      successText: 'Votre commande est validee. Tout est pret.'
+    };
+  }
+  return {
+    slug: 'myformations',
+    query: null,
+    label: 'Acceder a ma formation',
+    successText: 'Votre achat est valide. Tout est pret.'
+  };
+}
+
 function renderSuccess(container, payload = {}, paymentIntentId = '') {
   const purchase = payload?.purchase || {};
-  const purchaseType = String(purchase?.type || '').trim().toLowerCase();
-  const primaryTarget = purchaseType === 'gift-card' ? 'my-gift-cards' : 'myformations';
-  const successText =
-    purchaseType === 'gift-card'
-      ? 'Votre carte cadeau est creee et disponible dans votre espace.'
-      : 'Votre achat est valide. Tout est pret.';
+  const primaryAction = resolveSuccessPrimaryAction(purchase, payload);
   container.innerHTML = `
     <section class="payment-result payment-result--success" data-payment-result-root>
       <div class="payment-result__confetti" data-payment-result-confetti aria-hidden="true"></div>
@@ -183,11 +235,11 @@ function renderSuccess(container, payload = {}, paymentIntentId = '') {
           </svg>
         </div>
         <h2 class="payment-result__title">Paiement confirme</h2>
-        <p class="payment-result__text">${escapeHtml(successText)}</p>
+        <p class="payment-result__text">${escapeHtml(primaryAction.successText)}</p>
         ${buildSummaryMarkup(purchase)}
         <div class="payment-result__actions">
           <button type="button" class="primary-button" data-payment-result-primary>
-            ${primaryTarget === 'my-gift-cards' ? 'Acceder a mes cartes cadeaux' : 'Acceder a ma formation'}
+            ${escapeHtml(primaryAction.label)}
           </button>
           <button type="button" class="secondary-button" data-payment-result-secondary>
             Retour a l'accueil
@@ -201,9 +253,10 @@ function renderSuccess(container, payload = {}, paymentIntentId = '') {
   const primary = container.querySelector('[data-payment-result-primary]');
   const secondary = container.querySelector('[data-payment-result-secondary]');
   primary?.addEventListener('click', () => {
-    requestVitrineNavigation(primaryTarget, {
+    requestVitrineNavigation(primaryAction.slug, {
       source: 'payment-result-success-primary',
-      skipThrottle: true
+      skipThrottle: true,
+      query: primaryAction.query || null
     });
   });
   secondary?.addEventListener('click', () => {
@@ -320,10 +373,127 @@ function renderMissingIntent(container) {
   });
 }
 
+function renderMissingCheckoutState(container) {
+  container.innerHTML = `
+    <section class="payment-result payment-result--failed">
+      <article class="payment-result__panel">
+        <h2 class="payment-result__title">Checkout introuvable</h2>
+        <p class="payment-result__text">La session de checkout a expire ou n a pas pu etre relue.</p>
+        <div class="payment-result__actions">
+          <button type="button" class="primary-button" data-payment-result-home>Retour a l'accueil</button>
+        </div>
+      </article>
+    </section>
+  `;
+  container.querySelector('[data-payment-result-home]')?.addEventListener('click', () => {
+    requestVitrineNavigation('home', {
+      source: 'payment-result-missing-checkout-home',
+      skipThrottle: true
+    });
+  });
+}
+
+function buildFreeCheckoutOrigin(checkoutState = {}) {
+  const origin = checkoutState?.origin;
+  if (origin && typeof origin === 'object' && String(origin?.slug || '').trim()) {
+    return origin;
+  }
+  return { slug: 'checkout', query: {} };
+}
+
+function buildFreeCheckoutPayload(checkoutState = {}, errorMessage = '') {
+  const totals = checkoutState?.totals || {};
+  const items = Array.isArray(checkoutState?.items) ? checkoutState.items : [];
+  const item = checkoutState?.item && typeof checkoutState.item === 'object' ? checkoutState.item : {};
+  const isCart = checkoutState?.cart === true;
+  const purchaseType = isCart
+    ? items.length === 1
+      ? String(items[0]?.type || 'cart').trim().toLowerCase()
+      : 'cart'
+    : String(checkoutState?.itemType || item?.type || '').trim().toLowerCase() || 'purchase';
+  const itemTitle = isCart
+    ? items.length === 1
+      ? String(items[0]?.name || 'Article').trim() || 'Article'
+      : `Commande (${items.length} articles)`
+    : String(item?.name || 'Votre achat').trim() || 'Votre achat';
+  const sessionDate =
+    purchaseType === 'service'
+      ? checkoutState?.service?.slotStart || null
+      : purchaseType === 'formation'
+        ? checkoutState?.legal?.dateFormation || null
+        : null;
+  const totalAmount = Number(
+    totals?.totalAmount ?? totals?.subtotal ?? totals?.amountToPay ?? totals?.remainingToPay ?? 0
+  );
+  return {
+    status: errorMessage ? 'failed' : 'succeeded',
+    origin: buildFreeCheckoutOrigin(checkoutState),
+    errorMessage,
+    purchase: {
+      type: purchaseType,
+      itemTitle,
+      totalAmount,
+      sessionDate
+    }
+  };
+}
+
+async function handleFreeCheckout(container, checkoutState, checkoutToken) {
+  if (!checkoutState) {
+    renderMissingCheckoutState(container);
+    return;
+  }
+
+  if (getCheckoutAmountDue(checkoutState) > 0) {
+    const message = 'Un paiement complementaire est requis pour finaliser cette commande.';
+    renderFailed(container, buildFreeCheckoutPayload(checkoutState, message), message);
+    showToast({ type: 'error', message: 'Paiement requis', durationMs: 1200 });
+    return;
+  }
+
+  renderLoading(container, 0, {
+    title: 'Finalisation de votre achat',
+    text: 'Nous validons votre commande gratuite...',
+    hint: 'Traitement en cours'
+  });
+
+  try {
+    await submitFreeCheckoutRequest({
+      checkoutState,
+      idempotencyKey: checkoutToken
+    });
+    renderSuccess(
+      container,
+      buildFreeCheckoutPayload(checkoutState),
+      `free_${String(checkoutToken || 'checkout').trim()}`
+    );
+    showToast({ type: 'success', message: 'Commande confirmee', durationMs: 1200 });
+  } catch (error) {
+    const isPaymentRequired =
+      Number(error?.status || 0) === 402 ||
+      String(error?.code || '').trim().toUpperCase() === 'PAYMENT_REQUIRED';
+    const message = isPaymentRequired
+      ? error?.message || 'Un paiement complementaire est requis pour finaliser cette commande.'
+      : error?.message || 'La finalisation gratuite a echoue.';
+    renderFailed(container, buildFreeCheckoutPayload(checkoutState, message), message);
+    showToast({
+      type: 'error',
+      message: isPaymentRequired ? 'Paiement requis' : 'Finalisation impossible',
+      durationMs: 1200
+    });
+  }
+}
+
 export async function renderPage(container, context = {}) {
   if (!container) return;
   const params = new URLSearchParams(window.location.search);
   const contextQuery = context?.query || {};
+  const checkoutToken = String(
+    contextQuery.checkoutToken || params.get('checkoutToken') || ''
+  ).trim();
+  const freeCheckout =
+    isFreeCheckoutQuery(contextQuery) ||
+    isFreeCheckoutQuery({ freeCheckout: params.get('freeCheckout') || '' });
   const paymentIntentId = String(
     contextQuery.payment_intent || params.get('payment_intent') || ''
   ).trim();
@@ -332,6 +502,15 @@ export async function renderPage(container, context = {}) {
   )
     .trim()
     .toLowerCase();
+  if (!paymentIntentId && freeCheckout) {
+    if (!checkoutToken) {
+      renderMissingCheckoutState(container);
+      return;
+    }
+    const checkoutState = readCheckoutStateToken(checkoutToken);
+    await handleFreeCheckout(container, checkoutState, checkoutToken);
+    return;
+  }
   if (!paymentIntentId) {
     renderMissingIntent(container);
     return;

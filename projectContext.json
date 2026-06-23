@@ -9341,5 +9341,31 @@
       "projectContext.json"
     ],
     "tests": "tests/p0/giftcard.zeroPayment.characterization.test.js (it.todo -> real test): 100% gift card (sale+booking+debit), card > amount (capped debit), free product (no Stripe), double submit (one sale/one debit), refuses if balance due. Harness: 14 files, 42 passed, 0 todo, 0 expected-fail."
+  },
+  "lastZeroPaymentFrontendWiringUpdate": {
+    "date": "2026-06-23",
+    "phase": "Phase 1B-4B",
+    "title": "Cablage frontend achat 0 EUR vers finalize-free",
+    "reports": [
+      "Rapports/version 1/33_audit_phase1b4b_front_zero_payment.md",
+      "Rapports/version 1/34_rapport_phase1b4b_front_zero_payment.md"
+    ],
+    "scope": [
+      "checkoutModule routes zero-due attempts (single item, cart, service due-now=0) to slug=payment with checkoutToken + freeCheckout=1 instead of finalizing locally or touching Stripe.",
+      "vitrine.js now forces paymentResultModule for query.freeCheckout=1 in addition to payment_intent.",
+      "paymentResultModule reads checkoutToken from sessionStorage, calls POST /api/client/checkout/finalize-free with idempotencyKey=checkoutToken, and reuses the same success/failure screen as the Stripe return flow.",
+      "purchaseFlowService exports getCheckoutAmountDue(checkoutState) and submitFreeCheckoutRequest({ checkoutState, idempotencyKey }); finalizePurchase no longer depends on mock-pay for 0 EUR paths.",
+      "Stable frontend idempotency: zero-payment paths reuse a checkoutToken derived once per attempt and memoized from a checkoutState fingerprint without volatile timestamps."
+    ],
+    "filesChanged": [
+      "public/js/modules/checkoutModule.js",
+      "public/js/modules/paymentResultModule.js",
+      "public/js/modules/purchaseFlowService.js",
+      "public/js/vitrine.js",
+      "tests/p0/purchaseFlowService.zeroPayment.wiring.test.js",
+      "tests/README.md",
+      "architecture.md",
+      "projectContext.json"
+    ]
   }
 }

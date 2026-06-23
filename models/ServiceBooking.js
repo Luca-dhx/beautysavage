@@ -63,7 +63,7 @@ const serviceBookingSchema = new mongoose.Schema({
     default: 'pending_payment'
   },
   cancelledAt: { type: Date, default: null },
-  cancelledBy: { type: String, enum: ['client', 'admin', null], default: null },
+  cancelledBy: { type: String, enum: ['client', 'admin', 'system', null], default: null },
   noShowAt: { type: Date, default: null },
 
   consumerWaiverSnapshot: { type: consumerWaiverSnapshotSchema, default: () => ({}) },

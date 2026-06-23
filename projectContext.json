@@ -3488,7 +3488,7 @@
         },
         {
           "name": "finalizePurchase",
-          "description": "Handles success/failed outcomes in one place; success posts to /api/client/mock-pay only when legal state is valid, failed skips backend calls, both persist result and navigate to origin."
+          "description": "Handles success/failed outcomes in one place; 0 EUR success posts to /api/client/checkout/finalize-free with a stable idempotency key, Stripe success still skips backend calls because the webhook already handled the sale, failed skips backend calls, both persist result and navigate to origin."
         },
         {
           "name": "consumeCheckoutResult",
@@ -3497,7 +3497,7 @@
       ],
       "stateVariables": [],
       "routes": [
-        "POST /api/client/mock-pay"
+        "POST /api/client/checkout/finalize-free"
       ],
       "dependencies": {
         "imports": [
@@ -9239,15 +9239,17 @@
         "refund.overRefund",
         "booking.doubleSlot.characterization",
         "booking.slotRevalidation",
-        "giftcard.zeroPayment.characterization (todo)"
+        "booking.pendingPaymentCleanup",
+        "giftcard.zeroPayment.characterization",
+        "purchaseFlowService.zeroPayment.wiring"
       ],
       "integrationTests": [
         "health",
         "auth"
       ],
       "results": {
-        "npmTest": "14 files, 37 passed, 1 todo",
-        "test:p0": "12 files, 31 passed, 1 todo",
+        "npmTest": "16 files, 50 passed, 0 todo, 0 expected-fail",
+        "test:p0": "14 files, 44 passed, 0 todo",
         "test:integration": "2 files, 6 passed"
       }
     },
@@ -9277,9 +9279,15 @@
       "Rewired: serviceBookingController, clientController, stripeController, availabilityController, sessionCancellationFlowService.",
       "Supersedes STEP 21d ad-hoc reschedule check."
     ],
+    "phase1b5PendingPayment": [
+      "PENDING_PAYMENT_EXPIRATION_MINUTES = 30.",
+      "pendingPaymentCleanupJob runs hourly outside tests.",
+      "Cleanup releases BookingSlotLock, marks stale pending_payment bookings cancelled/system, and skips paid or confirmed bookings.",
+      "Covered by tests/p0/booking.pendingPaymentCleanup.test.js."
+    ],
     "remainingRisks": [
       "RESOLVED in Phase 1B-4: 0 EUR / 100% gift-card finalization (POST /api/client/checkout/finalize-free).",
-      "Automatic expiration/release of pending_payment bookings (locks persist until manual/admin cancel).",
+      "RESOLVED in Phase 1B-5: pending_payment bookings now expire automatically after 30 minutes via a dedicated cleanup job that releases slot locks and marks them cancelled/system.",
       "Automatic refund when payment captured but slot became unavailable (booking rejected 409, no auto-refund).",
       "Full recovery of blocked refunds.",
       "Fully idempotent Stripe credit notes / invoices.",
@@ -9340,7 +9348,7 @@
       "architecture.md",
       "projectContext.json"
     ],
-    "tests": "tests/p0/giftcard.zeroPayment.characterization.test.js (it.todo -> real test): 100% gift card (sale+booking+debit), card > amount (capped debit), free product (no Stripe), double submit (one sale/one debit), refuses if balance due. Harness: 14 files, 42 passed, 0 todo, 0 expected-fail."
+    "tests": "tests/p0/giftcard.zeroPayment.characterization.test.js (it.todo -> real test): 100% gift card (sale+booking+debit), card > amount (capped debit), free product (no Stripe), double submit (one sale/one debit), refuses if balance due. Harness: 16 files, 50 passed, 0 todo, 0 expected-fail."
   },
   "lastZeroPaymentFrontendWiringUpdate": {
     "date": "2026-06-23",

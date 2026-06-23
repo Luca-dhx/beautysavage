@@ -72,7 +72,7 @@ import { REFUND_REQUEST_ACTIVE_UNIQUE_INDEX_NAME } from './constants/refundReque
 
 import { startSessionCancellationAutoRefundScheduler } from './automatisme/sessionCancellationAutoRefundJob.js';
 import { startContractPaymentSyncJob } from './automatisme/contractPaymentSyncJob.js';
-import { startExpiredBookingsCleanupJob } from './automatisme/expiredBookingsCleanupJob.js';
+import { startPendingPaymentCleanupJob } from './automatisme/pendingPaymentCleanupJob.js';
 import {
   gestionRouter as editableContentGestionRouter,
   vitrineRouter as editableContentVitrineRouter
@@ -462,7 +462,7 @@ void runBookingRemindersJob();
 startStripeFeesRecoveryScheduler('startup');
 startGiftCardReservationCleanupScheduler('startup');
 startContractPaymentSyncJob();
-startExpiredBookingsCleanupJob();
+startPendingPaymentCleanupJob();
 
 const PORT = Number(process.env.PORT || 3000);
 app.listen(PORT, () => {

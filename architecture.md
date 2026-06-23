@@ -1650,7 +1650,7 @@ Module admin permettant de consulter le contrat actif et de programmer sa rÃƒ�
 - `models/PractitionerProfile.js` : profil praticienne. Champs : `userId` (ref User, unique), `displayName`, `bio`, `photo`, `color`, `slotGranularity` (15/30/45/60), `serviceIds[]`, `isActive`. Index : `userId` unique.
 - `models/PractitionerSchedule.js` : planning type hebdomadaire. Champs : `practitionerId` (unique), `weeklySchedule[]` (dayOfWeek, isWorking, slots[]), `lunchBreak`. Index : `practitionerId` unique.
 - `models/ScheduleException.js` : exceptions manuelles. Champs : `practitionerId`, `date`, `type` (block/add/modify), `isFullDay`, `startTime`, `endTime`, `reason`. Index : `{ practitionerId, date }`.
-- `models/ServiceBooking.js` : rÃƒÂ©servation. Champs : `serviceId`, `practitionerId`, `clientId`, `bookingId` (unique), `startAt`, `endAt`, `selectedOptions[]`, `totalPrice`, `depositAmount`, `paymentType`, `paymentStatus`, `stripePaymentIntentId`, `status` (confirmed/cancelled/no_show/completed), `cancelledAt`, `cancelledBy`, `noShowAt`, `consumerWaiverSnapshot`, `remindersSent[]`. Index multi-champs.
+- `models/ServiceBooking.js` : `status` enum `pending_payment/confirmed/cancelled/no_show/completed` -> `pending_payment` serves as a reservation before payment, `confirmed` covers finalized orders.
 - `models/NoShowRecord.js` : historique no-shows. Champs : `clientId`, `bookingId`, `recordedBy`, `recordedAt`.
 - `models/ServiceSettings.js` : rÃƒÂ©glages globaux singleton. Champs : `allowClientChoosePractitioner`, `noShowSystemEnabled`, `noShowSuspensionThreshold`, `reminders[]`.
 
@@ -2422,13 +2422,14 @@ Pour date D, service duree `D_min`, granularite `G_min` :
   - `controllers/serviceBookingController.js` : `createBooking` → `createServiceBookingWithProtection` (statut `pending_payment` avant paiement, service gratuit → Sale immediate `paid`) ; `cancelMyBooking` et `cancelBookingByAdmin` → `releaseServiceBookingSlotLocks`.
   - `controllers/clientController.js` : `processServiceCheckoutStatePurchase` → `createServiceBookingWithProtection` (revalidation post-paiement, statut `confirmed`). Si le slot est devenu indisponible apres encaissement → throw `SLOT_UNAVAILABLE` (remboursement auto non encore implemente, voir risques).
   - `controllers/stripeController.js` : `create-checkout-session` → `assertServiceSlotBookable` en preflight avant toute creation de session Stripe.
+  - `automatisme/pendingPaymentCleanupJob.js` : job horaire qui cible les `pending_payment` expires, libere les `BookingSlotLock` associes, puis marque le booking `cancelled` par le systeme.
   - `controllers/availabilityController.js` : consomme `computeAvailableSlotsForPractitioner` (alias `computeBookableSlotsForPractitioner`) → l'affichage vitrine reste aligne sur la validation serveur.
   - `services/sessionCancellationFlowService.js` : `applyFlowServiceRescheduleDecision` (report d'une prestation annulee) passe par `createServiceBookingWithProtection` — **remplace** le correctif ad hoc decrit en "STEP 21d" (double passe `findOne`/`FormationSession`), desormais obsolete.
 - Tests : `booking.doubleSlot.characterization.test.js`, `booking.slotRevalidation.test.js`.
 
 ### Risques encore ouverts (a traiter apres 1B-3)
 - ~~**Achat 0€** : pas d'endpoint backend de finalisation gratuite~~ → **RESOLU en Phase 1B-4** (voir section "Phase 1B-4"). `POST /api/client/checkout/finalize-free` finalise un achat 0€ (100% carte cadeau ou article gratuit) ; le test `giftcard.zeroPayment` est desormais vert.
-- **Expiration / liberation automatique des `pending_payment`** : pas d'expiration applicative ; les verrous d'un booking `pending_payment` persistent jusqu'a annulation manuelle/admin.
+- ~~**Expiration / liberation automatique des `pending_payment`**~~ -> **RESOLU en Phase 1B-5** : job horaire dedie, verrous liberes, bookings expires marques `cancelled` par le systeme.
 - **Remboursement automatique si paiement encaisse mais slot devenu indisponible** : le booking est rejete (409) mais aucun remboursement automatique n'est declenche.
 - **Reprise complete des refunds bloques** : pas encore de mecanisme de relance/reconciliation exhaustif.
 - **Credit notes / factures d'avoir Stripe totalement idempotentes** : non encore garanties.
@@ -2471,6 +2472,30 @@ Pour date D, service duree `D_min`, granularite `G_min` :
 
 ### Tests
 - `tests/p0/giftcard.zeroPayment.characterization.test.js` (le `it.todo` devient un test reel) : 100% carte cadeau (sale+booking+debit), carte > montant (debit plafonne), produit gratuit (sans Stripe), double soumission (une seule vente, un seul debit), refus si reste du. Harnais P0 : **0 todo, 0 expected-fail**.
+
+## Phase 1B-5 -- Expiration et liberation automatique des `pending_payment`
+
+> Section ajoutee le 2026-06-23. Cette phase ferme le dernier risque d accumulation de reservations de prestation bloquantes. Elle ne change pas les flux Stripe normaux ni les roles ; elle ajoute uniquement un cleanup serveur idempotent pour les reservations qui sont restees en attente trop longtemps.
+
+### Principe
+- `constants/serviceBooking.js` expose `PENDING_PAYMENT_EXPIRATION_MINUTES = 30`.
+- `automatisme/pendingPaymentCleanupJob.js` execute un job horaire, ignore les tests, et traite les bookings dont `status = pending_payment`, `paymentStatus = pending`, `saleId = null` et `stripePaymentIntentId = null`.
+- Le job libere d abord les `BookingSlotLock` associes au `bookingId`, puis marque le booking `cancelled` avec `cancelledBy = system`.
+- Les bookings deja payes, confirmes, ou encore rattaches a une vente / un PaymentIntent sont volontairement exclus.
+
+### Impact metier
+- Un `pending_payment` expire ne continue plus a bloquer le creneau.
+- Les confirmations Stripe et les bookings deja finalises restent intacts.
+- Le cleanup est idempotent: un second passage sur le meme booking ne recree pas de modification utile.
+
+### Tests
+- `tests/p0/booking.pendingPaymentCleanup.test.js` couvre :
+  - expiration d un `pending_payment` age + liberation des verrous ;
+  - absence d effet sur un booking non expire ;
+  - absence d effet sur un booking confirme ;
+  - idempotence sur deux executions consecutives ;
+  - protection d un booking deja paye avant expiration.
+
 
 ## Phase 1B-4B â€” Cablage frontend achat 0 EUR vers `finalize-free`
 

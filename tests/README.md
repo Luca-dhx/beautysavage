@@ -50,6 +50,13 @@ documented startup adaptation in `app.js`).
 > `purchaseFlowService.zeroPayment.wiring.test.js`, locks the request shape and the
 > clear `402 PAYMENT_REQUIRED` error path. See
 > `Rapports/version 1/34_rapport_phase1b4b_front_zero_payment.md`.
+>
+> **Phase 1B-5 update** - the new booking cleanup job expires stale `pending_payment`
+> bookings after 30 minutes, releases their slot locks, and keeps paid/confirmed
+> bookings untouched. The regression test
+> `booking.pendingPaymentCleanup.test.js` covers the expiration, idempotence, and
+> success-before-expiration cases. See
+> `Rapports/version 1/37_rapport_phase1b5_pending_payment.md`.
 
 ## How to run
 
@@ -89,6 +96,9 @@ Stripe - see "Safety" below.
   slots, while still allowing a slot reopened by a `modify` exception.
 - `tests/p0/booking.slotRevalidation.test.js` - final Stripe-side service booking
   creation is revalidated server-side and refuses a slot that became unavailable.
+- `tests/p0/booking.pendingPaymentCleanup.test.js` - stale `pending_payment`
+  bookings expire after 30 minutes, release their locks, and remain idempotent on
+  repeated cleanup runs while leaving paid/confirmed bookings untouched.
 - `tests/p0/giftcard.zeroPayment.characterization.test.js` - a 0 EUR order (100% gift
   card or a free item) is finalized via `POST /api/client/checkout/finalize-free`:
   Sale + ServiceBooking created, gift card debited (capped to the due amount),
@@ -141,6 +151,7 @@ tests/
     refund.overRefund.test.js
     booking.doubleSlot.characterization.test.js
     booking.slotRevalidation.test.js
+    booking.pendingPaymentCleanup.test.js
     giftcard.zeroPayment.characterization.test.js
 ```
 

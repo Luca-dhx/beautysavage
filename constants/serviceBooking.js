@@ -1,4 +1,5 @@
 export const ACTIVE_SERVICE_BOOKING_STATUSES = ['pending_payment', 'confirmed'];
+export const PENDING_PAYMENT_EXPIRATION_MINUTES = 30;
 
 export const SERVICE_SLOT_ERROR_CODES = {
   SERVICE_NOT_BOOKABLE: 'SERVICE_NOT_BOOKABLE',

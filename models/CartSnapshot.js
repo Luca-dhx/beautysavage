@@ -34,7 +34,6 @@ const cartSnapshotSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      unique: true
     },
     items: {
       type: [cartItemSchema],
@@ -56,7 +55,7 @@ const cartSnapshotSchema = new mongoose.Schema(
   { collection: 'cartSnapshots' }
 );
 
-cartSnapshotSchema.index({ userId: 1 });
+cartSnapshotSchema.index({ userId: 1 }, { unique: true });
 
 const CartSnapshot = mongoose.model('CartSnapshot', cartSnapshotSchema);
 export default CartSnapshot;

@@ -15,8 +15,7 @@ const practitionerScheduleSchema = new mongoose.Schema({
   practitionerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'PractitionerProfile',
-    required: true,
-    unique: true
+    required: true
   },
   weeklySchedule: { type: [weekdaySchema], default: [] },
   lunchBreak: {

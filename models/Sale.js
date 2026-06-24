@@ -62,14 +62,11 @@ const saleSchema = new mongoose.Schema(
     saleId: {
       type: String,
       required: true,
-      trim: true,
-      unique: true
+      trim: true
     },
     invoiceToken: {
       type: String,
       trim: true,
-      unique: true,
-      sparse: true,
       default: () => crypto.randomBytes(24).toString('hex')
     },
     userId: {
@@ -286,8 +283,8 @@ const saleSchema = new mongoose.Schema(
   { collection: 'sales' }
 );
 
-saleSchema.index({ saleId: 1 });
-saleSchema.index({ invoiceToken: 1 }, { sparse: true });
+saleSchema.index({ saleId: 1 }, { unique: true });
+saleSchema.index({ invoiceToken: 1 }, { unique: true, sparse: true });
 saleSchema.index({ userId: 1 });
 saleSchema.index({ 'items.itemId': 1, 'items.type': 1 });
 saleSchema.index({ 'items.formationId': 1, 'items.type': 1 });

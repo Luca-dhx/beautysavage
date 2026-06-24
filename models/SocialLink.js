@@ -10,8 +10,7 @@ const socialLinkSchema = new mongoose.Schema(
       enum: SOCIAL_TYPES,
       required: true,
       lowercase: true,
-      trim: true,
-      unique: true
+      trim: true
     },
     url: {
       type: String,

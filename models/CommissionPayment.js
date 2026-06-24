@@ -34,7 +34,7 @@ const commissionPaymentSchema = new mongoose.Schema(
 
     amount: { type: Number, required: true, default: 0 },
 
-    stripePaymentIntentId: { type: String, default: null, sparse: true },
+    stripePaymentIntentId: { type: String, default: null },
     status: {
       type: String,
       enum: ['pending', 'succeeded', 'failed'],
@@ -42,7 +42,7 @@ const commissionPaymentSchema = new mongoose.Schema(
     },
     paidAt: { type: Date, default: null },
 
-    stripeInvoiceId: { type: String, default: null, sparse: true },
+    stripeInvoiceId: { type: String, default: null },
     stripeInvoicePdfUrl: { type: String, default: null },
 
     sales: { type: [commissionSaleEntrySchema], default: [] },

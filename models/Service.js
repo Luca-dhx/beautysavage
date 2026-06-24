@@ -22,7 +22,7 @@ const boostSchema = new mongoose.Schema({
 
 const serviceSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
-  slug: { type: String, required: true, unique: true, trim: true },
+  slug: { type: String, required: true, trim: true },
   description: { type: String, default: '', trim: true },
   shortDescription: { type: String, default: '', trim: true },
   duration: { type: Number, required: true, min: 1 },

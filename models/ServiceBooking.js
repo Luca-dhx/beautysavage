@@ -35,7 +35,7 @@ const serviceBookingSchema = new mongoose.Schema({
     required: true
   },
 
-  bookingId: { type: String, required: true, unique: true },
+  bookingId: { type: String, required: true },
 
   startAt: { type: Date, required: true },
   endAt: { type: Date, required: true },

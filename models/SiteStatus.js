@@ -42,7 +42,6 @@ const siteStatusSchema = new mongoose.Schema(
       type: String,
       required: true,
       default: 'global',
-      unique: true,
       trim: true
     },
     currentStatus: {

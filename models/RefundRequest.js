@@ -115,7 +115,7 @@ const refundRequestSchema = new mongoose.Schema(
       }
     },
     stripeRefundId: { type: String, default: null },
-    trackingToken: { type: String, sparse: true },
+    trackingToken: { type: String },
     trackingTokenExpiresAt: { type: Date },
     stripeRefundStatus: {
       type: String,

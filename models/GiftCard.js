@@ -8,8 +8,7 @@ const giftCardSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      uppercase: true,
-      unique: true
+      uppercase: true
     },
     configId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -88,7 +87,7 @@ const giftCardSchema = new mongoose.Schema(
   }
 );
 
-giftCardSchema.index({ code: 1 });
+giftCardSchema.index({ code: 1 }, { unique: true });
 giftCardSchema.index({ userId: 1 });
 giftCardSchema.index({ 'reservations.paymentIntentId': 1 }, { sparse: true });
 

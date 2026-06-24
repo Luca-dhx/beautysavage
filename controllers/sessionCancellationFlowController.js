@@ -243,7 +243,7 @@ export async function submitSessionCancellationRefundDecision(req, res) {
 
     return res.json({
       ok: true,
-      decision: 'refund',
+      decision: String(flow.decision || 'pending').trim() || 'pending',
       flow: buildClientFlowPayload(flow),
       refund: {
         refundId: String(refundRequest?.refundId || '').trim(),

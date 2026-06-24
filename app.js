@@ -71,6 +71,7 @@ import RefundRequest from './models/RefundRequest.js';
 import { REFUND_REQUEST_ACTIVE_UNIQUE_INDEX_NAME } from './constants/refundRequest.js';
 
 import { startSessionCancellationAutoRefundScheduler } from './automatisme/sessionCancellationAutoRefundJob.js';
+import { startRefundRecoveryScheduler } from './automatisme/refundRecoveryJob.js';
 import { startContractPaymentSyncJob } from './automatisme/contractPaymentSyncJob.js';
 import { startPendingPaymentCleanupJob } from './automatisme/pendingPaymentCleanupJob.js';
 import {
@@ -459,6 +460,7 @@ startCommissionReminderJob();
 // Booking reminders — check every hour
 setInterval(() => { void runBookingRemindersJob(); }, 3600000);
 void runBookingRemindersJob();
+startRefundRecoveryScheduler('startup');
 startStripeFeesRecoveryScheduler('startup');
 startGiftCardReservationCleanupScheduler('startup');
 startContractPaymentSyncJob();

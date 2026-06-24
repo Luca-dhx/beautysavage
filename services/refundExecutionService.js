@@ -39,6 +39,11 @@ function normalizeCurrentStatus(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+function buildStripeRefundIdempotencyKey(refundRequest) {
+  const refundId = String(refundRequest?.refundId || '').trim();
+  return refundId ? `refund-request:${refundId}:stripe-refund` : '';
+}
+
 async function resolveSiteNameForEmail() {
   try {
     const identity = await SiteIdentity.findOne({ key: 'global' }).lean();
@@ -142,7 +147,7 @@ export async function triggerRefundExecution(refundRequest, saleInput = null) {
   if (currentStatus === 'succeeded') {
     return { refund: refundRequest, mode: 'already_succeeded', stripeInitiated: false };
   }
-  if (currentStatus === 'pending' && currentStripeStatus === 'pending' && refundRequest.stripeRefundId) {
+  if (currentStripeStatus === 'pending' && refundRequest.stripeRefundId) {
     return { refund: refundRequest, mode: 'already_pending', stripeInitiated: true };
   }
 
@@ -260,6 +265,8 @@ export async function triggerRefundExecution(refundRequest, saleInput = null) {
     const stripeRefund = await stripe.refunds.create({
       payment_intent: sale.stripePaymentIntentId,
       amount: stripeRefundAmountCents
+    }, {
+      idempotencyKey: buildStripeRefundIdempotencyKey(refundRequest)
     });
 
     refundRequest.stripeRefundId = String(stripeRefund.id || '');

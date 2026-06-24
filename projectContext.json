@@ -6974,7 +6974,7 @@
     {
       "path": "services/refundExecutionService.js",
       "type": "service",
-      "role": "Centralizes financial execution for RefundRequest creation/trigger: computes Stripe vs gift-card split from real payment composition (gift-card priority on refunded amount), initiates Stripe refund when applicable, delays mixed gift-card recredit until webhook, finalizes 100% gift-card refunds immediately, and sends refund_confirmed email for immediate success cases. If Sale.giftCardUsage is empty on Stripe sales, it can reconstruct the gift-card portion from GiftCardTransaction fallback data.",
+      "role": "Centralizes financial execution for RefundRequest creation/trigger: computes Stripe vs gift-card split from real payment composition (gift-card priority on refunded amount), initiates Stripe refund when applicable with a stable refund idempotency key, delays mixed gift-card recredit until webhook, finalizes 100% gift-card refunds immediately, and sends refund_confirmed email for immediate success cases. If Sale.giftCardUsage is empty on Stripe sales, it can reconstruct the gift-card portion from GiftCardTransaction fallback data.",
       "functions": [
         {
           "name": "triggerRefundExecution",
@@ -8867,7 +8867,7 @@
       "Part 3: serviceBookingController.js (nouveau) — listMyBookings / cancelMyBooking / getBookingStatus",
       "Part 3: clientRouter.js — GET/POST /api/client/bookings(*) + GET /bookings/by-payment-intent/:piId (avant /:bookingId/status)",
       "Part 3: clientController.js — processServiceCheckoutStatePurchase cree ServiceBooking + Sale depuis checkoutState.service. saleItems[].finalPrice = prix unitaire complet (pas l'acompte). Mode acompte: sale.totalAmount = depositAmount. Mode full: sale.totalAmount = totalPrice. giftCardBase = depositAmount pour deposit.",
-      "Part 3: stripeInvoiceService.js — pour ventes service en mode acompte, calcule depositRatio = sale.totalAmount / serviceBooking.totalPrice, applique le ratio sur chaque ligne de facture Stripe. Items stockes au prix unitaire, ratio uniquement dans la facture. Evite facture Stripe vide si finalPrice = 0.",
+      "Part 3: stripeInvoiceService.js — pour ventes service en mode acompte, calcule depositRatio = sale.totalAmount / serviceBooking.totalPrice, applique le ratio sur chaque ligne de facture Stripe. Items stockes au prix unitaire, ratio uniquement dans la facture. Evite facture Stripe vide si finalPrice = 0. Ajoute aussi des idempotency keys Stripe deterministes pour customer/invoice/items/finalize/pay.",
       "Part 3: stripeController.js — amountToPay = checkoutState.totals.amountToPay || remainingToPay. Charge le montant de l'acompte pour les prestations a acompte.",
       "Part 4: refundService.js — getServiceRefundEligibility",
       "Part 4: mailService.js — sendBookingConfirmedEmail + sendBookingCancelledEmail via sendPremiumHtmlEmail",
@@ -9345,8 +9345,8 @@
       "RESOLVED in Phase 1B-4: 0 EUR / 100% gift-card finalization (POST /api/client/checkout/finalize-free).",
       "RESOLVED in Phase 1B-5: pending_payment bookings now expire automatically after 30 minutes via a dedicated cleanup job that releases slot locks and marks them cancelled/system.",
       "Automatic refund when payment captured but slot became unavailable (booking rejected 409, no auto-refund).",
-      "Full recovery of blocked refunds.",
-      "Fully idempotent Stripe credit notes / invoices.",
+      "RESOLVED in Phase P1-3: blocked refunds are now retryable via the dedicated recovery job when triggerRefundExecution fails.",
+      "RESOLVED in Phase P1-3: Stripe credit notes and invoices now use stable idempotency keys, with replay-safe webhook/service reruns.",
       "RESOLVED in Phase P1-1: requireStrictDev / fine-grained roles hardening.",
       "RESOLVED in Phase P1-1: rate-limit on login / password reset.",
       "XSS / SVG / responsive / React migration (later)."

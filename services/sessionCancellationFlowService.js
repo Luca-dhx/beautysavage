@@ -113,6 +113,10 @@ function sanitizeText(value) {
   return String(value || '').trim();
 }
 
+function normalizeCurrentStatus(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
 function buildFlowRefundReason(flowType) {
   if (flowType === FLOW_TYPE_FORMATION_DELETED) return REFUND_REASON_FORMATION_DELETED_BY_INSTITUTE;
   if (flowType === FLOW_TYPE_SESSION_UPDATED) return REFUND_REASON_SESSION_UPDATED_BY_INSTITUTE;
@@ -773,6 +777,7 @@ export async function applyFlowRefundDecision({
   // ── Formation/session flow ────────────────────────────────────────────────
   const purchase = await resolveFlowPurchase(flow);
   let refundRequest = null;
+  let refundExecutionError = null;
   const existingRefundRequestId = sanitizeText(flow.refundRequestId);
   if (existingRefundRequestId) {
     const refundById = await RefundRequest.findOne({ refundId: existingRefundRequestId });
@@ -838,19 +843,24 @@ export async function applyFlowRefundDecision({
         await RefundRequest.deleteOne({ _id: refundRequest._id }).catch(() => {});
         throw error;
       }
-      try {
-        const execution = await triggerRefundExecution(refundRequest, sale);
-        if (execution?.refund) {
-          refundRequest = execution.refund;
-        }
-      } catch (triggerError) {
-        console.error('[applyFlowRefundDecision] triggerRefundExecution failed', {
-          flowId: sanitizeText(flow?.flowId),
-          refundId: sanitizeText(refundRequest?.refundId),
-          saleId: sanitizeText(sale?.saleId),
-          error: triggerError
-        });
+    }
+  }
+
+  const refundRequestStatus = normalizeCurrentStatus(refundRequest?.status);
+  if (refundRequestStatus === 'requested' || refundRequestStatus === 'pending') {
+    try {
+      const execution = await triggerRefundExecution(refundRequest, sale);
+      if (execution?.refund) {
+        refundRequest = execution.refund;
       }
+    } catch (triggerError) {
+      refundExecutionError = triggerError;
+      console.error('[applyFlowRefundDecision] triggerRefundExecution failed', {
+        flowId: sanitizeText(flow?.flowId),
+        refundId: sanitizeText(refundRequest?.refundId),
+        saleId: sanitizeText(sale?.saleId),
+        error: triggerError
+      });
     }
   }
 
@@ -890,17 +900,26 @@ export async function applyFlowRefundDecision({
 
   flow.saleId = sanitizeText(sale.saleId || flow.saleId);
   flow.refundRequestId = sanitizeText(refundRequest.refundId);
-  flow.decision = FLOW_DECISION_REFUND;
-  flow.usedAt = now;
-  flow.decisionAt = now;
+  flow.decision = refundExecutionError ? FLOW_DECISION_PENDING : FLOW_DECISION_REFUND;
+  flow.usedAt = refundExecutionError ? null : now;
+  flow.decisionAt = refundExecutionError ? null : now;
   flow.acceptedCgv = Boolean(sale.accepted_cgv);
   flow.renunciationTextPrevious = sanitizeRenunciationText(resolveSaleAcceptedText(sale));
   flow.renunciationTextAccepted = null;
-  pushFlowAudit(flow, 'decision_refund', {
-    triggeredBy,
-    refundId: flow.refundRequestId,
-    amount
-  });
+  if (refundExecutionError) {
+    pushFlowAudit(flow, 'decision_refund_retryable', {
+      triggeredBy,
+      refundId: flow.refundRequestId,
+      amount,
+      error: sanitizeText(refundExecutionError?.message || 'triggerRefundExecution failed')
+    });
+  } else {
+    pushFlowAudit(flow, 'decision_refund', {
+      triggeredBy,
+      refundId: flow.refundRequestId,
+      amount
+    });
+  }
   await flow.save();
 
   return { flow, refundRequest, sale, amount };
@@ -910,6 +929,7 @@ async function applyServiceFlowRefundDecision({ flow, clientIp, triggeredBy, now
   const refundReason = REFUND_REASON_SERVICE_BOOKING_CANCELLED_BY_INSTITUTE;
 
   let refundRequest = null;
+  let refundExecutionError = null;
   const existingRefundRequestId = sanitizeText(flow.refundRequestId);
   if (existingRefundRequestId) {
     const refundById = await RefundRequest.findOne({ refundId: existingRefundRequestId });
@@ -972,19 +992,24 @@ async function applyServiceFlowRefundDecision({ flow, clientIp, triggeredBy, now
         await RefundRequest.deleteOne({ _id: refundRequest._id }).catch(() => {});
         throw error;
       }
-      try {
-        const execution = await triggerRefundExecution(refundRequest, sale);
-        if (execution?.refund) {
-          refundRequest = execution.refund;
-        }
-      } catch (triggerError) {
-        console.error('[applyServiceFlowRefundDecision] triggerRefundExecution failed', {
-          flowId: sanitizeText(flow?.flowId),
-          refundId: sanitizeText(refundRequest?.refundId),
-          saleId,
-          error: triggerError
-        });
+    }
+  }
+
+  const refundRequestStatus = normalizeCurrentStatus(refundRequest?.status);
+  if (refundRequestStatus === 'requested' || refundRequestStatus === 'pending') {
+    try {
+      const execution = await triggerRefundExecution(refundRequest, sale);
+      if (execution?.refund) {
+        refundRequest = execution.refund;
       }
+    } catch (triggerError) {
+      refundExecutionError = triggerError;
+      console.error('[applyServiceFlowRefundDecision] triggerRefundExecution failed', {
+        flowId: sanitizeText(flow?.flowId),
+        refundId: sanitizeText(refundRequest?.refundId),
+        saleId,
+        error: triggerError
+      });
     }
   }
 
@@ -1012,14 +1037,23 @@ async function applyServiceFlowRefundDecision({ flow, clientIp, triggeredBy, now
 
   flow.saleId = saleId;
   flow.refundRequestId = sanitizeText(refundRequest.refundId);
-  flow.decision = FLOW_DECISION_REFUND;
-  flow.usedAt = now;
-  flow.decisionAt = now;
-  pushFlowAudit(flow, 'decision_refund', {
-    triggeredBy,
-    refundId: flow.refundRequestId,
-    amount
-  });
+  flow.decision = refundExecutionError ? FLOW_DECISION_PENDING : FLOW_DECISION_REFUND;
+  flow.usedAt = refundExecutionError ? null : now;
+  flow.decisionAt = refundExecutionError ? null : now;
+  if (refundExecutionError) {
+    pushFlowAudit(flow, 'decision_refund_retryable', {
+      triggeredBy,
+      refundId: flow.refundRequestId,
+      amount,
+      error: sanitizeText(refundExecutionError?.message || 'triggerRefundExecution failed')
+    });
+  } else {
+    pushFlowAudit(flow, 'decision_refund', {
+      triggeredBy,
+      refundId: flow.refundRequestId,
+      amount
+    });
+  }
   await flow.save();
 
   return { flow, refundRequest, sale, amount };

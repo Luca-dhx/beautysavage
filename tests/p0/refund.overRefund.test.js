@@ -100,10 +100,15 @@ describe('P0 - refund amount is capped to the sale total', () => {
     const updatedRefund = execution.refund;
 
     expect(refundsCreateMock).toHaveBeenCalledTimes(1);
-    expect(refundsCreateMock).toHaveBeenCalledWith({
-      payment_intent: 'pi_cap_1',
-      amount: 7000
-    });
+    expect(refundsCreateMock).toHaveBeenCalledWith(
+      {
+        payment_intent: 'pi_cap_1',
+        amount: 7000
+      },
+      expect.objectContaining({
+        idempotencyKey: 'refund-request:RF-CAP-1:stripe-refund'
+      })
+    );
     expect(updatedRefund.amount).toBe(100);
     expect(updatedRefund.stripeRefundAmount).toBe(70);
     expect(updatedRefund.giftCardRefundAmount).toBe(30);

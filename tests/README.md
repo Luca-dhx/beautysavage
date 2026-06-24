@@ -63,6 +63,13 @@ documented startup adaptation in `app.js`).
 > promote `dev` accounts through user management. Dedicated rate limits now cover
 > `POST /auth/login` and the password-reset routes. The new focused tests live in
 > `tests/p1/`. See `Rapports/version 1/39_rapport_p1_roles_rate_limit.md`.
+>
+> **Phase P1-3 update** - blocked refunds are now retryable instead of getting
+> consumed on a failed trigger, and Stripe refund credit notes / invoices use
+> stable idempotency keys so replayed executions stay safe. New focused tests:
+> `refund.recovery.test.js`, `refund.creditNoteIdempotence.test.js`,
+> `invoice.recovery.test.js`. See
+> `Rapports/version 1/43_rapport_p1_refund_recovery_credit_notes.md`.
 
 ## How to run
 
@@ -121,6 +128,12 @@ Stripe - see "Safety" below.
   via user management.
 - `tests/p1/auth.rateLimit.test.js` - dedicated rate limits for login and
   password-reset routes.
+- `tests/p1/refund.recovery.test.js` - blocked refund requests remain retryable
+  and can be recovered by the dedicated replay job.
+- `tests/p1/refund.creditNoteIdempotence.test.js` - replaying a refund webhook
+  does not create a second Stripe credit note.
+- `tests/p1/invoice.recovery.test.js` - Stripe invoice creation is replay-safe
+  and returns the persisted invoice on retry.
 
 ### Expected-fail (`it.fails`)
 
@@ -170,6 +183,9 @@ tests/
   p1/
     security.roles.test.js
     auth.rateLimit.test.js
+    refund.recovery.test.js
+    refund.creditNoteIdempotence.test.js
+    invoice.recovery.test.js
 ```
 
 ## Safety (no real secrets / no real DB)

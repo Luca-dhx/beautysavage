@@ -225,6 +225,11 @@ function normalizeGiftCardRefundStatus(value) {
   return 'not_applicable';
 }
 
+function buildCreditNoteIdempotencyKey(refundDoc) {
+  const refundId = String(refundDoc?.refundId || '').trim();
+  return refundId ? `refund-request:${refundId}:credit-note` : '';
+}
+
 function buildStripeFeeSaleQuery({ paymentIntentId, saleId } = {}) {
   const normalizedSaleId = String(saleId || '').trim();
   if (normalizedSaleId) {
@@ -1444,6 +1449,8 @@ async function handleRefundUpdatedEvent(event) {
         out_of_band_amount: Math.round(stripeRefundAmount * 100),
         reason: 'order_change',
         memo: `Remboursement vente ${sale.saleId}`
+      }, {
+        idempotencyKey: buildCreditNoteIdempotencyKey(refundDoc)
       });
       await RefundRequest.findByIdAndUpdate(refundDoc._id, {
         creditNoteId: creditNote.id,

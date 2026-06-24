@@ -1095,6 +1095,9 @@ runPostSaleSideEffects
   - maintient `stripeRefundStatus=pending`.
 - Modeles mis a jour: `RefundRequest`, `GiftCard`, `GiftCardTransaction`.
 - Services appeles: `recreditGiftCardPortion`, `sendRefundConfirmedEmail`, `ensureRefundCommissionReversal`.
+- Replay / reprise:
+  - `services/sessionCancellationFlowService.js` laisse le flow institut en `pending` si `triggerRefundExecution` echoue au lieu de le consommer definitivement.
+  - `automatisme/refundRecoveryJob.js` relance periodiquement les `RefundRequest` `requested/pending` avec un idempotency key Stripe stable derive de `refundId`.
 - Gestion erreurs: creation credit note non bloquante; echec logge sans casser la confirmation refund.
 
 ### 4) Circuit de facturation Stripe
@@ -1104,6 +1107,8 @@ runPostSaleSideEffects
   - si absent, creation `stripe.customers.create(...)` puis update user.
 - Creation facture:
   - `stripe.invoices.create(...)` avec `auto_advance: false`, `collection_method: 'charge_automatically'`, metadata sale/user.
+- Idempotence:
+  - `stripe.customers.create`, `stripe.invoices.create`, `stripe.invoiceItems.create`, `stripe.invoices.finalizeInvoice` et `stripe.invoices.pay` utilisent des clefs deterministes derivees de `saleId` / `userId`.
 - Lignes facture:
   - une ligne par `sale.items`,
   - si carte cadeau utilisee: ajout d'une ligne negative `Carte cadeau utilisee` (remise).
@@ -1134,6 +1139,8 @@ runPostSaleSideEffects
   - `amount` ET `out_of_band_amount` (meme valeur en centimes),
   - `reason: 'order_change'`,
   - `memo` avec la vente.
+- Idempotence:
+  - la cle Stripe est `refund-request:<refundId>:credit-note`, ce qui permet de rejouer le webhook sans creer un second credit note.
 - Persistance:
   - `RefundRequest.creditNoteId`,
   - `RefundRequest.creditNotePdfUrl`.

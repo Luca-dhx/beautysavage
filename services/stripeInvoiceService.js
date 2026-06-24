@@ -34,6 +34,33 @@ function toStripeCustomFieldValue(value, fallback = '') {
   return safeValue.slice(0, 40);
 }
 
+function buildStripeInvoiceIdempotencyPrefix(sale) {
+  const saleId = String(sale?.saleId || '').trim() || String(sale?._id || '').trim();
+  return saleId ? `stripe-invoice:${saleId}` : '';
+}
+
+function buildStripeInvoiceCreateIdempotencyKey(sale) {
+  const prefix = buildStripeInvoiceIdempotencyPrefix(sale);
+  return prefix ? `${prefix}:create` : '';
+}
+
+function buildStripeCustomerIdempotencyKey(user) {
+  const userId = String(user?._id || '').trim();
+  return userId ? `stripe-invoice:customer:${userId}` : '';
+}
+
+function buildStripeInvoiceLineIdempotencyKey(sale, lineType, lineIdentity, amount) {
+  const prefix = buildStripeInvoiceIdempotencyPrefix(sale);
+  if (!prefix) return '';
+  const normalizedAmount = Number.isFinite(Number(amount)) ? Math.round(Number(amount)) : 0;
+  return `${prefix}:${lineType}:${String(lineIdentity || '').trim() || 'line'}:${normalizedAmount}`;
+}
+
+function buildStripeInvoiceFinalizeIdempotencyKey(sale, suffix) {
+  const prefix = buildStripeInvoiceIdempotencyPrefix(sale);
+  return prefix ? `${prefix}:${suffix}` : '';
+}
+
 export async function createStripeInvoiceForSale(sale, user) {
   if (!sale?._id || !sale?.saleId) {
     return null;
@@ -55,6 +82,8 @@ export async function createStripeInvoiceForSale(sale, user) {
       email: user.email,
       name: `${String(user.firstName || '').trim()} ${String(user.lastName || '').trim()}`.trim() || user.email,
       metadata: { userId: user._id.toString() }
+    }, {
+      idempotencyKey: buildStripeCustomerIdempotencyKey(user)
     });
     customerId = customer.id;
     await User.findByIdAndUpdate(user._id, { stripeCustomerId: customerId });
@@ -97,6 +126,8 @@ export async function createStripeInvoiceForSale(sale, user) {
       saleId: sale._id.toString(),
       userId: user._id.toString()
     }
+  }, {
+    idempotencyKey: buildStripeInvoiceCreateIdempotencyKey(sale)
   });
 
   const isServiceSale = Array.isArray(sale.items) && sale.items.some(i => i.type === 'service');
@@ -111,7 +142,7 @@ export async function createStripeInvoiceForSale(sale, user) {
     ? Number(sale.totalAmount) / serviceBookingDoc.totalPrice
     : 1;
 
-  for (const item of Array.isArray(sale.items) ? sale.items : []) {
+  for (const [index, item] of Array.isArray(sale.items) ? sale.items.entries() : []) {
     const baseAmount = toCents(item?.finalPrice ?? item?.price ?? item?.basePrice ?? 0);
     const amount = depositRatio === 1 ? baseAmount : Math.round(baseAmount * depositRatio);
     if (amount <= 0) continue;
@@ -121,6 +152,13 @@ export async function createStripeInvoiceForSale(sale, user) {
       description: resolveItemDescription(item),
       amount,
       currency: 'eur'
+    }, {
+      idempotencyKey: buildStripeInvoiceLineIdempotencyKey(
+        sale,
+        'item',
+        `${item?.type || 'item'}:${item?.itemId || index}`,
+        amount
+      )
     });
   }
 
@@ -136,13 +174,32 @@ export async function createStripeInvoiceForSale(sale, user) {
         description: 'Carte cadeau utilisee',
         amount: -toCents(totalGiftCard),
         currency: 'eur'
+      }, {
+        idempotencyKey: buildStripeInvoiceLineIdempotencyKey(
+          sale,
+          'gift-card',
+          sale.giftCardUsage.map(usage => `${usage?.giftCardId || usage?.code || 'gift-card'}`).join('|'),
+          -toCents(totalGiftCard)
+        )
       });
     }
   }
 
-  const finalized = await stripe.invoices.finalizeInvoice(invoice.id);
+  const finalized = await stripe.invoices.finalizeInvoice(
+    invoice.id,
+    {},
+    {
+      idempotencyKey: buildStripeInvoiceFinalizeIdempotencyKey(sale, 'finalize')
+    }
+  );
 
-  await stripe.invoices.pay(invoice.id, { paid_out_of_band: true });
+  await stripe.invoices.pay(
+    invoice.id,
+    { paid_out_of_band: true },
+    {
+      idempotencyKey: buildStripeInvoiceFinalizeIdempotencyKey(sale, 'pay')
+    }
+  );
 
   return Invoice.findOneAndUpdate(
     { saleId: String(sale.saleId) },

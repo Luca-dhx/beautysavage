@@ -962,10 +962,15 @@ function isDuplicateStripePaymentSaleError(error) {
 export async function handleWebhook(req, res) {
   const stripe = await getStripe();
   const sig = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  let webhookSecret = '';
+  try {
+    webhookSecret = await getCredential('stripe-institut', { role: 'webhook_secret' });
+  } catch (_err) {
+    webhookSecret = '';
+  }
 
   if (!webhookSecret) {
-    console.error('[Stripe Webhook] STRIPE_WEBHOOK_SECRET manquant');
+    console.error('[Stripe Webhook] webhook_secret indisponible (coffre/.env)');
     return res.status(500).send('Configuration webhook manquante.');
   }
 
@@ -1608,10 +1613,15 @@ async function handleRefundUpdatedEvent(event) {
  * GET /api/stripe/config  (public)
  * Returns publishable key only. Never exposes STRIPE_SECRET_KEY.
  */
-export function getConfig(req, res) {
-  const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY;
+export async function getConfig(req, res) {
+  let publishableKey = '';
+  try {
+    publishableKey = await getCredential('stripe-institut', { role: 'publishable_key' });
+  } catch (_err) {
+    publishableKey = '';
+  }
   if (!publishableKey) {
-    return res.status(500).json({ ok: false, error: 'STRIPE_PUBLISHABLE_KEY manquante dans .env' });
+    return res.status(500).json({ ok: false, error: 'Clé Stripe publishable indisponible (coffre/.env).' });
   }
   return res.json({ publishableKey });
 }

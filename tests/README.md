@@ -14,6 +14,15 @@ documented startup adaptation in `app.js`).
 > `tests/p1/credentialVault.test.js`, `tests/p1/integratedApiCredentials.test.js`,
 > `tests/p1/integratedApiSeed.test.js`. See `Rapports/version 1/49_rapport_phase1_coffre_integrated_api.md`.
 
+> **Phase 1B update** — Stripe `publishable_key` and `webhook_secret` (Institut +
+> Dev) now come from the vault too. New green tests:
+> `tests/p1/stripeCredentialMigration.test.js` (publishable from vault, fallback
+> gating), `tests/p1/stripeWebhookCredentialVault.test.js` (webhook secret from
+> vault via a mocked `stripe`, invalid signature → 400, missing → 500),
+> `tests/p1/credentialVaultRotation.test.js` (key rotation dry-run/apply). The
+> webhook test mocks `stripe` so `constructEvent` records which secret it received.
+> See `Rapports/version 1/51_rapport_phase1b_stripe_credentials_rotation.md`.
+
 > **Phase 1A update** - the simple security P0s are now **fixed** (mock-pay
 > production guard, removed hardcoded secret fallbacks, gift-card password no
 > longer leaked by the public tracking endpoint, tracking-token debug log

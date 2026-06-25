@@ -4,8 +4,7 @@ import Contract from '../models/Contract.js';
 import ContractCheckoutIntent from '../models/ContractCheckoutIntent.js';
 import { getStripeDevClient } from '../utils/stripeDevClient.js';
 import { invalidateContractCache } from '../middlewares/contractGuard.js';
-
-const STRIPE_DEV_WEBHOOK_SECRET = process.env.STRIPE_DEV_WEBHOOK_SECRET;
+import { getCredential } from '../services/integratedApiCredentialService.js';
 
 // ---------------------------------------------------------------------------
 // Event handlers
@@ -198,8 +197,15 @@ export async function handleDevWebhook(req, res) {
   const stripeDevClient = await getStripeDevClient();
   const sig = req.headers['stripe-signature'];
 
-  if (!STRIPE_DEV_WEBHOOK_SECRET) {
-    console.error('[DevWebhook] STRIPE_DEV_WEBHOOK_SECRET manquant.');
+  let webhookSecret = '';
+  try {
+    webhookSecret = await getCredential('stripe-dev', { role: 'webhook_secret' });
+  } catch (_err) {
+    webhookSecret = '';
+  }
+
+  if (!webhookSecret) {
+    console.error('[DevWebhook] webhook_secret indisponible (coffre/.env).');
     return res.status(500).json({ ok: false, error: 'Webhook secret manquant.' });
   }
 
@@ -210,7 +216,7 @@ export async function handleDevWebhook(req, res) {
 
   let event;
   try {
-    event = stripeDevClient.webhooks.constructEvent(req.body, sig, STRIPE_DEV_WEBHOOK_SECRET);
+    event = stripeDevClient.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (error) {
     console.error('[DevWebhook] Signature invalide', error.message);
     return res.status(400).json({ ok: false, error: `Webhook signature invalide: ${error.message}` });

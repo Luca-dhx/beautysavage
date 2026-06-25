@@ -2627,3 +2627,27 @@ Stripe Dev, Brevo) chiffrés au repos, lus via un contrat unique fail-loud.
   infra (`MONGODB_URI`) **restent en `.env`** (hors périmètre coffre).
 - Détails : `Rapports/version 1/48_audit_env_keys_usage.md`,
   `Rapports/version 1/49_rapport_phase1_coffre_integrated_api.md`.
+
+### Phase 1B (2026-06) — Stripe publishable/webhook au coffre + rotation
+
+- **Webhooks** : `stripeController.handleWebhook` (Institut) et
+  `devWebhookController.handleDevWebhook` (Dev) lisent le `webhook_secret` via
+  `getCredential('stripe-institut'|'stripe-dev',{role:'webhook_secret'})`. **Raw
+  body et vérification de signature inchangés** ; signature invalide → 400 ;
+  secret indisponible → 500 contrôlé.
+- **Publishable** : `stripeController.getConfig` (devenu async) et
+  `contractController.getStripeDevConfig` renvoient la publishable key via le
+  coffre (jamais de secret key exposée).
+- Plus aucune lecture directe de `STRIPE_(DEV_)?WEBHOOK_SECRET` /
+  `STRIPE_(DEV_)?PUBLISHABLE_KEY` dans `controllers/` (seul le seeder + la map de
+  fallback + les fakes de test y réfèrent).
+- **Rotation** : `scripts/rotateCredentialVaultKey.js` re-chiffre tous les
+  `IntegratedApi.credentials[]` d'une ancienne clé vers une nouvelle.
+  Dry-run par défaut, `--apply` pour persister ; lit
+  `OLD_CREDENTIAL_VAULT_KEY`/`NEW_CREDENTIAL_VAULT_KEY` ; ne loggue jamais de
+  valeur (slug/role/runtime/status uniquement). Primitives `encrypt/
+  decryptCredentialWithKey` ajoutées à `utils/credentialVault.js`.
+- Tests : `tests/p1/stripeCredentialMigration.test.js`,
+  `stripeWebhookCredentialVault.test.js`, `credentialVaultRotation.test.js`.
+- Détails : `Rapports/version 1/50_audit_phase1b_remaining_stripe_credentials.md`,
+  `Rapports/version 1/51_rapport_phase1b_stripe_credentials_rotation.md`.

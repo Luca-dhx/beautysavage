@@ -1,5 +1,16 @@
 {
   "id": "project-context",
+  "phase1bCredentialVault": {
+    "date": "2026-06",
+    "scope": [
+      "Stripe publishable + webhook secrets (Institut + Dev) migres au coffre via getCredential; plus aucune lecture process.env de ces 4 vars dans controllers/",
+      "handleWebhook/handleDevWebhook: webhook_secret depuis coffre, raw body + signature inchanges, invalide->400, manquant->500",
+      "getConfig (async) + getStripeDevConfig: publishable_key depuis coffre, jamais de secret key exposee",
+      "scripts/rotateCredentialVaultKey.js: rotation OLD->NEW, dry-run par defaut + --apply, ne loggue jamais de valeur; primitives encrypt/decryptCredentialWithKey",
+      "Tests: stripeCredentialMigration, stripeWebhookCredentialVault, credentialVaultRotation (suite 85->99 verts)",
+      "Rapports 50 (audit) et 51 (rapport phase 1B)"
+    ]
+  },
   "phase1CredentialVault": {
     "date": "2026-06",
     "scope": [

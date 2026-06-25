@@ -11,6 +11,9 @@
 //
 // Storage format: "ivB64.authTagB64.ciphertextB64" (separator '.' is outside base64).
 //
+// The *WithKey variants take an explicit key (used by the rotation script). The
+// default encrypt/decrypt delegate to the env key (CREDENTIAL_VAULT_KEY).
+//
 // SECURITY: never log a decrypted value; only slug/role/generic messages elsewhere.
 
 import crypto from 'node:crypto';
@@ -24,8 +27,8 @@ function readKeyHex() {
   return String(process.env[KEY_ENV] || '').trim();
 }
 
-function isValidKeyHex(hex) {
-  return /^[0-9a-fA-F]{64}$/.test(hex);
+export function isValidKeyHex(hex) {
+  return /^[0-9a-fA-F]{64}$/.test(String(hex || ''));
 }
 
 /**
@@ -47,24 +50,24 @@ export function validateCredentialVaultKey() {
   return false;
 }
 
-function getKeyBuffer() {
-  const hex = readKeyHex();
+function keyBufferFromHex(hex, label = KEY_ENV) {
   if (!isValidKeyHex(hex)) {
-    throw new Error(`[credentialVault] ${KEY_ENV} missing or invalid (need 64 hex chars).`);
+    throw new Error(`[credentialVault] ${label} missing or invalid (need 64 hex chars).`);
   }
   return Buffer.from(hex, 'hex');
 }
 
 /**
- * Encrypt a plaintext credential.
+ * Encrypt a plaintext credential with an explicit key.
  * @param {string} value
+ * @param {string} keyHex 64 hex chars
  * @returns {string} "iv.authTag.ciphertext" (base64 segments)
  */
-export function encryptCredential(value) {
+export function encryptCredentialWithKey(value, keyHex, label) {
   if (typeof value !== 'string' || value.length === 0) {
     throw new Error('[credentialVault] encryptCredential expects a non-empty string.');
   }
-  const key = getKeyBuffer();
+  const key = keyBufferFromHex(keyHex, label);
   const iv = crypto.randomBytes(IV_LENGTH); // random IV per encryption (never reuse with GCM)
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   const encrypted = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()]);
@@ -73,12 +76,13 @@ export function encryptCredential(value) {
 }
 
 /**
- * Decrypt a stored credential.
+ * Decrypt a stored credential with an explicit key.
  * @param {string} encryptedValue "iv.authTag.ciphertext"
+ * @param {string} keyHex 64 hex chars
  * @returns {string} plaintext
- * @throws {Error} on bad format, tampering, or missing key
+ * @throws {Error} on bad format, tampering, wrong key, or invalid key
  */
-export function decryptCredential(encryptedValue) {
+export function decryptCredentialWithKey(encryptedValue, keyHex, label) {
   if (typeof encryptedValue !== 'string') {
     throw new Error('[credentialVault] decryptCredential expects a string.');
   }
@@ -86,15 +90,25 @@ export function decryptCredential(encryptedValue) {
   if (parts.length !== 3) {
     throw new Error('[credentialVault] invalid encrypted format (expected 3 segments).');
   }
-  const key = getKeyBuffer();
+  const key = keyBufferFromHex(keyHex, label);
   const [ivB64, authTagB64, encB64] = parts;
   const iv = Buffer.from(ivB64, 'base64');
   const authTag = Buffer.from(authTagB64, 'base64');
   const encrypted = Buffer.from(encB64, 'base64');
   const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(authTag);
-  const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]); // throws on tamper
+  const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]); // throws on tamper/wrong key
   return decrypted.toString('utf8');
+}
+
+/** Encrypt with the env key (CREDENTIAL_VAULT_KEY). */
+export function encryptCredential(value) {
+  return encryptCredentialWithKey(value, readKeyHex());
+}
+
+/** Decrypt with the env key (CREDENTIAL_VAULT_KEY). */
+export function decryptCredential(encryptedValue) {
+  return decryptCredentialWithKey(encryptedValue, readKeyHex());
 }
 
 /** True if a decrypted value is a seed placeholder (never to be sent to a provider). */

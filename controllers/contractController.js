@@ -7,6 +7,7 @@ import Contract from '../models/Contract.js';
 import ContractCheckoutIntent from '../models/ContractCheckoutIntent.js';
 import { getStripeDevClient } from '../utils/stripeDevClient.js';
 import { invalidateContractCache } from '../middlewares/contractGuard.js';
+import { getCredential } from '../services/integratedApiCredentialService.js';
 import { getActiveCommissionConfig } from '../services/commissionService.js';
 
 const CONTRACT_UPLOAD_ROOT = path.resolve(process.cwd(), 'uploads', 'contracts');
@@ -113,7 +114,12 @@ function respondError(res, error, context) {
 // Retourne la clé publique Stripe Developer
 // ---------------------------------------------------------------------------
 export async function getStripeDevConfig(_req, res) {
-  const publishableKey = process.env.STRIPE_DEV_PUBLISHABLE_KEY || '';
+  let publishableKey = '';
+  try {
+    publishableKey = await getCredential('stripe-dev', { role: 'publishable_key' });
+  } catch (_err) {
+    publishableKey = '';
+  }
   if (!publishableKey) {
     return res.status(500).json({ ok: false, error: 'Clé Stripe Developer non configurée.' });
   }

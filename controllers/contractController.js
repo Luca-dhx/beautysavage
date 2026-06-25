@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 
 import Contract from '../models/Contract.js';
 import ContractCheckoutIntent from '../models/ContractCheckoutIntent.js';
-import stripeDevClient from '../utils/stripeDevClient.js';
+import { getStripeDevClient } from '../utils/stripeDevClient.js';
 import { invalidateContractCache } from '../middlewares/contractGuard.js';
 import { getActiveCommissionConfig } from '../services/commissionService.js';
 
@@ -220,6 +220,7 @@ export async function downloadContractFile(req, res) {
 // Crée un PaymentIntent Stripe Developer pour les frais de lancement
 // ---------------------------------------------------------------------------
 export async function createLaunchIntent(req, res) {
+  const stripeDevClient = await getStripeDevClient();
   try {
     if (!stripeDevClient) {
       return res.status(500).json({ ok: false, error: 'Client Stripe Developer non configuré.' });
@@ -309,6 +310,7 @@ export async function createLaunchIntent(req, res) {
 // Crée un SetupIntent Stripe Developer pour la souscription mensuelle
 // ---------------------------------------------------------------------------
 export async function createMonthlySetup(req, res) {
+  const stripeDevClient = await getStripeDevClient();
   try {
     if (!stripeDevClient) {
       return res.status(500).json({ ok: false, error: 'Client Stripe Developer non configuré.' });
@@ -681,6 +683,7 @@ export async function getContractHistory(req, res) {
 // Vérifie les statuts Stripe et auto-active si tout est ok
 // ---------------------------------------------------------------------------
 export async function syncStripeStatuses(contract) {
+  const stripeDevClient = await getStripeDevClient();
   if (!stripeDevClient) return;
 
   // Vérifier PaymentIntent launch
@@ -753,6 +756,7 @@ export async function checkPaymentStatus(req, res) {
 // Vérifie côté serveur le statut du dernier PaymentIntent launch
 // ---------------------------------------------------------------------------
 export async function verifyLaunchPayment(req, res) {
+  const stripeDevClient = await getStripeDevClient();
   try {
     if (!stripeDevClient) {
       return res.status(500).json({ ok: false, error: 'Client Stripe Developer non configuré.' });
@@ -797,6 +801,7 @@ export async function verifyLaunchPayment(req, res) {
 // Vérifie côté serveur le statut du dernier SetupIntent monthly
 // ---------------------------------------------------------------------------
 export async function verifyMonthlySetup(req, res) {
+  const stripeDevClient = await getStripeDevClient();
   try {
     if (!stripeDevClient) {
       return res.status(500).json({ ok: false, error: 'Client Stripe Developer non configuré.' });
@@ -933,6 +938,7 @@ export async function getCurrentContract(req, res) {
 // Sans abonnement Stripe : résiliation immédiate (status='cancelled')
 // ---------------------------------------------------------------------------
 export async function cancelContract(req, res) {
+  const stripeDevClient = await getStripeDevClient();
   try {
     const contract = await Contract.findOne({ status: 'active' });
 
@@ -981,6 +987,7 @@ export async function cancelContract(req, res) {
 // Résilie immédiatement le contrat actif ou en attente
 // ---------------------------------------------------------------------------
 export async function cancelImmediate(req, res) {
+  const stripeDevClient = await getStripeDevClient();
   try {
     if (process.env.NODE_ENV === 'production') {
       return res.status(403).json({ ok: false, error: 'Non disponible en production.' });

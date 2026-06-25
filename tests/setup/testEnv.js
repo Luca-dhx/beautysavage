@@ -28,6 +28,13 @@ process.env.BREVO_API_KEY = 'fake-brevo-key';
 process.env.MAIL_FROM = 'test@example.com';
 process.env.MAIL_FROM_NAME = 'Beauty Savage (test)';
 
+// Credential vault (fake 64-hex key — never a real key). Lets the vault encrypt/
+// decrypt in tests. Migration fallback is ENABLED so vault-miss reads fall back to
+// the fake provider env vars above (existing Stripe/Brevo tests keep passing).
+process.env.CREDENTIAL_VAULT_KEY =
+  process.env.CREDENTIAL_VAULT_KEY || '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff';
+process.env.ALLOW_ENV_CREDENTIAL_FALLBACK = 'true';
+
 // Misc
 process.env.WEBHOOK_API_KEY = 'fake-webhook-api-key';
 process.env.APP_BASE_URL = 'http://localhost:3000';

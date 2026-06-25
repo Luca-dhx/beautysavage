@@ -1,5 +1,18 @@
 {
   "id": "project-context",
+  "phase1CredentialVault": {
+    "date": "2026-06",
+    "scope": [
+      "Coffre AES-256-GCM mono-tenant: models/IntegratedApi.js, utils/credentialVault.js, services/integratedApiCredentialService.js, seeders/seedIntegratedApisFromEnv.js",
+      "getCredential(slug,{role,runtime}) vault-prioritaire + fallback .env si ALLOW_ENV_CREDENTIAL_FALLBACK=true + fail-loud sinon",
+      "Migration secret_key Stripe Institut (getStripe async x5 fichiers), secret_key Stripe Dev (stripeDevClient -> getStripeDevClient lazy), api_key Brevo (mailService)",
+      "publishable_key/webhook_secret seedes mais lus encore en .env (etape suivante)",
+      "CREDENTIAL_VAULT_KEY (64 hex, boot bloquant en prod) + boot wiring app.js (validate + seed hors test)",
+      "WEBHOOK_API_KEY = cle Stripe live inutilisee -> retiree de .env.example, a revoquer",
+      "Tests: tests/p1/credentialVault|integratedApiCredentials|integratedApiSeed (suite 64->85 verts)",
+      "Rapports 48 (audit env) et 49 (rapport phase 1)"
+    ]
+  },
   "lastFormationManagerSessionListCreateFix": {
     "date": "2026-04-05",
     "scope": [

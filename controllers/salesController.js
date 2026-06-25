@@ -17,6 +17,7 @@ import {
 } from '../services/refundService.js';
 import { triggerRefundExecution } from '../services/refundExecutionService.js';
 import { requireSecret } from '../utils/secretEnv.js';
+import { getCredential } from '../services/integratedApiCredentialService.js';
 
 const GIFT_CARD_PASSWORD_SECRET = requireSecret('GIFT_CARD_PASSWORD_SECRET', { fallback: 'SESSION_SECRET' });
 const GIFT_CARD_PASSWORD_KEY = crypto
@@ -24,11 +25,9 @@ const GIFT_CARD_PASSWORD_KEY = crypto
   .update(String(GIFT_CARD_PASSWORD_SECRET))
   .digest();
 
-function getStripe() {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error('STRIPE_SECRET_KEY manquante dans .env');
-  }
-  return new Stripe(process.env.STRIPE_SECRET_KEY);
+async function getStripe() {
+  const secretKey = await getCredential('stripe-institut', { role: 'secret_key' });
+  return new Stripe(secretKey);
 }
 
 function roundToCents(value) {
@@ -125,7 +124,7 @@ async function resolveStripeInvoicePdfUrl(invoiceDoc) {
   const stripeInvoiceId = String(invoiceDoc.stripeInvoiceId || '').trim();
   if (!stripeInvoiceId) return null;
   try {
-    const stripe = getStripe();
+    const stripe = await getStripe();
     const stripeInvoice = await stripe.invoices.retrieve(stripeInvoiceId);
     const stripePdfUrl = String(stripeInvoice?.invoice_pdf || '').trim();
     if (!stripePdfUrl) return null;

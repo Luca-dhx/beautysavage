@@ -26,12 +26,12 @@ import { recreditGiftCardPortion } from '../services/refundGiftCardService.js';
 import { claimGiftCardRecredit } from '../services/refundRequestService.js';
 import { getAppBaseUrl } from '../utils/invoiceUrl.js';
 import { assertServiceSlotBookable } from '../services/serviceAvailabilityService.js';
+import { getCredential } from '../services/integratedApiCredentialService.js';
 
-function getStripe() {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error('STRIPE_SECRET_KEY manquante dans .env');
-  }
-  return new Stripe(process.env.STRIPE_SECRET_KEY);
+async function getStripe() {
+  // Credential sourced from the IntegratedApi vault (env fallback during migration).
+  const secretKey = await getCredential('stripe-institut', { role: 'secret_key' });
+  return new Stripe(secretKey);
 }
 
 // Phase 1B-4: 0€ orders finalized without Stripe carry a synthetic "free_" reference in
@@ -292,7 +292,7 @@ async function fetchStripeFeeData({
     return { fee: null, net: null, amount: null, currency: 'eur', available: false };
   }
 
-  const stripe = getStripe();
+  const stripe = await getStripe();
   let lastCurrency = 'eur';
   for (let i = 0; i < attempts; i += 1) {
     const paymentIntent = await stripe.paymentIntents.retrieve(normalizedPaymentIntentId);
@@ -836,7 +836,7 @@ export async function createCheckoutSession(req, res) {
   }
 
   const clientIp = extractClientIp(req);
-  const stripe = getStripe();
+  const stripe = await getStripe();
 
   // Amount to charge = amountToPay (deposit or full, after gift card deductions)
   const amountToPay = Number(checkoutState.totals?.amountToPay || checkoutState.totals?.remainingToPay || 0);
@@ -960,7 +960,7 @@ function isDuplicateStripePaymentSaleError(error) {
 }
 
 export async function handleWebhook(req, res) {
-  const stripe = getStripe();
+  const stripe = await getStripe();
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -1257,7 +1257,7 @@ export async function getSessionStatus(req, res) {
   }
 
   try {
-    const stripe = getStripe();
+    const stripe = await getStripe();
     const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     // Look up our intent for origin + item
@@ -1350,7 +1350,7 @@ export async function getPaymentResult(req, res) {
   }
 
   try {
-    const stripe = getStripe();
+    const stripe = await getStripe();
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     const sale = await Sale.findOne({
@@ -1442,7 +1442,7 @@ async function handleRefundUpdatedEvent(event) {
       : 0;
     if (!invoice?.stripeInvoiceId || stripeRefundAmount <= 0) return;
     try {
-      const stripe = getStripe();
+      const stripe = await getStripe();
       const creditNote = await stripe.creditNotes.create({
         invoice: invoice.stripeInvoiceId,
         amount: Math.round(stripeRefundAmount * 100),

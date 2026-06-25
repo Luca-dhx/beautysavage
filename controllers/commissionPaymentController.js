@@ -15,7 +15,7 @@ import CommissionPayment from '../models/CommissionPayment.js';
 import CommissionSettings from '../models/CommissionSettings.js';
 import Sale from '../models/Sale.js';
 import RefundRequest from '../models/RefundRequest.js';
-import stripeDevClient from '../utils/stripeDevClient.js';
+import { getStripeDevClient } from '../utils/stripeDevClient.js';
 import {
   getOrComputeCommissionPayment,
   getMonthsFromContractStart,
@@ -44,6 +44,7 @@ function respondError(res, error, context) {
 // Génère la facture Stripe Invoice pour un CommissionPayment succeeded
 // ---------------------------------------------------------------------------
 async function generateCommissionInvoice(commissionPayment) {
+  const stripeDevClient = await getStripeDevClient();
   if (!stripeDevClient) return;
 
   const monthLabel = `${MONTH_NAMES_FR[commissionPayment.month]} ${commissionPayment.year}`;
@@ -184,6 +185,7 @@ export async function getCommissionPayments(req, res) {
 // POST /api/commissions/payments/:id/create-intent
 // ---------------------------------------------------------------------------
 export async function createCommissionIntent(req, res) {
+  const stripeDevClient = await getStripeDevClient();
   try {
     if (!stripeDevClient) {
       return res.status(500).json({ ok: false, error: 'Client Stripe Developer non configuré.' });
@@ -270,6 +272,7 @@ export async function createCommissionIntent(req, res) {
 // GET /api/commissions/payments/:id/check-status
 // ---------------------------------------------------------------------------
 export async function checkCommissionStatus(req, res) {
+  const stripeDevClient = await getStripeDevClient();
   try {
     if (!stripeDevClient) {
       return res.status(500).json({ ok: false, error: 'Client Stripe Developer non configuré.' });

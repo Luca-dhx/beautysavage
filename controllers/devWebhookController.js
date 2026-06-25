@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 
 import Contract from '../models/Contract.js';
 import ContractCheckoutIntent from '../models/ContractCheckoutIntent.js';
-import stripeDevClient from '../utils/stripeDevClient.js';
+import { getStripeDevClient } from '../utils/stripeDevClient.js';
 import { invalidateContractCache } from '../middlewares/contractGuard.js';
 
 const STRIPE_DEV_WEBHOOK_SECRET = process.env.STRIPE_DEV_WEBHOOK_SECRET;
@@ -39,6 +39,7 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
 }
 
 async function handleSetupIntentSucceeded(setupIntent) {
+  const stripeDevClient = await getStripeDevClient();
   const siId = setupIntent.id;
   const customerId = setupIntent.customer;
   const paymentMethodId = setupIntent.payment_method;
@@ -194,6 +195,7 @@ async function handleSubscriptionDeleted(subscription) {
 // Main webhook handler
 // ---------------------------------------------------------------------------
 export async function handleDevWebhook(req, res) {
+  const stripeDevClient = await getStripeDevClient();
   const sig = req.headers['stripe-signature'];
 
   if (!STRIPE_DEV_WEBHOOK_SECRET) {

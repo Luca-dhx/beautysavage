@@ -4,12 +4,11 @@ import Stripe from 'stripe';
 import Invoice from '../models/Invoice.js';
 import Sale from '../models/Sale.js';
 import { getSessionUserId } from '../utils/session.js';
+import { getCredential } from '../services/integratedApiCredentialService.js';
 
-function getStripe() {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error('STRIPE_SECRET_KEY manquante dans .env');
-  }
-  return new Stripe(process.env.STRIPE_SECRET_KEY);
+async function getStripe() {
+  const secretKey = await getCredential('stripe-institut', { role: 'secret_key' });
+  return new Stripe(secretKey);
 }
 
 function resolveSaleTitle(sale) {
@@ -50,7 +49,7 @@ async function resolveStripeInvoicePdfUrl(invoiceDoc) {
   }
 
   try {
-    const stripe = getStripe();
+    const stripe = await getStripe();
     const stripeInvoice = await stripe.invoices.retrieve(stripeInvoiceId);
     const stripePdfUrl = String(stripeInvoice?.invoice_pdf || '').trim();
     if (!stripePdfUrl) {

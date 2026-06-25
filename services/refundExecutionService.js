@@ -12,12 +12,11 @@ import {
   applyRefundExecutionCap,
   claimGiftCardRecredit
 } from './refundRequestService.js';
+import { getCredential } from './integratedApiCredentialService.js';
 
-function getStripe() {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error('STRIPE_SECRET_KEY manquante dans .env');
-  }
-  return new Stripe(process.env.STRIPE_SECRET_KEY);
+async function getStripe() {
+  const secretKey = await getCredential('stripe-institut', { role: 'secret_key' });
+  return new Stripe(secretKey);
 }
 
 function roundToCents(value) {
@@ -260,7 +259,7 @@ export async function triggerRefundExecution(refundRequest, saleInput = null) {
     if (!sale?.stripePaymentIntentId) {
       throw buildConflictError('Remboursement Stripe impossible: transaction introuvable.');
     }
-    const stripe = getStripe();
+    const stripe = await getStripe();
     const stripeRefundAmountCents = roundToCentsInt(stripeRefundAmountEur);
     const stripeRefund = await stripe.refunds.create({
       payment_intent: sale.stripePaymentIntentId,

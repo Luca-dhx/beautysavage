@@ -43,6 +43,8 @@ import { runEmailTemplateCategoryMigration } from './automatisme/emailTemplateCa
 import { runServicePagesMigration } from './automatisme/servicePagesMigration.js';
 import { migrateRefundRequestedTemplate } from './automatisme/refundRequestedTemplateMigration.js';
 import { runNotificationConfigMigration } from './automatisme/notificationConfigMigration.js';
+import { validateCredentialVaultKey } from './utils/credentialVault.js';
+import { seedIntegratedApisFromEnv } from './seeders/seedIntegratedApisFromEnv.js';
 import siteIdentityRouter from './routers/siteIdentityRouter.js';
 import contractRouter from './routers/contractRouter.js';
 import serviceRouter from './routers/serviceRouter.js';
@@ -302,6 +304,8 @@ if (!mongoURI) {
   process.exit(1);
 }
 mongoose.set('strictQuery', true);
+// Credential vault key check (blocks boot in production if absent/invalid).
+validateCredentialVaultKey();
 await mongoose.connect(mongoURI, { dbName: 'beautysavage-database' });
 await ensurePurchaseIndexes();
 await runEmailTemplateCategoryMigration();
@@ -455,6 +459,13 @@ app.get('/', (_req, res) => res.redirect('/vitrine.html'));
 // handles or side effects. Business logic is unchanged — only startup side
 // effects are gated behind this flag. The app instance is exported below.
 if (process.env.NODE_ENV !== 'test') {
+  // Pre-seed the credential vault from .env (idempotent). On failure, the app
+  // keeps working via the temporary .env fallback (ALLOW_ENV_CREDENTIAL_FALLBACK).
+  try {
+    await seedIntegratedApisFromEnv();
+  } catch (seedError) {
+    console.error('[seed] IntegratedApi vault seed failed (continuing with .env fallback):', seedError?.message || seedError);
+  }
   await startSessionCancellationAutoRefundScheduler();
 startCommissionReminderJob();
 // Booking reminders — check every hour

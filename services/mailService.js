@@ -8,6 +8,7 @@ import Sale from '../models/Sale.js';
 import { sanitizeEditorialHtml } from './editableContentService.js';
 
 import { getAppBaseUrl } from '../utils/invoiceUrl.js';
+import { getCredential } from './integratedApiCredentialService.js';
 
 
 
@@ -1716,7 +1717,12 @@ function buildInvoiceDownloadUrl(invoiceToken) {
 
 async function postToBrevo(payload) {
 
-  const apiKey = String(process.env.BREVO_API_KEY || '').trim();
+  let apiKey = '';
+  try {
+    apiKey = String((await getCredential('brevo', { role: 'api_key' })) || '').trim();
+  } catch (_err) {
+    apiKey = '';
+  }
 
   if (!apiKey) {
 

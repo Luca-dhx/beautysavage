@@ -2590,3 +2590,40 @@ Pour date D, service duree `D_min`, granularite `G_min` :
   - password reset request -> 429 apres repetitions ;
   - password reset validate -> 429 apres repetitions ;
   - password reset complete -> 429 apres repetitions.
+
+## Coffre de credentials `IntegratedApi` (Phase 1 — 2026-06)
+
+Mono-tenant. Centralise les secrets de **fournisseurs tiers** (Stripe Institut,
+Stripe Dev, Brevo) chiffrés au repos, lus via un contrat unique fail-loud.
+
+- `models/IntegratedApi.js` — registre : `{ slug, name, provider, runtimeModel
+  ('single'|'dual_environment'), mode ('test'|'prod'), modeUpdatedAt,
+  credentials[] }`. Sous-doc `credentials[]` : `{ role, type
+  ('secret_key'|'publishable_key'|'webhook_secret'|'api_key'), runtime
+  ('test'|'prod'|null), encryptedValue, lastFourChars, isActive }`. Invariants
+  (pre-validate) : runtimeModel↔runtime cohérents ; **1 seul actif** par
+  (role, runtime).
+- `utils/credentialVault.js` — AES-256-GCM. `encryptCredential` /
+  `decryptCredential` (format `iv.authTag.ciphertext`, IV aléatoire),
+  `validateCredentialVaultKey` (clé `CREDENTIAL_VAULT_KEY` = 64 hex ; **boot
+  bloquant en production** si absente/invalide).
+- `services/integratedApiCredentialService.js` — `getCredential(slug,{role,
+  runtime})`, `getCredentials(slug,{runtime})`, `setIntegratedApiMode(slug,mode)`.
+  Ordre : **vault prioritaire** → fallback `.env` **uniquement si**
+  `ALLOW_ENV_CREDENTIAL_FALLBACK==='true'` (migration) → sinon **erreur typée**
+  (jamais d'appel tiers dégradé). Aucune valeur de secret n'est jamais loggée.
+- `seeders/seedIntegratedApisFromEnv.js` — pré-seed idempotent des 3 intégrations
+  depuis `.env`, runtime déduit du préfixe (`sk_test_`/`sk_live_`…). Appelé au boot
+  (`app.js`, hors mode test).
+- **Migration** : `secret_key` Stripe Institut (`getStripe()` async dans 5 fichiers),
+  `secret_key` Stripe Dev (`utils/stripeDevClient.js` → `getStripeDevClient()` lazy,
+  consommé par devWebhook/contract/commissionPayment), `api_key` Brevo
+  (`mailService.postToBrevo`). `publishable_key`/`webhook_secret` **seedés** mais
+  lus encore en `.env` (étape suivante).
+- Tests : `tests/p1/credentialVault.test.js`, `integratedApiCredentials.test.js`,
+  `integratedApiSeed.test.js`.
+- ⚠️ `WEBHOOK_API_KEY` (clé Stripe **live** inutilisée) : retirée de `.env.example`,
+  **à révoquer**. Secrets crypto internes (`SESSION_SECRET`, `PWD_PEPPER`, …) et
+  infra (`MONGODB_URI`) **restent en `.env`** (hors périmètre coffre).
+- Détails : `Rapports/version 1/48_audit_env_keys_usage.md`,
+  `Rapports/version 1/49_rapport_phase1_coffre_integrated_api.md`.

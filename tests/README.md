@@ -5,6 +5,15 @@ fix, so that financial / booking / refund / security flows can be corrected with
 safety net. The harness itself changed no business logic (only a minimal,
 documented startup adaptation in `app.js`).
 
+> **Phase 1 update (credential vault)** — third-party secrets (Stripe Institut/Dev
+> `secret_key`, Brevo `api_key`) are now sourced from the `IntegratedApi` vault via
+> `getCredential()` (AES-256-GCM, `utils/credentialVault.js`). Tests inject a fake
+> 64-hex `CREDENTIAL_VAULT_KEY` and set `ALLOW_ENV_CREDENTIAL_FALLBACK=true`
+> (`tests/setup/testEnv.js`) so vault-miss reads fall back to the fake provider env
+> vars — existing Stripe/Brevo tests are unaffected. New green tests:
+> `tests/p1/credentialVault.test.js`, `tests/p1/integratedApiCredentials.test.js`,
+> `tests/p1/integratedApiSeed.test.js`. See `Rapports/version 1/49_rapport_phase1_coffre_integrated_api.md`.
+
 > **Phase 1A update** - the simple security P0s are now **fixed** (mock-pay
 > production guard, removed hardcoded secret fallbacks, gift-card password no
 > longer leaked by the public tracking endpoint, tracking-token debug log

@@ -4,12 +4,11 @@ import Invoice from '../models/Invoice.js';
 import ServiceBooking from '../models/ServiceBooking.js';
 import User from '../models/user.js';
 import { getVendorConfig } from '../config/invoiceVendorConfig.js';
+import { getCredential } from './integratedApiCredentialService.js';
 
-function getStripe() {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error('STRIPE_SECRET_KEY manquante dans .env');
-  }
-  return new Stripe(process.env.STRIPE_SECRET_KEY);
+async function getStripe() {
+  const secretKey = await getCredential('stripe-institut', { role: 'secret_key' });
+  return new Stripe(secretKey);
 }
 
 function toCents(value) {
@@ -74,7 +73,7 @@ export async function createStripeInvoiceForSale(sale, user) {
     return existingInvoice;
   }
 
-  const stripe = getStripe();
+  const stripe = await getStripe();
 
   let customerId = String(user.stripeCustomerId || '').trim();
   if (!customerId) {

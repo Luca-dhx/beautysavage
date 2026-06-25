@@ -2622,8 +2622,9 @@ Stripe Dev, Brevo) chiffrés au repos, lus via un contrat unique fail-loud.
   lus encore en `.env` (étape suivante).
 - Tests : `tests/p1/credentialVault.test.js`, `integratedApiCredentials.test.js`,
   `integratedApiSeed.test.js`.
-- ⚠️ `WEBHOOK_API_KEY` (clé Stripe **live** inutilisée) : retirée de `.env.example`,
-  **à révoquer**. Secrets crypto internes (`SESSION_SECRET`, `PWD_PEPPER`, …) et
+- ⚠️ Une ancienne clé Stripe **live** orpheline (inutilisée) a été retirée du
+  projet (voir rapports 46 et 52) ; **révocation Stripe = action manuelle**.
+  Secrets crypto internes (`SESSION_SECRET`, `PWD_PEPPER`, …) et
   infra (`MONGODB_URI`) **restent en `.env`** (hors périmètre coffre).
 - Détails : `Rapports/version 1/48_audit_env_keys_usage.md`,
   `Rapports/version 1/49_rapport_phase1_coffre_integrated_api.md`.
@@ -2651,3 +2652,34 @@ Stripe Dev, Brevo) chiffrés au repos, lus via un contrat unique fail-loud.
   `stripeWebhookCredentialVault.test.js`, `credentialVaultRotation.test.js`.
 - Détails : `Rapports/version 1/50_audit_phase1b_remaining_stripe_credentials.md`,
   `Rapports/version 1/51_rapport_phase1b_stripe_credentials_rotation.md`.
+
+## SendLog & observabilité email Brevo (Phase 2 — 2026-06)
+
+Trace les envois sortants et l'engagement, sans toucher aux flux métier.
+
+- `models/SendLog.js` — un doc par envoi : `channel/provider/templateKey`,
+  `recipientHash` (**SHA-256**, jamais l'email), `status`
+  (`queued|sent|delivered|opened|bounced|failed`), `providerMessageId`, `subject`,
+  `contextType/contextId` (optionnels), horodatages, `errorCode/errorMessageSafe`
+  (jamais le payload brut). Index sur `providerMessageId`, `status+createdAt`,
+  `createdAt`, `contextType+contextId`.
+- `services/sendLogService.js` — `hashRecipient`, `createQueuedSendLog`,
+  `markSendLogSent`, `markSendLogFailed`, `applyBrevoEvent`. Toutes les écritures
+  sont **défensives** (un échec de log ne casse jamais l'envoi).
+- `services/mailService.js` — `postToBrevo` (exporté) crée un SendLog `queued`
+  puis `sent` (avec `messageId` Brevo) ou `failed` (`provider_not_configured` /
+  `network_error` / `http_<status>`). Comportement métier (retour true/false)
+  inchangé ; `fetch` désormais dans un try/catch.
+- `controllers/brevoWebhookController.js` + `routers/brevoWebhookRouter.js` —
+  `POST /api/webhooks/brevo` (public, exempté de `contractGuard` via
+  `/api/webhooks/`). Événements `delivered/opened/hard_bounce/soft_bounce`
+  corrélés par `providerMessageId`. Protection = secret partagé **optionnel**
+  (`x-brevo-secret`/`?secret=`, vault `brevo/webhook_secret` ou
+  `BREVO_WEBHOOK_SECRET`, comparaison timing-safe) ; sinon accepté + warning
+  (limite V1). Jamais d'email loggé.
+- `controllers/devDiagnosticController.js` + `routers/devDiagnosticRouter.js` —
+  `GET /api/gestion/dev/send-logs` (`requireGestionRole` puis `requireStrictDev`).
+  Retour de champs sûrs uniquement (jamais email/token/secret).
+- Tests : `tests/p1/{sendLog,brevoWebhook,sendLogEndpoint}.test.js`.
+- Détails : `Rapports/version 1/53_rapport_sendlog_brevo_observability.md`. Clé
+  Stripe live orpheline supprimée du code (rapport 52).

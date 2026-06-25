@@ -35,6 +35,7 @@ const ALLOWED_PATH_PREFIXES = [
   '/api/stripe/dev-webhook',
   '/api/stripe/webhook',
   '/api/stripe/config',
+  '/api/webhooks/',
   '/api/contract/',
   '/api/vitrine/theme',
   '/api/vitrine/site-identity',

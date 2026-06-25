@@ -9,6 +9,7 @@ import { sanitizeEditorialHtml } from './editableContentService.js';
 
 import { getAppBaseUrl } from '../utils/invoiceUrl.js';
 import { getCredential } from './integratedApiCredentialService.js';
+import { createQueuedSendLog, markSendLogSent, markSendLogFailed } from './sendLogService.js';
 
 
 
@@ -1715,7 +1716,10 @@ function buildInvoiceDownloadUrl(invoiceToken) {
   return `${base}/vitrine.html?slug=invoice&token=${encodedToken}`;
 }
 
-async function postToBrevo(payload) {
+export async function postToBrevo(payload) {
+  // Observability: create a queued SendLog, then mark sent/failed. All SendLog
+  // ops are defensive (never break the email flow).
+  const sendLog = await createQueuedSendLog(payload);
 
   let apiKey = '';
   try {
@@ -1725,41 +1729,43 @@ async function postToBrevo(payload) {
   }
 
   if (!apiKey) {
-
-    console.error('[mailService] BREVO_API_KEY manquante, envoi ignorÃ©');
-
+    console.error('[mailService] Brevo api_key indisponible, envoi ignoré');
+    await markSendLogFailed(sendLog, { errorCode: 'provider_not_configured', errorMessageSafe: 'Brevo API key unavailable' });
     return false;
-
   }
 
-  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-
-    method: 'POST',
-
-    headers: {
-
-      'Content-Type': 'application/json',
-
-      'api-key': apiKey
-
-    },
-
-    body: JSON.stringify(payload)
-
-  });
+  let response;
+  try {
+    response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': apiKey
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch (networkError) {
+    console.error('[mailService] Brevo injoignable', networkError?.message || networkError);
+    await markSendLogFailed(sendLog, { errorCode: 'network_error', errorMessageSafe: 'Brevo request failed' });
+    return false;
+  }
 
   if (!response.ok) {
-
     const body = await response.text().catch(() => '');
-
-    console.error('[mailService] Brevo a refusÃ© le mail', response.status, body);
-
+    console.error('[mailService] Brevo a refusé le mail', response.status, body);
+    await markSendLogFailed(sendLog, { errorCode: `http_${response.status}`, errorMessageSafe: 'Brevo rejected the message' });
     return false;
-
   }
 
+  let providerMessageId = '';
+  try {
+    const data = await response.json();
+    providerMessageId = String(data?.messageId || '').trim();
+  } catch (_err) {
+    providerMessageId = '';
+  }
+  await markSendLogSent(sendLog, { providerMessageId });
   return true;
-
 }
 
 

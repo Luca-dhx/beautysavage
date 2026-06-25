@@ -1,5 +1,17 @@
 {
   "id": "project-context",
+  "phase2SendLogObservability": {
+    "date": "2026-06",
+    "scope": [
+      "models/SendLog.js: observabilite envois email (recipientHash SHA-256, jamais email/secret); status queued/sent/delivered/opened/bounced/failed",
+      "services/sendLogService.js + mailService.postToBrevo instrumente (queued->sent/failed), comportement metier inchange, ecritures defensives",
+      "controllers/brevoWebhookController.js + routers/brevoWebhookRouter.js: POST /api/webhooks/brevo (delivered/opened/hard_bounce/soft_bounce) correlation providerMessageId, secret partage optionnel, exempte de contractGuard",
+      "GET /api/gestion/dev/send-logs (requireStrictDev) via devDiagnosticController/Router",
+      "Ancienne cle Stripe live orpheline supprimee de testEnv.js/.env.example (rapport 52)",
+      "Tests: sendLog, brevoWebhook, sendLogEndpoint (suite 99->117 verts)",
+      "Rapports 52 (suppression cle) et 53 (sendlog/observabilite)"
+    ]
+  },
   "phase1bCredentialVault": {
     "date": "2026-06",
     "scope": [
@@ -19,7 +31,7 @@
       "Migration secret_key Stripe Institut (getStripe async x5 fichiers), secret_key Stripe Dev (stripeDevClient -> getStripeDevClient lazy), api_key Brevo (mailService)",
       "publishable_key/webhook_secret seedes mais lus encore en .env (etape suivante)",
       "CREDENTIAL_VAULT_KEY (64 hex, boot bloquant en prod) + boot wiring app.js (validate + seed hors test)",
-      "WEBHOOK_API_KEY = cle Stripe live inutilisee -> retiree de .env.example, a revoquer",
+      "Ancienne cle Stripe live orpheline retiree du projet (voir rapports 46/52), revocation Stripe = action manuelle",
       "Tests: tests/p1/credentialVault|integratedApiCredentials|integratedApiSeed (suite 64->85 verts)",
       "Rapports 48 (audit env) et 49 (rapport phase 1)"
     ]

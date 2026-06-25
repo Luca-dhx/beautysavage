@@ -23,6 +23,17 @@ documented startup adaptation in `app.js`).
 > webhook test mocks `stripe` so `constructEvent` records which secret it received.
 > See `Rapports/version 1/51_rapport_phase1b_stripe_credentials_rotation.md`.
 
+> **Phase 2 update (SendLog & Brevo observability)** — outbound email now writes a
+> `SendLog` (queued→sent→delivered→opened / bounced / failed); a Brevo webhook
+> updates it by `providerMessageId`; a dev-only `GET /api/gestion/dev/send-logs`
+> exposes the logs. New green tests: `tests/p1/sendLog.test.js` (mocks `fetch` to
+> drive `postToBrevo`), `tests/p1/brevoWebhook.test.js` (controller-level
+> delivered/opened/bounce + shared-secret), `tests/p1/sendLogEndpoint.test.js`
+> (requireStrictDev via the seeded dev/admin/client users). No email/secret is ever
+> stored or logged (recipient is a SHA-256 hash). Note: an unused live Stripe key
+> was removed from `testEnv.js` (see report 52). See
+> `Rapports/version 1/53_rapport_sendlog_brevo_observability.md`.
+
 > **Phase 1A update** - the simple security P0s are now **fixed** (mock-pay
 > production guard, removed hardcoded secret fallbacks, gift-card password no
 > longer leaked by the public tracking endpoint, tracking-token debug log

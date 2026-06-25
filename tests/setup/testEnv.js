@@ -36,7 +36,6 @@ process.env.CREDENTIAL_VAULT_KEY =
 process.env.ALLOW_ENV_CREDENTIAL_FALLBACK = 'true';
 
 // Misc
-process.env.WEBHOOK_API_KEY = 'fake-webhook-api-key';
 process.env.APP_BASE_URL = 'http://localhost:3000';
 
 // Ensure no NGROK domain so we never build prod return_urls

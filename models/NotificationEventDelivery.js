@@ -12,7 +12,7 @@ const notificationEventDeliverySchema = new mongoose.Schema({
   notificationType: { type: String, required: true },
   eventLogId: { type: mongoose.Schema.Types.ObjectId, ref: 'EventLog', default: null },
   notificationId: { type: String, default: null },
-  status: { type: String, enum: ['created', 'skipped', 'failed'], default: 'created' },
+  status: { type: String, enum: ['created', 'shadow', 'skipped', 'failed'], default: 'created' },
   createdAt: { type: Date, default: Date.now }
 });
 

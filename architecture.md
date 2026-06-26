@@ -2802,6 +2802,25 @@ broadcast d'audit).
 - Tests : `tests/p1/{notificationEventSubscriber,notificationEventIdempotence}.test.js`.
 - Détails : `Rapports/version 1/66` (audit) + `67` (rapport).
 
+### Phase 4E (2026-06) — Parité subscriber + mode shadow
+
+- **Mode** `EVENT_NOTIFICATION_SUBSCRIBER_MODE` (défaut `off`) : `off` (no-op /
+  non enregistré), `shadow` (résout les variables + écrit
+  `NotificationEventDelivery(status=shadow)` mais **ne crée pas** de Notification),
+  `active` (crée la Notification ; une delivery `shadow` est **mise à niveau**).
+  Alias legacy : `ENABLE_EVENT_NOTIFICATION_SUBSCRIBERS=true` ⇒ `active`.
+- **Enrichissement (re-fetch best-effort)** : `sale.finalized` → re-fetch `Sale`
+  (montant) ; `booking.no_show_marked` → re-fetch `ServiceBooking` + populate
+  client/service (`clientName` **sans email** pour la privacy, `serviceName`,
+  `bookingDate`). Objet introuvable → pas de notification, pas de throw.
+- **Parité** : `new_sale` complète ; `no_show_recorded` fonctionnelle (seul écart
+  volontaire : pas de fallback email). Détails : rapport 68.
+- **Suppression des appels directs** : **non effectuée** (conservés) ; plan de
+  bascule atomique (shadow → active + retrait du direct, une notif à la fois) :
+  rapport 69.
+- Tests : `tests/p1/{notificationEventParity,notificationEventShadowMode}.test.js`.
+- Détails : `Rapports/version 1/68`/`69`/`70`.
+
 ---
 
 # Etat du projet au commit 180054c

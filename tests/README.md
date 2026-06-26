@@ -84,6 +84,17 @@ documented startup adaptation in `app.js`).
 > 41 files** (p0 44, p1 116, integration 6). See
 > `Rapports/version 1/67_rapport_phase4d_notification_subscriber.md`.
 
+> **Phase 4E update** — subscriber now has an off/shadow/active mode
+> (`EVENT_NOTIFICATION_SUBSCRIBER_MODE`, default off) and re-fetches the business
+> object for parity. New green tests: `tests/p1/notificationEventParity.test.js`
+> (re-fetch builds the same variables as the direct call; client email excluded;
+> object-not-found → no notif/no throw) and `tests/p1/notificationEventShadowMode.test.js`
+> (off → nothing; shadow → delivery status "shadow", no notif; active → notif;
+> shadow→active upgrade). The Phase 4D subscriber tests now set
+> `EVENT_NOTIFICATION_SUBSCRIBER_MODE=active` and seed real ServiceBooking fixtures.
+> Suite: **173 tests / 43 files** (p0 44, p1 123, integration 6). See
+> `Rapports/version 1/70_rapport_phase4e_notification_parity_shadow.md`.
+
 > **Phase 1A update** - the simple security P0s are now **fixed** (mock-pay
 > production guard, removed hardcoded secret fallbacks, gift-card password no
 > longer leaked by the public tracking endpoint, tracking-token debug log

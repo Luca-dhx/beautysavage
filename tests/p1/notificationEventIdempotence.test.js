@@ -29,8 +29,8 @@ describe('notification event idempotence', () => {
     await NotificationEventDelivery.syncIndexes();
   });
   afterAll(async () => { await stopMemoryDb(); });
-  beforeEach(async () => { await clearDatabase(); clearSubscribers(); await seedConfig(); await NotificationEventDelivery.syncIndexes(); });
-  afterEach(() => { vi.restoreAllMocks(); clearSubscribers(); });
+  beforeEach(async () => { await clearDatabase(); clearSubscribers(); await seedConfig(); await NotificationEventDelivery.syncIndexes(); process.env.EVENT_NOTIFICATION_SUBSCRIBER_MODE = 'active'; });
+  afterEach(() => { vi.restoreAllMocks(); clearSubscribers(); delete process.env.EVENT_NOTIFICATION_SUBSCRIBER_MODE; });
 
   it('re-emitting the same sale.finalized event creates ONE notification', async () => {
     registerNotificationSubscribers();

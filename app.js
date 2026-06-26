@@ -47,7 +47,7 @@ import { validateCredentialVaultKey } from './utils/credentialVault.js';
 import { seedIntegratedApisFromEnv } from './seeders/seedIntegratedApisFromEnv.js';
 import brevoWebhookRouter from './routers/brevoWebhookRouter.js';
 import devDiagnosticRouter from './routers/devDiagnosticRouter.js';
-import { registerNotificationSubscribers } from './subscribers/notificationEventSubscriber.js';
+import { registerNotificationSubscribers, getSubscriberMode } from './subscribers/notificationEventSubscriber.js';
 import siteIdentityRouter from './routers/siteIdentityRouter.js';
 import contractRouter from './routers/contractRouter.js';
 import serviceRouter from './routers/serviceRouter.js';
@@ -471,11 +471,14 @@ if (process.env.NODE_ENV !== 'test') {
   } catch (seedError) {
     console.error('[seed] IntegratedApi vault seed failed (continuing with .env fallback):', seedError?.message || seedError);
   }
-  // Phase 4D: EventBus -> Notification subscribers, flag-gated (default off).
-  // In-app notifications only; the direct triggerNotification() calls remain.
-  if (process.env.ENABLE_EVENT_NOTIFICATION_SUBSCRIBERS === 'true') {
+  // Phase 4D/4E: EventBus -> Notification subscribers. Mode off|shadow|active via
+  // EVENT_NOTIFICATION_SUBSCRIBER_MODE (default off; legacy alias
+  // ENABLE_EVENT_NOTIFICATION_SUBSCRIBERS=true => active). In-app only; the direct
+  // triggerNotification() calls remain during the transition.
+  const subscriberMode = getSubscriberMode();
+  if (subscriberMode !== 'off') {
     registerNotificationSubscribers();
-    console.log('[boot] Notification event subscribers registered (flag on).');
+    console.log(`[boot] Notification event subscribers registered (mode=${subscriberMode}).`);
   }
   await startSessionCancellationAutoRefundScheduler();
 startCommissionReminderJob();

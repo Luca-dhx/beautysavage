@@ -8,7 +8,20 @@
     "phase4a": "completed",
     "phase4b": "completed",
     "phase4c": "completed",
-    "phase4d": "completed"
+    "phase4d": "completed",
+    "phase4e": "completed"
+  },
+  "phase4eNotificationParityShadow": {
+    "date": "2026-06",
+    "scope": [
+      "Mode EVENT_NOTIFICATION_SUBSCRIBER_MODE (defaut off): off|shadow|active. shadow = ecrit NotificationEventDelivery(status=shadow) sans creer de Notification; active = cree la notif (upgrade d'une delivery shadow). Alias legacy ENABLE_EVENT_NOTIFICATION_SUBSCRIBERS=true => active",
+      "Enrichissement re-fetch best-effort: sale.finalized -> Sale (amount); booking.no_show_marked -> ServiceBooking + populate client/service (clientName sans email, serviceName, bookingDate). Objet introuvable -> pas de notif, pas de throw",
+      "Parite: new_sale complete; no_show_recorded fonctionnelle (seul ecart volontaire: pas de fallback email). Rapport 68",
+      "Appels directs CONSERVES (clientController:568, serviceBookingController:690); plan de bascule atomique shadow->active + retrait direct dans rapport 69. Aucune suppression effectuee",
+      "models/NotificationEventDelivery: status enum + 'shadow'",
+      "Tests: notificationEventParity, notificationEventShadowMode (+4D adaptes mode=active, fixtures ServiceBooking). Suite 166->173 verts",
+      "Rapports 68 (parite), 69 (plan suppression), 70 (rapport 4E)"
+    ]
   },
   "phase4dNotificationSubscriber": {
     "date": "2026-06",

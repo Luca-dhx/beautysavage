@@ -2821,6 +2821,33 @@ broadcast d'audit).
 - Tests : `tests/p1/{notificationEventParity,notificationEventShadowMode}.test.js`.
 - Détails : `Rapports/version 1/68`/`69`/`70`.
 
+## Versioning des templates email (Phase 5A — 2026-06)
+
+Socle backend du futur Email Template Studio. **Aucune UI, aucune automatisation.**
+
+- `models/EmailTemplate.js` : reste l'**entité de version**. Champs ajoutés
+  `version, status (draft|published|archived), publishedAt, archivedAt, publishedBy,
+  createdFromVersion, isSystemDefault`. Index : ancien `functionName_1 unique`
+  **retiré** ; `{functionName,status}` + **partial unique** `{functionName} where
+  status='published'` (1 seul published par functionName).
+- **Runtime** (`services/mailService.js`) : `loadTemplate`/`ensureTemplate` lisent
+  la version **published** ; **fallback legacy** (status absent = published) →
+  **contenu envoyé inchangé** avant migration. Draft/archived jamais servis.
+  `saveTemplate` (POST admin legacy) édite la version published en place.
+- `services/emailTemplateVersioningService.js` : `getPublishedTemplate`,
+  `listVersions`, `createDraftFromPublished` (sanitize), `publishDraft` (archive
+  l'ancien published), `archiveTemplate`, `rollbackToVersion` (copie → nouveau
+  published, ancien archivé — jamais d'écrasement).
+- `scripts/migrateEmailTemplatesToVersioning.js` : dry-run/`--apply`, drop index
+  legacy, legacy → published v1 (contenu intact), idempotent. **Self-heal au boot**
+  (`app.js`, non-test, best-effort).
+- **Endpoints additifs** (dev only, sous `/api/gestion/mails`) :
+  `GET /templates/:fn/versions`, `POST /templates/:fn/draft`,
+  `POST /drafts/:id/publish`, `POST /drafts/:id/archive`,
+  `POST /templates/:fn/rollback/:version`. Endpoints existants inchangés.
+- Tests : `tests/p1/{emailTemplateVersioning,emailTemplateRuntimePublished,emailTemplateRollback}.test.js`.
+- Détails : `Rapports/version 1/71` (audit) + `72` (rapport).
+
 ---
 
 # Etat du projet au commit 180054c

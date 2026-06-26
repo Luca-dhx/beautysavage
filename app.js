@@ -48,6 +48,7 @@ import { seedIntegratedApisFromEnv } from './seeders/seedIntegratedApisFromEnv.j
 import brevoWebhookRouter from './routers/brevoWebhookRouter.js';
 import devDiagnosticRouter from './routers/devDiagnosticRouter.js';
 import { registerNotificationSubscribers, getSubscriberMode } from './subscribers/notificationEventSubscriber.js';
+import { migrateEmailTemplatesToVersioning } from './scripts/migrateEmailTemplatesToVersioning.js';
 import siteIdentityRouter from './routers/siteIdentityRouter.js';
 import contractRouter from './routers/contractRouter.js';
 import serviceRouter from './routers/serviceRouter.js';
@@ -470,6 +471,14 @@ if (process.env.NODE_ENV !== 'test') {
     await seedIntegratedApisFromEnv();
   } catch (seedError) {
     console.error('[seed] IntegratedApi vault seed failed (continuing with .env fallback):', seedError?.message || seedError);
+  }
+  // Phase 5A: normalise EmailTemplate docs to the versioned model (idempotent,
+  // content untouched). loadTemplate also tolerates un-migrated docs.
+  try {
+    const tplMigration = await migrateEmailTemplatesToVersioning({ apply: true });
+    console.log('[boot] EmailTemplate versioning migration:', JSON.stringify(tplMigration));
+  } catch (tplError) {
+    console.error('[boot] EmailTemplate versioning migration failed:', tplError?.message || tplError);
   }
   // Phase 4D/4E: EventBus -> Notification subscribers. Mode off|shadow|active via
   // EVENT_NOTIFICATION_SUBSCRIBER_MODE (default off; legacy alias

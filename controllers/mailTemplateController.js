@@ -1,6 +1,14 @@
+import mongoose from 'mongoose';
 import { loadTemplate, saveTemplate, mailFunctions, simulateSaleEmail } from '../services/mailService.js';
 import EmailTemplate from '../models/EmailTemplate.js';
 import EmailTemplateCategory from '../models/EmailTemplateCategory.js';
+import {
+  listVersions,
+  createDraftFromPublished,
+  publishDraft,
+  archiveTemplate,
+  rollbackToVersion
+} from '../services/emailTemplateVersioningService.js';
 
 const ALLOWED_FUNCTIONS = new Set(mailFunctions.map(value => value.toLowerCase()));
 
@@ -178,6 +186,89 @@ export async function listTemplates(_req, res) {
   } catch (error) {
     console.error('Erreur liste templates mail', error);
     return res.status(500).json({ ok: false, error: 'Impossible de lister les templates.' });
+  }
+}
+
+// --- Versioning endpoints (Phase 5A — backend only, no UI) -------------------
+
+function actorOf(req) {
+  return String(req.sessionUser?.email || req.sessionUser?._id || 'dev');
+}
+
+export async function listVersionsController(req, res) {
+  try {
+    const functionName = validateFunction(req.params.functionName);
+    if (!functionName) return res.status(400).json({ ok: false, error: 'Fonction de template invalide.' });
+    const versions = await listVersions(functionName);
+    return res.json({ ok: true, functionName, versions });
+  } catch (error) {
+    console.error('Erreur liste versions template', error);
+    return res.status(500).json({ ok: false, error: 'Impossible de lister les versions.' });
+  }
+}
+
+export async function createDraftController(req, res) {
+  try {
+    const functionName = validateFunction(req.params.functionName);
+    if (!functionName) return res.status(400).json({ ok: false, error: 'Fonction de template invalide.' });
+    const changes = {
+      subject: req.body?.subject,
+      bodyHtml: req.body?.bodyHtml,
+      fullHtml: req.body?.fullHtml,
+      mode: req.body?.mode
+    };
+    const draft = await createDraftFromPublished(functionName, changes, actorOf(req));
+    return res.status(201).json({
+      ok: true,
+      draft: { _id: draft._id, functionName: draft.functionName, version: draft.version, status: draft.status }
+    });
+  } catch (error) {
+    console.error('Erreur création draft template', error);
+    return res.status(500).json({ ok: false, error: error?.message || 'Impossible de créer le brouillon.' });
+  }
+}
+
+export async function publishDraftController(req, res) {
+  try {
+    const id = String(req.params.id || '');
+    if (!mongoose.isValidObjectId(id)) return res.status(400).json({ ok: false, error: 'Identifiant invalide.' });
+    const published = await publishDraft(id, actorOf(req));
+    return res.json({
+      ok: true,
+      published: { _id: published._id, functionName: published.functionName, version: published.version, status: published.status, publishedAt: published.publishedAt }
+    });
+  } catch (error) {
+    console.error('Erreur publication draft template', error);
+    return res.status(400).json({ ok: false, error: error?.message || 'Impossible de publier le brouillon.' });
+  }
+}
+
+export async function archiveTemplateController(req, res) {
+  try {
+    const id = String(req.params.id || '');
+    if (!mongoose.isValidObjectId(id)) return res.status(400).json({ ok: false, error: 'Identifiant invalide.' });
+    const archived = await archiveTemplate(id, actorOf(req));
+    return res.json({ ok: true, archived: { _id: archived._id, version: archived.version, status: archived.status } });
+  } catch (error) {
+    console.error('Erreur archivage template', error);
+    return res.status(400).json({ ok: false, error: error?.message || 'Impossible d\'archiver.' });
+  }
+}
+
+export async function rollbackController(req, res) {
+  try {
+    const functionName = validateFunction(req.params.functionName);
+    if (!functionName) return res.status(400).json({ ok: false, error: 'Fonction de template invalide.' });
+    const version = Number(req.params.version);
+    if (!Number.isInteger(version) || version < 1) return res.status(400).json({ ok: false, error: 'Version invalide.' });
+    const published = await rollbackToVersion(functionName, version, actorOf(req));
+    return res.json({
+      ok: true,
+      published: { _id: published._id, functionName: published.functionName, version: published.version, status: published.status }
+    });
+  } catch (error) {
+    console.error('Erreur rollback template', error);
+    return res.status(400).json({ ok: false, error: error?.message || 'Impossible de revenir à cette version.' });
   }
 }
 

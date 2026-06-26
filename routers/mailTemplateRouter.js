@@ -9,7 +9,12 @@ import {
   simulateSale,
   listCategories,
   listTemplates,
-  updateTemplateCategory
+  updateTemplateCategory,
+  listVersionsController,
+  createDraftController,
+  publishDraftController,
+  archiveTemplateController,
+  rollbackController
 } from '../controllers/mailTemplateController.js';
 
 const router = express.Router();
@@ -22,5 +27,12 @@ router.get('/template', getTemplate);
 router.post('/template', saveTemplateController);
 router.patch('/templates/:functionName/category', updateTemplateCategory);
 router.post('/simulate-sale', simulateSale);
+
+// Versioning (Phase 5A — backend only, no UI)
+router.get('/templates/:functionName/versions', listVersionsController);
+router.post('/templates/:functionName/draft', createDraftController);
+router.post('/drafts/:id/publish', publishDraftController);
+router.post('/drafts/:id/archive', archiveTemplateController);
+router.post('/templates/:functionName/rollback/:version', rollbackController);
 
 export default router;

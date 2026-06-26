@@ -9,7 +9,21 @@
     "phase4b": "completed",
     "phase4c": "completed",
     "phase4d": "completed",
-    "phase4e": "completed"
+    "phase4e": "completed",
+    "phase5a": "completed"
+  },
+  "phase5aEmailTemplateVersioning": {
+    "date": "2026-06",
+    "scope": [
+      "EmailTemplate = entite de version. Champs: version, status(draft|published|archived), publishedAt, archivedAt, publishedBy, createdFromVersion, isSystemDefault. Ancien index functionName unique retire; partial unique {functionName} where status=published",
+      "Runtime mailService loadTemplate/ensureTemplate lisent published; fallback legacy (status absent=published) -> contenu envoye inchange. Draft/archived jamais servis",
+      "services/emailTemplateVersioningService.js: getPublishedTemplate, listVersions, createDraftFromPublished (sanitize), publishDraft (archive ancien), archiveTemplate, rollbackToVersion (copie -> nouveau published, jamais d'ecrasement)",
+      "scripts/migrateEmailTemplatesToVersioning.js: dry-run/--apply, drop index legacy, legacy -> published v1 (contenu intact), idempotent. Self-heal au boot app.js (non-test)",
+      "Endpoints additifs dev-only sous /api/gestion/mails: GET versions, POST draft, POST drafts/:id/publish, POST drafts/:id/archive, POST rollback/:version. Endpoints existants inchanges",
+      "Reserve: POST /template legacy edite le published en place (pas de draft governance) -> deprecie au Studio React",
+      "Tests: emailTemplateVersioning, emailTemplateRuntimePublished, emailTemplateRollback (suite 173->185 verts)",
+      "Rapports 71 (audit) et 72 (rapport). Pas d'UI, pas d'automatisation email."
+    ]
   },
   "phase4eNotificationParityShadow": {
     "date": "2026-06",

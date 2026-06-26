@@ -95,6 +95,19 @@ documented startup adaptation in `app.js`).
 > Suite: **173 tests / 43 files** (p0 44, p1 123, integration 6). See
 > `Rapports/version 1/70_rapport_phase4e_notification_parity_shadow.md`.
 
+> **Phase 5A update (email template versioning)** — `EmailTemplate` gains
+> version/status; the runtime serves the published version (legacy/no-status docs
+> treated as published; content unchanged). New green tests:
+> `tests/p1/emailTemplateVersioning.test.js` (migration v1 published + dry-run,
+> single-published partial unique, draft/publish lifecycle, sanitization),
+> `tests/p1/emailTemplateRuntimePublished.test.js` (loadTemplate → published /
+> legacy fallback / default; draft & archived never served),
+> `tests/p1/emailTemplateRollback.test.js` (rollback = new published copy, old
+> archived). Tests call `EmailTemplate.syncIndexes()` and insert legacy docs via
+> `collection.insertOne` to bypass schema defaults. Suite: **185 tests / 46 files**
+> (p0 44, p1 135, integration 6). See
+> `Rapports/version 1/72_rapport_phase5a_email_template_versioning.md`.
+
 > **Phase 1A update** - the simple security P0s are now **fixed** (mock-pay
 > production guard, removed hardcoded secret fallbacks, gift-card password no
 > longer leaked by the public tracking endpoint, tracking-token debug log

@@ -1473,13 +1473,21 @@ function replaceTemplateVariables(content = '', replacements = {}) {
 
 
 
+// Runtime resolver (Phase 5A versioning): prefer the PUBLISHED version; fall back
+// to a legacy doc whose status is missing/null (pre-migration) so the content sent
+// is never changed. Draft/archived versions are NEVER served at runtime.
+async function findActiveTemplateDoc(functionName) {
+  return (await EmailTemplate.findOne({ functionName, status: 'published' }).lean())
+    || (await EmailTemplate.findOne({ functionName, status: null }).lean());
+}
+
 async function ensureTemplate(functionName) {
 
   const normalized = normalizeFunctionName(functionName);
 
   if (!normalized) return null;
 
-  const existing = await EmailTemplate.findOne({ functionName: normalized }).lean();
+  const existing = await findActiveTemplateDoc(normalized);
 
   // If a real (non-metadata-only) doc exists, return it as-is
   if (existing && !existing.isMetadataOnly) {
@@ -1497,7 +1505,11 @@ async function ensureTemplate(functionName) {
     bodyHtml: sanitizedBody,
     fullHtml: sanitizeFullHtml(defaults.fullHtml),
     mode: normalizeMode(defaults.mode || 'text'),
-    isMetadataOnly: false
+    isMetadataOnly: false,
+    status: 'published',
+    version: 1,
+    publishedAt: new Date(),
+    isSystemDefault: true
   };
 
   if (existing) {
@@ -1585,7 +1597,7 @@ export async function loadTemplate(functionName) {
 
   }
 
-  const template = await EmailTemplate.findOne({ functionName: normalized }).lean();
+  const template = await findActiveTemplateDoc(normalized);
 
   if (template && !template.isMetadataOnly) {
     if (normalized === 'session_client_cancelled_refund') {
@@ -1635,11 +1647,13 @@ export async function saveTemplate(functionName, subject, bodyHtml, fullHtml, mo
 
   const updated = await EmailTemplate.findOneAndUpdate(
 
-    { functionName: normalized },
+    { functionName: normalized, status: { $in: ['published', null] } },
 
     {
 
       $set: {
+
+        status: 'published',
 
         subject: payload.subject,
 

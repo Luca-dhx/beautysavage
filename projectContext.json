@@ -1,5 +1,18 @@
 {
   "id": "project-context",
+  "phase3EventBus": {
+    "date": "2026-06",
+    "scope": [
+      "constants/eventCatalog.js (catalogue fige ~24 events: sale/booking/refund/gift_card/commission/email/job, v1)",
+      "models/EventLog.js (append-only, payloadSafe sans email/secret, index eventName/contextType/createdAt)",
+      "services/eventBusService.js: emitEvent persiste toujours EventLog + notifie subscribers in-process; subscriber qui echoue ne casse pas l'action; redaction payload; pas de retry/cross-process/automation",
+      "sendLogService: transitions SendLog emettent email.queued/sent/failed/delivered/opened/bounced (payload sur, jamais email)",
+      "contextType auto-derive du tag pour tous les emails; contextId explicite pour sale (saleId) et booking_confirmed (booking._id); autres differes (dispatchers partages, rapport 54)",
+      "GET /api/gestion/dev/events (requireStrictDev), champs surs uniquement",
+      "Tests: eventBus, sendLogEvents, eventLogEndpoint (suite 117->130 verts)",
+      "Rapports 54 (audit domaines), 55 (plan migration notifications), 56 (rapport phase 3). Broadcast d'audit V1, aucun declencheur automatique."
+    ]
+  },
   "phase2SendLogObservability": {
     "date": "2026-06",
     "scope": [

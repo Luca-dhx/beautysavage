@@ -5,6 +5,57 @@
 
 import crypto from 'node:crypto';
 import SendLog from '../models/SendLog.js';
+import { emitEvent } from './eventBusService.js';
+
+// Best-effort: derive a business contextType from the email template key/tag.
+// Explicit context (passed by a sender) always wins over this.
+const CONTEXT_TYPE_BY_PREFIX = [
+  [/^vente$/, 'sale'],
+  [/^booking|^no_show|^service_booking/, 'service_booking'],
+  [/^refund/, 'refund_request'],
+  [/^commission/, 'commission_payment'],
+  [/^gift_card/, 'gift_card'],
+  [/^session|^formation/, 'formation_session'],
+  [/^password_reset|^email_confirmation/, 'user'],
+  [/^site_|^maintenance/, 'system']
+];
+
+function deriveContextType(templateKey) {
+  const k = String(templateKey || '');
+  for (const [re, type] of CONTEXT_TYPE_BY_PREFIX) {
+    if (re.test(k)) return type;
+  }
+  return null;
+}
+
+// SendLog status -> domain email event.
+const EVENT_BY_STATUS = {
+  delivered: 'email.delivered',
+  opened: 'email.opened',
+  bounced: 'email.bounced'
+};
+
+// Emit a safe email.* event from a SendLog. Never throws (defensive).
+async function emitSendLogEvent(log, eventName, extra = {}) {
+  if (!log || !eventName) return;
+  try {
+    await emitEvent(
+      eventName,
+      {
+        sendLogId: String(log._id),
+        provider: log.provider,
+        templateKey: log.templateKey,
+        contextType: log.contextType || null,
+        contextId: log.contextId || null,
+        status: log.status,
+        ...extra
+      },
+      { source: 'sendLogService', actorType: 'system', contextType: log.contextType || null, contextId: log.contextId || null }
+    );
+  } catch (err) {
+    console.warn('[sendLog] event emit failed:', err?.message || err);
+  }
+}
 
 /** SHA-256 of the lowercased/trimmed email. Never returns or stores the email. */
 export function hashRecipient(email) {
@@ -31,16 +82,19 @@ function firstRecipientEmail(payload) {
  * @returns {Promise<import('mongoose').Document|null>} the log, or null on failure
  */
 export async function createQueuedSendLog(payload, { contextType = null, contextId = null } = {}) {
+  const templateKey = deriveTemplateKey(payload?.tags);
+  const resolvedContextType = contextType || deriveContextType(templateKey);
+  let log = null;
   try {
-    return await SendLog.create({
+    log = await SendLog.create({
       channel: 'email',
       provider: 'brevo',
-      templateKey: deriveTemplateKey(payload?.tags),
+      templateKey,
       recipientHash: hashRecipient(firstRecipientEmail(payload)),
       status: 'queued',
       subject: String(payload?.subject || '').slice(0, 300),
-      contextType,
-      contextId,
+      contextType: resolvedContextType,
+      contextId: contextId != null ? String(contextId) : null,
       metadata: { tags: Array.isArray(payload?.tags) ? payload.tags : [] },
       queuedAt: new Date()
     });
@@ -48,6 +102,8 @@ export async function createQueuedSendLog(payload, { contextType = null, context
     console.warn('[sendLog] could not create queued log:', err?.message || err);
     return null;
   }
+  await emitSendLogEvent(log, 'email.queued');
+  return log;
 }
 
 export async function markSendLogSent(log, { providerMessageId = '' } = {}) {
@@ -59,7 +115,9 @@ export async function markSendLogSent(log, { providerMessageId = '' } = {}) {
     await log.save();
   } catch (err) {
     console.warn('[sendLog] could not mark sent:', err?.message || err);
+    return;
   }
+  await emitSendLogEvent(log, 'email.sent');
 }
 
 export async function markSendLogFailed(log, { errorCode = 'error', errorMessageSafe = '' } = {}) {
@@ -71,7 +129,9 @@ export async function markSendLogFailed(log, { errorCode = 'error', errorMessage
     await log.save();
   } catch (err) {
     console.warn('[sendLog] could not mark failed:', err?.message || err);
+    return;
   }
+  await emitSendLogEvent(log, 'email.failed', { errorCode: log.errorCode });
 }
 
 // Brevo transactional event -> SendLog status/timestamp.
@@ -108,5 +168,6 @@ export async function applyBrevoEvent({ event, messageId } = {}) {
   // V1: simple status progression (no strict out-of-order reconciliation).
   log.status = mapping.status;
   await log.save();
+  await emitSendLogEvent(log, EVENT_BY_STATUS[mapping.status]);
   return { matched: true, status: mapping.status };
 }

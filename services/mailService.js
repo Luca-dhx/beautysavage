@@ -1716,10 +1716,11 @@ function buildInvoiceDownloadUrl(invoiceToken) {
   return `${base}/vitrine.html?slug=invoice&token=${encodedToken}`;
 }
 
-export async function postToBrevo(payload) {
+export async function postToBrevo(payload, context = {}) {
   // Observability: create a queued SendLog, then mark sent/failed. All SendLog
-  // ops are defensive (never break the email flow).
-  const sendLog = await createQueuedSendLog(payload);
+  // ops are defensive (never break the email flow). `context` optionally attaches
+  // a business contextType/contextId (else contextType is derived from the tag).
+  const sendLog = await createQueuedSendLog(payload, context);
 
   let apiKey = '';
   try {
@@ -1926,7 +1927,7 @@ export async function sendSaleEmail(sale) {
       templateVars: payloadData
     });
 
-    const success = await postToBrevo(payload);
+    const success = await postToBrevo(payload, { contextType: 'sale', contextId: String(sale?.saleId || sale?._id || '') });
 
     if (success) {
 
@@ -3226,7 +3227,7 @@ export async function sendBookingConfirmedEmail({ booking } = {}) {
     if (htmlContent) payload.htmlContent = htmlContent;
     if (textContent) payload.textContent = textContent;
 
-    const success = await postToBrevo(payload);
+    const success = await postToBrevo(payload, { contextType: 'service_booking', contextId: String(booking?._id || '') });
     if (success) {
       console.log('[mailService] Mail BOOKING_CONFIRMED envoyé à', toEmail);
     }

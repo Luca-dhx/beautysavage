@@ -2683,3 +2683,31 @@ Trace les envois sortants et l'engagement, sans toucher aux flux métier.
 - Tests : `tests/p1/{sendLog,brevoWebhook,sendLogEndpoint}.test.js`.
 - Détails : `Rapports/version 1/53_rapport_sendlog_brevo_observability.md`. Clé
   Stripe live orpheline supprimée du code (rapport 52).
+
+## Bus d'événements backend (Phase 3 — 2026-06)
+
+Socle event-driven **backend uniquement** (pas d'UI, pas d'automatisation no-code,
+broadcast d'audit). 
+
+- `constants/eventCatalog.js` — catalogue figé `{ name, domain, version,
+  description, payload[] }` (domaines `sale/booking/refund/gift_card/commission/
+  email/job`, ~24 events, v1).
+- `models/EventLog.js` — log append-only `{ eventName, domain, version, actorType,
+  actorId, source, contextType, contextId, payloadSafe, traceId, emittedAt }`.
+  Index `eventName+createdAt`, `contextType+contextId`, `createdAt`,
+  `domain+createdAt`. **payloadSafe : jamais email/secret/token**.
+- `services/eventBusService.js` — `emitEvent(name, payload, options)` **persiste
+  toujours** un EventLog (best-effort, ne throw jamais) + notifie les subscribers
+  in-process ; `subscribe(name, handler)` (`'*'` = tout) ; un subscriber qui échoue
+  **ne casse jamais** l'action métier. Redaction du payload (clés sensibles +
+  emails). Pas de retry/cross-process (V1).
+- `services/sendLogService.js` — chaque transition SendLog émet `email.queued/
+  sent/failed/delivered/opened/bounced` (payload sûr, jamais l'email). `contextType`
+  **auto-dérivé** du tag ; `contextId` explicite pour `sale` et `booking_confirmed`
+  (via le 2e param `context` de `mailService.postToBrevo`). Autres contextId
+  différés (dispatchers partagés — rapport 54).
+- `GET /api/gestion/dev/events` (`requireStrictDev`) — diagnostic, champs sûrs
+  uniquement.
+- Tests : `tests/p1/{eventBus,sendLogEvents,eventLogEndpoint}.test.js`.
+- Détails : `Rapports/version 1/54..56`. Migration notifications planifiée
+  (rapport 55) ; lien futur Studio Email Template via `templateKey`/`email.*`.

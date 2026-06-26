@@ -34,6 +34,14 @@ documented startup adaptation in `app.js`).
 > was removed from `testEnv.js` (see report 52). See
 > `Rapports/version 1/53_rapport_sendlog_brevo_observability.md`.
 
+> **Phase 3 update (event bus)** — a backend event bus persists `EventLog` rows and
+> notifies in-process subscribers; SendLog transitions emit `email.*` events; a
+> dev-only `GET /api/gestion/dev/events` exposes them. New green tests:
+> `tests/p1/eventBus.test.js` (persist + redaction + subscriber isolation),
+> `tests/p1/sendLogEvents.test.js` (SendLog→events + context), `tests/p1/
+> eventLogEndpoint.test.js` (requireStrictDev). Payloads are redacted (no
+> email/secret). See `Rapports/version 1/56_rapport_phase3_event_bus.md`.
+
 > **Phase 1A update** - the simple security P0s are now **fixed** (mock-pay
 > production guard, removed hardcoded secret fallbacks, gift-card password no
 > longer leaked by the public tracking endpoint, tracking-token debug log

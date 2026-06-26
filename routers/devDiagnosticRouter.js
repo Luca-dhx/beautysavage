@@ -3,10 +3,11 @@
 // routes below additionally require STRICT dev).
 import { Router } from 'express';
 import { requireStrictDev } from '../middlewares/requireDev.js';
-import { getSendLogs } from '../controllers/devDiagnosticController.js';
+import { getSendLogs, getEvents } from '../controllers/devDiagnosticController.js';
 
 const router = Router();
 
 router.get('/send-logs', requireStrictDev, getSendLogs);
+router.get('/events', requireStrictDev, getEvents);
 
 export default router;

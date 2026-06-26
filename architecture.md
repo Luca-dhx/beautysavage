@@ -2764,6 +2764,24 @@ broadcast d'audit).
 - Tests : `tests/p1/{deferredBusinessEvents,sendLogContextAttachment}.test.js`.
 - Détails : `Rapports/version 1/61` (audit) + `62` (rapport).
 
+### Phase 4C (2026-06) — contextId emails restants + audit notifications
+
+- **contextId ajouté** : `password_reset` → `contextType: user`,
+  `contextId: user._id` (`sendPasswordResetEmail(user)`). Seul ajout trivial (le
+  sender reçoit déjà l'objet `user`).
+- **N/A / différés** : `email_confirmation_code` (pré-compte, pas de `user._id`) ;
+  `gift_card_compensation`, `session_*`, `booking_*` (senders sans id métier →
+  dispatchers prêts, à propager en 4D) ; `site/system` (`contextId: null` correct).
+  `contextType` reste auto-dérivé pour tous (Phase 3). Détails : rapport 63.
+- **Audit notifications (aucune migrée)** : 11 points `triggerNotification`
+  recensés (in-app, config-driven, non bloquant). Mapping → events + plan de
+  migration progressive (subscribers idempotents, **commencer par 1-2 P1 non
+  critiques : `new_client`, `no_show_recorded`**, sans envoi email auto) :
+  rapport 64. **Aucun subscriber métier ; émettre un event ne crée aucune
+  Notification** (test dédié).
+- Tests : `tests/p1/{emailRemainingContexts,notificationMigrationAudit}.test.js`.
+- Détails : `Rapports/version 1/63` (audit emails) + `64` (plan 4D) + `65` (rapport).
+
 ---
 
 # Etat du projet au commit 180054c

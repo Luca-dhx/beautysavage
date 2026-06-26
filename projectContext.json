@@ -6,7 +6,19 @@
     "phase2": "completed",
     "phase3": "completed",
     "phase4a": "completed",
-    "phase4b": "completed"
+    "phase4b": "completed",
+    "phase4c": "completed"
+  },
+  "phase4cContextsNotificationsAudit": {
+    "date": "2026-06",
+    "scope": [
+      "contextId email ajoute: password_reset -> contextType user / contextId user._id (sendPasswordResetEmail recoit deja user)",
+      "Differes/N-A: email_confirmation_code (pre-compte), gift_card_compensation/session_*/booking_* (senders sans id metier), site/system (contextId null correct). contextType auto-derive pour tous (Phase 3)",
+      "Audit notifications (AUCUNE migree): 11 points triggerNotification recenses; mapping -> events + plan migration progressive dans rapport 64",
+      "Plan Phase 4D: subscribers idempotents reutilisant triggerNotification, commencer par 1-2 P1 non critiques (new_client, no_show_recorded), notif in-app uniquement, sans envoi email auto",
+      "Tests: emailRemainingContexts, notificationMigrationAudit (emettre un event ne cree aucune Notification/email). Suite 151->157 verts",
+      "Rapports 63 (emails), 64 (plan 4D), 65 (rapport 4C). Aucune migration notification encore."
+    ]
   },
   "phase4bDeferredEventsContexts": {
     "date": "2026-06",

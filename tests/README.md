@@ -64,6 +64,15 @@ documented startup adaptation in `app.js`).
 > Suite: **151 tests / 37 files** (p0 44, p1 101, integration 6). See
 > `Rapports/version 1/62_rapport_phase4b_deferred_events_contexts.md`.
 
+> **Phase 4C update** — password_reset email now carries `contextType:user`/
+> `contextId:user._id`; notifications audited (none migrated). New green tests:
+> `tests/p1/emailRemainingContexts.test.js` (password_reset/email_confirmation/
+> system/gift_card contexts; no email/code stored) and
+> `tests/p1/notificationMigrationAudit.test.js` (emitting business events creates
+> NO Notification and NO email — audit-only, no subscriber). Suite: **157 tests /
+> 39 files** (p0 44, p1 107, integration 6). See
+> `Rapports/version 1/65_rapport_phase4c_contexts_notifications_audit.md`.
+
 > **Phase 1A update** - the simple security P0s are now **fixed** (mock-pay
 > production guard, removed hardcoded secret fallbacks, gift-card password no
 > longer leaked by the public tracking endpoint, tracking-token debug log

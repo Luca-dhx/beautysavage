@@ -2300,7 +2300,7 @@ export async function sendPasswordResetEmail(user, token) {
 
     }
 
-    const success = await postToBrevo(payload);
+    const success = await postToBrevo(payload, { contextType: 'user', contextId: String(user?._id || '') || null });
 
     if (success) {
 

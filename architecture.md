@@ -1210,11 +1210,19 @@ runPostSaleSideEffects
 
 ### 9) Configuration et variables d'environnement
 
-Variables Stripe/facturation utilisees dans le code:
+> **MISE À JOUR (Phase 1/1B — coffre IntegratedApi).** Les clés Stripe/Brevo
+> ci-dessous ne sont **plus lues directement** depuis `process.env` par le code
+> métier : elles sont **sourcées via le coffre** `IntegratedApi`
+> (`getCredential(slug,{role,runtime})`), avec `.env` en **fallback LEGACY**
+> uniquement si `ALLOW_ENV_CREDENTIAL_FALLBACK=true`. Voir la section
+> « Coffre de credentials IntegratedApi » et « Etat du projet au commit 180054c ».
+> Les variables `.env` listées ici restent valides comme **fallback de migration**.
 
-- `STRIPE_SECRET_KEY`: cle serveur Stripe (PaymentIntent, refunds, invoices, credit notes).
-- `STRIPE_PUBLISHABLE_KEY`: cle publique renvoyee par `GET /api/stripe/config`.
-- `STRIPE_WEBHOOK_SECRET`: verification signature webhook Stripe.
+Variables Stripe/facturation (désormais sourcées via le coffre, fallback `.env`):
+
+- `STRIPE_SECRET_KEY`: cle serveur Stripe (PaymentIntent, refunds, invoices, credit notes). *(coffre `stripe-institut/secret_key`)*
+- `STRIPE_PUBLISHABLE_KEY`: cle publique renvoyee par `GET /api/stripe/config`. *(coffre `stripe-institut/publishable_key`)*
+- `STRIPE_WEBHOOK_SECRET`: verification signature webhook Stripe. *(coffre `stripe-institut/webhook_secret`)*
 - `INSTITUTE_NAME`: nom vendeur facture.
 - `INSTITUTE_ADDRESS_LINE1`: adresse ligne 1 vendeur.
 - `INSTITUTE_CITY`: ville vendeur.
@@ -2711,3 +2719,80 @@ broadcast d'audit).
 - Tests : `tests/p1/{eventBus,sendLogEvents,eventLogEndpoint}.test.js`.
 - Détails : `Rapports/version 1/54..56`. Migration notifications planifiée
   (rapport 55) ; lien futur Studio Email Template via `templateKey`/`email.*`.
+
+---
+
+# Etat du projet au commit 180054c
+
+> Section de consolidation (2026-06). Photographie autoritaire de l'état courant
+> après P0/P1 + Coffre + Rotation + SendLog + Brevo Observability + EventBus.
+> Mono-tenant. Frontend Vanilla JS (migration React **non démarrée**).
+> Backend : ~51 modèles, ~40 contrôleurs, ~44 routers, ~26 services, 11 jobs.
+
+## Sécurité
+- **P0 fermés** : guard mock-pay en prod, secrets en dur retirés (`requireSecret`),
+  code carte cadeau non fuité, idempotence webhook Stripe (index unique partiel),
+  débit carte cadeau atomique.
+- **P1 fermés** : rôles durcis (`requireGestionRole`/`requireStrictDev`),
+  rate-limit auth, nettoyage d'index Mongoose, refund recovery + credit notes.
+- **Coffre IntegratedApi** : secrets tiers chiffrés AES-256-GCM
+  (`utils/credentialVault.js`), contrat unique fail-loud
+  (`services/integratedApiCredentialService.js`), seed au boot
+  (`seeders/seedIntegratedApisFromEnv.js`). Boot **bloquant en prod** si
+  `CREDENTIAL_VAULT_KEY` absente.
+- **Rotation** : `scripts/rotateCredentialVaultKey.js` (dry-run/`--apply`, jamais
+  de secret loggé).
+- **Fallback** : `.env` LEGACY uniquement si `ALLOW_ENV_CREDENTIAL_FALLBACK=true`
+  (par défaut `false`).
+- **Action manuelle ouverte** : révoquer l'ancienne clé Stripe live orpheline
+  (rapport 52).
+
+## Paiements
+- **Stripe Institut** (`secret_key`/`publishable_key`/`webhook_secret`) — sourcés
+  via coffre `stripe-institut` ; `getStripe()` async dans 5 fichiers.
+- **Stripe Dev** (contrat : frais lancement + mensualités) — coffre `stripe-dev` ;
+  `utils/stripeDevClient.js` → `getStripeDevClient()` lazy.
+- **Webhooks via vault** : `handleWebhook` (Institut) et `handleDevWebhook` (Dev)
+  lisent `webhook_secret` du coffre ; **raw body + vérif signature inchangés**.
+
+## Communication
+- **SendLog** (`models/SendLog.js`) : un doc par envoi, `recipientHash` SHA-256
+  (jamais l'email), statut `queued→sent→delivered→opened`/`bounced`/`failed`.
+- **Brevo Webhook** (`POST /api/webhooks/brevo`) : delivered/opened/hard_bounce/
+  soft_bounce → SendLog par `providerMessageId` ; secret partagé optionnel.
+- **Observabilité** : `GET /api/gestion/dev/send-logs` (`requireStrictDev`).
+
+## Event System
+- **EventCatalog** (`constants/eventCatalog.js`) : ~24 events figés v1 (sale,
+  booking, refund, gift_card, commission, email, job).
+- **EventLog** (`models/EventLog.js`) : append-only, `payloadSafe` redacté.
+- **EventBus** (`services/eventBusService.js`) : `emitEvent` persiste toujours +
+  notifie subscribers in-process ; un subscriber qui échoue ne casse jamais
+  l'action métier. **Broadcast d'audit V1, aucun déclencheur automatique.**
+- Seuls les `email.*` sont **réellement émis** (depuis SendLog) ; les autres
+  domaines sont catalogués mais pas encore branchés.
+- Diagnostic : `GET /api/gestion/dev/events` (`requireStrictDev`).
+
+## Tests
+- **130 tests verts** / 33 fichiers : **p0 = 44**, **p1 = 80**, **integration = 6**.
+- Harnais : Vitest + `mongodb-memory-server` ; `tests/setup/testEnv.js` (env factice,
+  clé de coffre factice, fallback activé en test), `testApp.js` (boot app en mémoire),
+  `seedTestData.js` (users dev/admin/client + contrat actif).
+
+## Dette restante
+- **Migration React** : non démarrée (toute UI différée).
+- **Versioning des templates email** (draft→publish) : non fait.
+- **Migration des notifications** vers le bus : planifiée (rapport 55), non faite.
+- **UI d'administration IntegratedApi** : absente (post-React).
+- **Studio Email Template** : futur (post-React), s'appuiera sur `email.*`/`templateKey`.
+- **contextId partiel** : rattaché pour sale + booking_confirmed ; refund/commission/
+  gift_card/session différés (dispatchers partagés).
+- **Rétention EventLog/SendLog** : pas de TTL (purge à prévoir si volume).
+
+## Roadmap recommandée (ordre)
+1. Brancher l'émission des events métier non-email (`sale.created`, `booking.*`,
+   `refund.*`) en pur audit.
+2. Rattacher les `contextId` restants (propager l'id via dispatchers partagés).
+3. Migration progressive des notifications derrière le bus (idempotent, sans envoi auto).
+4. Versioning des templates email (draft→publish) — backend.
+5. **Migration React** puis UI IntegratedApi + Studio Email Template.

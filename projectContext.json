@@ -1,5 +1,54 @@
 {
   "id": "project-context",
+  "stabilizationStatus": {
+    "p0": "closed",
+    "p1": "closed",
+    "phase2": "completed",
+    "phase3": "completed"
+  },
+  "projectStateSnapshot": {
+    "commit": "180054c",
+    "date": "2026-06",
+    "tenancy": "single-tenant",
+    "frontend": "vanilla-js (React migration not started)",
+    "tests": { "total": 130, "p0": 44, "p1": 80, "integration": 6, "files": 33, "harness": "vitest + mongodb-memory-server" },
+    "counts": { "models": 51, "controllers": 40, "routers": 44, "services": 26, "jobs": 11 },
+    "IntegratedApi": {
+      "purpose": "mono-tenant credential vault registry for third-party providers",
+      "model": "models/IntegratedApi.js",
+      "service": "services/integratedApiCredentialService.js (getCredential/getCredentials/setIntegratedApiMode, fail-loud, env fallback gated by ALLOW_ENV_CREDENTIAL_FALLBACK)",
+      "seeder": "seeders/seedIntegratedApisFromEnv.js (boot, idempotent)",
+      "integrations": ["stripe-institut (dual)", "stripe-dev (dual)", "brevo (single)"]
+    },
+    "CredentialVault": {
+      "file": "utils/credentialVault.js",
+      "crypto": "AES-256-GCM (iv.authTag.ciphertext)",
+      "key": "CREDENTIAL_VAULT_KEY (64 hex), boot-blocking in production",
+      "rotation": "scripts/rotateCredentialVaultKey.js (dry-run/--apply, never logs secrets)"
+    },
+    "SendLog": {
+      "model": "models/SendLog.js",
+      "service": "services/sendLogService.js",
+      "privacy": "recipientHash SHA-256 only, never email/secret",
+      "statuses": ["queued", "sent", "delivered", "opened", "bounced", "failed"],
+      "webhook": "controllers/brevoWebhookController.js + routers/brevoWebhookRouter.js (POST /api/webhooks/brevo)",
+      "diagnostic": "GET /api/gestion/dev/send-logs (requireStrictDev)"
+    },
+    "EventCatalog": { "file": "constants/eventCatalog.js", "events": "~24 frozen, v1", "domains": ["sale", "booking", "refund", "gift_card", "commission", "email", "job"] },
+    "EventBus": { "file": "services/eventBusService.js", "behaviour": "emitEvent always persists EventLog + notifies in-process subscribers; subscriber failure never breaks business action; payload redaction; no auto-trigger (audit broadcast V1)" },
+    "EventLog": { "file": "models/EventLog.js", "privacy": "payloadSafe redacted (no email/secret/token)", "diagnostic": "GET /api/gestion/dev/events (requireStrictDev)", "emittedToday": "only email.* (from SendLog); other domains catalogued but not yet emitted" },
+    "keyFiles": [
+      "models/IntegratedApi.js", "utils/credentialVault.js", "services/integratedApiCredentialService.js",
+      "seeders/seedIntegratedApisFromEnv.js", "scripts/rotateCredentialVaultKey.js",
+      "models/SendLog.js", "services/sendLogService.js", "controllers/brevoWebhookController.js",
+      "constants/eventCatalog.js", "models/EventLog.js", "services/eventBusService.js",
+      "controllers/devDiagnosticController.js", "routers/devDiagnosticRouter.js",
+      "controllers/stripeController.js", "utils/stripeDevClient.js", "services/mailService.js", "app.js"
+    ],
+    "architectureStatus": "documented (architecture.md section 'Etat du projet au commit 180054c')",
+    "securityStatus": "P0+P1 closed; vault live; manual action open = revoke orphan live Stripe key (report 52)",
+    "roadmapStatus": "next: emit non-email domain events (audit) -> attach remaining contextId -> migrate notifications to bus -> email template versioning -> React migration -> IntegratedApi UI / Email Studio"
+  },
   "phase3EventBus": {
     "date": "2026-06",
     "scope": [

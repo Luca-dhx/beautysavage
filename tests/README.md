@@ -42,6 +42,11 @@ documented startup adaptation in `app.js`).
 > eventLogEndpoint.test.js` (requireStrictDev). Payloads are redacted (no
 > email/secret). See `Rapports/version 1/56_rapport_phase3_event_bus.md`.
 
+> **Consolidation @180054c** — suite verte : **130 tests / 33 fichiers** (p0 = 44,
+> p1 = 80, integration = 6). Snapshot complet du projet :
+> `Rapports/version 1/57_audit_documentation_consistency.md` (cohérence doc/code) et
+> `Rapports/version 1/58_architecture_snapshot_2026.md` (photographie d'architecture).
+
 > **Phase 1A update** - the simple security P0s are now **fixed** (mock-pay
 > production guard, removed hardcoded secret fallbacks, gift-card password no
 > longer leaked by the public tracking endpoint, tracking-token debug log

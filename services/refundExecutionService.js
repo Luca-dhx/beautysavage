@@ -13,6 +13,7 @@ import {
   claimGiftCardRecredit
 } from './refundRequestService.js';
 import { getCredential } from './integratedApiCredentialService.js';
+import { emitRefundEvent } from './businessEventService.js';
 
 async function getStripe() {
   const secretKey = await getCredential('stripe-institut', { role: 'secret_key' });
@@ -54,6 +55,8 @@ async function resolveSiteNameForEmail() {
 }
 
 export async function sendRefundConfirmedEmailInternal(refundRequest) {
+  // Audit-only event (best-effort): a confirmed refund reached the notification step.
+  await emitRefundEvent('refund.succeeded', refundRequest);
   try {
     const user = refundRequest?.userId ? await User.findById(refundRequest.userId).lean() : null;
     const toEmail = String(user?.email || '').trim();

@@ -2720,6 +2720,29 @@ broadcast d'audit).
 - Détails : `Rapports/version 1/54..56`. Migration notifications planifiée
   (rapport 55) ; lien futur Studio Email Template via `templateKey`/`email.*`.
 
+### Phase 4A (2026-06) — Émission des événements métier (audit)
+
+- `constants/eventCatalog.js` étendu (~40 events ; domaines `sale`, `booking`,
+  `refund`, `gift_card`, `commission`, `formation`, `email`, `job`).
+- `services/businessEventService.js` : helpers `emit{Sale,Booking,Refund,GiftCard,
+  Commission,FormationSession}Event` — construisent un **payload sûr** (jamais
+  email/secret/token/mot de passe carte cadeau/données bancaires/payload Stripe) et
+  **ne throw jamais** au métier (best-effort).
+- **Events réellement émis (10, audit-only)** : `sale.finalized`,
+  `sale.zero_payment_finalized`, `booking.created`, `booking.confirmed`,
+  `booking.cancelled` (client + admin), `refund.requested`, `refund.succeeded`
+  (chemin carte cadeau), `gift_card.recredited`, `commission.available`,
+  `commission.reminder_sent`. Points : `clientController.persistSale` /
+  `finalizeFreeCheckout` / `processServiceCheckoutStatePurchase`,
+  `serviceBookingController` (cancel), `refundRequestService.createRefundRequestOnce`,
+  `refundExecutionService.sendRefundConfirmedEmailInternal`,
+  `refundGiftCardService.recreditGiftCardPortion`, `commissionReminderJob`.
+- **Aucun effet de bord** : aucun subscriber métier ; les events ne déclenchent ni
+  email ni notification ni transition (broadcast d'audit).
+- Events catalogués **non branchés** (différés) et raisons : rapport 59.
+- Tests : `tests/p1/{businessEvents,businessEventPayloadSafety}.test.js`.
+- Détails : `Rapports/version 1/59` (audit) + `60` (rapport).
+
 ---
 
 # Etat du projet au commit 180054c

@@ -3,6 +3,7 @@ import {
   ACTIVE_REFUND_REQUEST_STATUSES,
   REFUND_REQUEST_ACTIVE_UNIQUE_INDEX_NAME
 } from '../constants/refundRequest.js';
+import { emitRefundEvent } from './businessEventService.js';
 
 function roundToCents(value) {
   const candidate = Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -95,6 +96,8 @@ export async function createRefundRequestOnce(payload = {}) {
   const refundRequest = new RefundRequest(payload);
   try {
     await refundRequest.save();
+    // Audit-only event (best-effort, no side effect).
+    await emitRefundEvent('refund.requested', refundRequest);
     return { refundRequest, created: true, duplicate: false };
   } catch (error) {
     if (!isRefundRequestSaleItemDuplicateKeyError(error)) {

@@ -3,6 +3,7 @@ import {
   debitGiftCardBalanceAtomic,
   recreditGiftCardBalanceAtomic
 } from './giftCardReservationService.js';
+import { emitGiftCardEvent } from './businessEventService.js';
 
 function roundToCents(value) {
   const candidate = Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -90,4 +91,11 @@ export async function recreditGiftCardPortion(sale, amountEur) {
   if (remaining > 0) {
     throw new Error(`Gift card recredit incomplete. Remaining=${remaining}`);
   }
+
+  // Audit-only event (best-effort, no side effect). Summary per recredit operation.
+  await emitGiftCardEvent('gift_card.recredited', null, {
+    extra: { saleId: normalizedSaleId || null, amountEur: roundToCents(amountEur), cardCount: usages.length },
+    contextType: 'sale',
+    contextId: normalizedSaleId || null
+  });
 }

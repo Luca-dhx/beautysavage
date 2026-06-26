@@ -12,6 +12,7 @@ import ServiceSettings from '../models/ServiceSettings.js';
 import RefundRequest from '../models/RefundRequest.js';
 import { getSessionUserId } from '../utils/session.js';
 import { extractClientIp } from '../utils/requestClientIp.js';
+import { emitBookingEvent } from '../services/businessEventService.js';
 import { runPostSaleSideEffects } from './clientController.js';
 import {
   getServiceRefundEligibility,
@@ -367,6 +368,8 @@ export async function cancelMyBooking(req, res) {
       cancelledBy: 'client'
     });
     await releaseServiceBookingSlotLocks({ bookingId: booking.bookingId }).catch(() => {});
+    // Audit-only event (best-effort, no side effect).
+    await emitBookingEvent('booking.cancelled', { ...booking, status: 'cancelled' }, { extra: { cancelledBy: 'client' } });
 
     // Notification annulation client
     void triggerNotification('booking_cancelled_client', {
@@ -729,6 +732,8 @@ export async function cancelBookingByAdmin(req, res) {
     booking.cancelledBy = 'admin';
     await booking.save();
     await releaseServiceBookingSlotLocks({ bookingId: booking.bookingId }).catch(() => {});
+    // Audit-only event (best-effort, no side effect).
+    await emitBookingEvent('booking.cancelled', booking, { extra: { cancelledBy: 'admin' } });
 
     const client = booking.clientId;
     const service = booking.serviceId;

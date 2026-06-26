@@ -4,7 +4,20 @@
     "p0": "closed",
     "p1": "closed",
     "phase2": "completed",
-    "phase3": "completed"
+    "phase3": "completed",
+    "phase4a": "completed"
+  },
+  "phase4aBusinessEvents": {
+    "date": "2026-06",
+    "scope": [
+      "constants/eventCatalog.js etendu (~40 events: sale/booking/refund/gift_card/commission/formation/email/job)",
+      "services/businessEventService.js: emit{Sale,Booking,Refund,GiftCard,Commission,FormationSession}Event, payload safe, best-effort (ne throw jamais)",
+      "Events emis (audit-only, 10): sale.finalized, sale.zero_payment_finalized, booking.created, booking.confirmed, booking.cancelled (client+admin), refund.requested, refund.succeeded (carte cadeau), gift_card.recredited, commission.available, commission.reminder_sent",
+      "Aucun effet de bord: aucun subscriber metier, aucun email/notif declenche par event, montants/flux inchanges",
+      "contextType auto-derive (Phase 3) + contextId sur events metier; contextId emails refund/commission/gift_card/session differe",
+      "Tests: businessEvents, businessEventPayloadSafety (suite 130->140 verts)",
+      "Events catalogues non branches (differes) + raisons: rapport 59. Rapport 60 = phase 4A."
+    ]
   },
   "projectStateSnapshot": {
     "commit": "180054c",

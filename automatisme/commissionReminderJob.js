@@ -17,6 +17,7 @@ import {
 } from '../services/mailService.js';
 import { getAppBaseUrl } from '../utils/invoiceUrl.js';
 import { getNow } from '../utils/simulatedDate.js';
+import { emitCommissionEvent } from '../services/businessEventService.js';
 
 let started = false;
 
@@ -113,6 +114,7 @@ export async function executeJob() {
         if (ok) {
           payment.availableMailSentAt = new Date();
           dirty = true;
+          await emitCommissionEvent('commission.available', payment);
         }
       }
 
@@ -130,6 +132,7 @@ export async function executeJob() {
           if (ok) {
             payment.reminderMailsSentDays = [...(payment.reminderMailsSentDays || []), d];
             dirty = true;
+            await emitCommissionEvent('commission.reminder_sent', payment, { extra: { daysLeft: d } });
           }
         }
       }

@@ -33,6 +33,7 @@ import {
   sendSaleEmail
 } from '../services/mailService.js';
 import { createStripeInvoiceForSale } from '../services/stripeInvoiceService.js';
+import { emitSaleEvent, emitBookingEvent } from '../services/businessEventService.js';
 import { getSessionUserId } from '../utils/session.js';
 import { extractClientIp } from '../utils/requestClientIp.js';
 import { validateAndBuildConsumerWaiver } from '../utils/consumerWaiver.js';
@@ -711,6 +712,8 @@ async function persistSale({
   if (normalizedPi) sale.stripePaymentIntentId = normalizedPi;
   if (normalizedSession) sale.stripeSessionId = normalizedSession;
   const saved = await sale.save();
+  // Audit-only event (best-effort, no side effect, never throws to the flow).
+  await emitSaleEvent('sale.finalized', saved);
   if (!skipPostSaleSideEffects) {
     await runPostSaleSideEffects(saved);
   }
@@ -2772,6 +2775,10 @@ async function processServiceCheckoutStatePurchase({
       ? { userId, saleItems, usages: giftPlan.usages, paymentIntentId: normalizedStripePaymentIntentId }
       : null
   });
+  // Audit-only events (best-effort, no side effect). Booking is created confirmed.
+  await emitSaleEvent('sale.finalized', savedSale);
+  await emitBookingEvent('booking.created', booking);
+  await emitBookingEvent('booking.confirmed', booking);
   return savedSale;
 }
 
@@ -3294,6 +3301,8 @@ export async function finalizeFreeCheckout(req, res) {
       stripePaymentIntentId: freeRef,
       requireZeroRemaining: true
     });
+    // Audit-only event (best-effort). sale.finalized is also emitted by persistSale.
+    await emitSaleEvent('sale.zero_payment_finalized', result, { extra: { zeroPayment: true } });
     return res.status(200).json({ ok: true, saleId: result?.saleId });
   } catch (error) {
     // Concurrent double-submit lost the race on the unique index → idempotent success.

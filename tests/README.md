@@ -47,6 +47,14 @@ documented startup adaptation in `app.js`).
 > `Rapports/version 1/57_audit_documentation_consistency.md` (cohérence doc/code) et
 > `Rapports/version 1/58_architecture_snapshot_2026.md` (photographie d'architecture).
 
+> **Phase 4A update (business events)** — business mutations now emit audit-only
+> EventLog entries via `services/businessEventService.js` (sale/booking/refund/
+> gift_card/commission). New green tests: `tests/p1/businessEvents.test.js`
+> (emission + a failing EventBus never breaks the flow + no SendLog side effect) and
+> `tests/p1/businessEventPayloadSafety.test.js` (no email/secret/token in payloads).
+> Suite: **140 tests / 35 files** (p0 44, p1 90, integration 6). See
+> `Rapports/version 1/60_rapport_phase4a_business_events.md`.
+
 > **Phase 1A update** - the simple security P0s are now **fixed** (mock-pay
 > production guard, removed hardcoded secret fallbacks, gift-card password no
 > longer leaked by the public tracking endpoint, tracking-token debug log

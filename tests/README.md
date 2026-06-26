@@ -55,6 +55,15 @@ documented startup adaptation in `app.js`).
 > Suite: **140 tests / 35 files** (p0 44, p1 90, integration 6). See
 > `Rapports/version 1/60_rapport_phase4a_business_events.md`.
 
+> **Phase 4B update** — more deferred business events wired (booking.reminded/
+> no_show_marked/client_suspended, commission.paid, gift_card.created) and email
+> SendLog `contextId` attached for refund/commission. New green tests:
+> `tests/p1/deferredBusinessEvents.test.js` (incl. gift-card password never leaks)
+> and `tests/p1/sendLogContextAttachment.test.js` (postToBrevo(payload, context) →
+> SendLog/email.* contextType+contextId; explicit context wins over tag-derived).
+> Suite: **151 tests / 37 files** (p0 44, p1 101, integration 6). See
+> `Rapports/version 1/62_rapport_phase4b_deferred_events_contexts.md`.
+
 > **Phase 1A update** - the simple security P0s are now **fixed** (mock-pay
 > production guard, removed hardcoded secret fallbacks, gift-card password no
 > longer leaked by the public tracking endpoint, tracking-token debug log

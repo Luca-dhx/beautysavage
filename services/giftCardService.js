@@ -3,6 +3,7 @@ import argon2 from 'argon2';
 
 import GiftCard from '../models/GiftCard.js';
 import { requireSecret } from '../utils/secretEnv.js';
+import { emitGiftCardEvent } from './businessEventService.js';
 
 const GIFT_CARD_PASSWORD_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const GIFT_CARD_PASSWORD_LENGTH = 10;
@@ -76,6 +77,8 @@ export async function createCompensationGiftCard({
     passwordEncrypted: encryptGiftCardPassword(password)
   });
   await giftCard.save();
+  // Audit-only event (best-effort). Never includes the gift-card password.
+  await emitGiftCardEvent('gift_card.created', giftCard, { extra: { amount: normalizedAmount, saleId: String(saleId || '') || null } });
 
   return {
     giftCard,

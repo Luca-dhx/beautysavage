@@ -5,7 +5,20 @@
     "p1": "closed",
     "phase2": "completed",
     "phase3": "completed",
-    "phase4a": "completed"
+    "phase4a": "completed",
+    "phase4b": "completed"
+  },
+  "phase4bDeferredEventsContexts": {
+    "date": "2026-06",
+    "scope": [
+      "Events nouvellement emis (5, audit-only): booking.reminded, booking.no_show_marked, booking.client_suspended, commission.paid (x2), gift_card.created (jamais le mot de passe)",
+      "refund.succeeded couvre aussi le chemin Stripe webhook (handleRefundUpdatedEvent -> sendRefundConfirmedEmailInternal)",
+      "Dispatchers sendStatusMail/sendSingleTemplateMail/sendPremiumHtmlEmail acceptent context optionnel -> postToBrevo(payload, context)",
+      "contextId emails attache: refund (refund_request/refundId) + commission (commission_payment/payment._id); gift_card/session differes",
+      "Total events metier emis: 15 (10 4A + 5 4B) + email.*; differes: gift_card.used, refund.recovered/failed, formation.session_* (rapport 61)",
+      "Tests: deferredBusinessEvents, sendLogContextAttachment (suite 140->151 verts)",
+      "Rapports 61 (audit) et 62 (phase 4B). Toujours audit-only, aucun effet de bord."
+    ]
   },
   "phase4aBusinessEvents": {
     "date": "2026-06",

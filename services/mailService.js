@@ -1971,7 +1971,7 @@ async function collectAdminAndDevEmails() {
 // ---------------------------------------------------------------------------
 // commission_available — commissions du mois disponibles
 // ---------------------------------------------------------------------------
-export async function sendCommissionAvailableEmail({ toEmails, period, amount, daysTotal, platformUrl }) {
+export async function sendCommissionAvailableEmail({ toEmails, period, amount, daysTotal, platformUrl, context }) {
   try {
     const recipients = normalizeRecipientEmails(toEmails);
     if (!recipients.length) return false;
@@ -1984,7 +1984,8 @@ export async function sendCommissionAvailableEmail({ toEmails, period, amount, d
         daystotal: String(daysTotal || ''),
         platformurl: String(platformUrl || '')
       },
-      tag: 'commission_available'
+      tag: 'commission_available',
+      context
     });
   } catch (err) {
     console.error('[mailService] sendCommissionAvailableEmail error', err);
@@ -1995,7 +1996,7 @@ export async function sendCommissionAvailableEmail({ toEmails, period, amount, d
 // ---------------------------------------------------------------------------
 // commission_reminder — rappel de paiement
 // ---------------------------------------------------------------------------
-export async function sendCommissionReminderEmail({ toEmails, period, amount, daysLeft, platformUrl }) {
+export async function sendCommissionReminderEmail({ toEmails, period, amount, daysLeft, platformUrl, context }) {
   try {
     const recipients = normalizeRecipientEmails(toEmails);
     if (!recipients.length) return false;
@@ -2008,7 +2009,8 @@ export async function sendCommissionReminderEmail({ toEmails, period, amount, da
         daysleft: String(daysLeft ?? ''),
         platformurl: String(platformUrl || '')
       },
-      tag: 'commission_reminder'
+      tag: 'commission_reminder',
+      context
     });
   } catch (err) {
     console.error('[mailService] sendCommissionReminderEmail error', err);
@@ -2412,7 +2414,7 @@ function normalizeRecipientEmails(toEmails = []) {
 
 
 
-async function sendStatusMail({ templateKey, toEmails, templateVars, tag }) {
+async function sendStatusMail({ templateKey, toEmails, templateVars, tag, context }) {
 
   const recipients = normalizeRecipientEmails(toEmails);
 
@@ -2486,7 +2488,7 @@ async function sendStatusMail({ templateKey, toEmails, templateVars, tag }) {
 
   if (textContent) payload.textContent = textContent;
 
-  return postToBrevo(payload);
+  return postToBrevo(payload, context || {});
 
 }
 
@@ -2696,7 +2698,8 @@ async function sendSingleTemplateMail({
   templateKey,
   toEmail,
   templateVars = {},
-  tag = ''
+  tag = '',
+  context
 } = {}) {
   const recipient = String(toEmail || '').trim();
   if (!recipient) return false;
@@ -2710,7 +2713,8 @@ async function sendSingleTemplateMail({
       templateKey,
       toEmails: [recipient],
       templateVars,
-      tag: tag || templateKey
+      tag: tag || templateKey,
+      context
     });
   } catch (error) {
     console.error('[mailService] Impossible d envoyer le mail', templateKey, error);
@@ -2956,6 +2960,7 @@ export async function sendRefundConfirmedEmail({
       templateKey,
       toEmail,
       tag,
+      context: { contextType: 'refund_request', contextId: String(refundId || '') || null },
       templateVars: buildCommonMailVars({
         siteName,
         firstName,
@@ -2976,6 +2981,7 @@ export async function sendRefundConfirmedEmail({
     templateKey,
     toEmail,
     tag,
+    context: { contextType: 'refund_request', contextId: String(refundId || '') || null },
     templateVars: buildCommonMailVars({
       siteName,
       firstName,
@@ -3139,7 +3145,7 @@ function escapeBookingHtml(value) {
   return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-async function sendPremiumHtmlEmail({ toEmail, subject, htmlContent, tag = 'booking' }) {
+async function sendPremiumHtmlEmail({ toEmail, subject, htmlContent, tag = 'booking', context }) {
   const recipient = String(toEmail || '').trim();
   if (!recipient) return false;
   const sender = buildSender();
@@ -3151,7 +3157,7 @@ async function sendPremiumHtmlEmail({ toEmail, subject, htmlContent, tag = 'book
     htmlContent,
     tags: ['transactional', tag]
   };
-  return postToBrevo(payload);
+  return postToBrevo(payload, context || {});
 }
 
 export async function sendBookingConfirmedEmail({ booking } = {}) {

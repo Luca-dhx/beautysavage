@@ -8,6 +8,7 @@
 import ServiceBooking from '../models/ServiceBooking.js';
 import ServiceSettings from '../models/ServiceSettings.js';
 import { sendBookingReminderEmail } from '../services/mailService.js';
+import { emitBookingEvent } from '../services/businessEventService.js';
 
 /**
  * Exécute le job de rappels.
@@ -54,6 +55,8 @@ export async function runBookingRemindersJob() {
           await ServiceBooking.findByIdAndUpdate(booking._id, {
             $push: { remindersSent: reminderKey }
           });
+          // Audit-only event (best-effort, no side effect).
+          await emitBookingEvent('booking.reminded', booking, { extra: { hoursAhead } });
           totalSent++;
         } catch (e) {
           console.error('[BookingReminders] Erreur envoi rappel', booking.bookingId, e.message);

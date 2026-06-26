@@ -16,6 +16,7 @@ import CommissionSettings from '../models/CommissionSettings.js';
 import Sale from '../models/Sale.js';
 import RefundRequest from '../models/RefundRequest.js';
 import { getStripeDevClient } from '../utils/stripeDevClient.js';
+import { emitCommissionEvent } from '../services/businessEventService.js';
 import {
   getOrComputeCommissionPayment,
   getMonthsFromContractStart,
@@ -215,6 +216,7 @@ export async function createCommissionIntent(req, res) {
             payment.status = 'succeeded';
             payment.paidAt = new Date();
             await payment.save();
+            await emitCommissionEvent('commission.paid', payment);
             await generateCommissionInvoice(payment.toObject());
             return res.json({ ok: true, alreadySucceeded: true });
           case 'canceled':
@@ -297,6 +299,7 @@ export async function checkCommissionStatus(req, res) {
       payment.status = 'succeeded';
       payment.paidAt = new Date();
       await payment.save();
+      await emitCommissionEvent('commission.paid', payment);
 
       // Générer la facture (non-bloquant)
       generateCommissionInvoice(payment.toObject()).catch(err =>

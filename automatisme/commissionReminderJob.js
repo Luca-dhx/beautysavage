@@ -109,7 +109,8 @@ export async function executeJob() {
           period: periodLabel,
           amount,
           daysTotal: latePaymentDays,
-          platformUrl
+          platformUrl,
+          context: { contextType: 'commission_payment', contextId: String(payment._id) }
         });
         if (ok) {
           payment.availableMailSentAt = new Date();
@@ -127,7 +128,8 @@ export async function executeJob() {
             period: periodLabel,
             amount,
             daysLeft: d,
-            platformUrl
+            platformUrl,
+            context: { contextType: 'commission_payment', contextId: String(payment._id) }
           });
           if (ok) {
             payment.reminderMailsSentDays = [...(payment.reminderMailsSentDays || []), d];

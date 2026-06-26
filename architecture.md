@@ -2743,6 +2743,27 @@ broadcast d'audit).
 - Tests : `tests/p1/{businessEvents,businessEventPayloadSafety}.test.js`.
 - Détails : `Rapports/version 1/59` (audit) + `60` (rapport).
 
+### Phase 4B (2026-06) — Events différés + contextId emails
+
+- **Events nouvellement émis (5, audit-only)** : `booking.reminded`
+  (`bookingRemindersJob`), `booking.no_show_marked` + `booking.client_suspended`
+  (`serviceBookingController.markNoShow`), `commission.paid`
+  (`commissionPaymentController` ×2), `gift_card.created`
+  (`giftCardService.createCompensationGiftCard`, jamais le mot de passe).
+- `refund.succeeded` couvre aussi le chemin **Stripe webhook**
+  (`handleRefundUpdatedEvent` → `sendRefundConfirmedEmailInternal`).
+- **contextId emails** : les 3 dispatchers (`sendStatusMail`,
+  `sendSingleTemplateMail`, `sendPremiumHtmlEmail`) acceptent un `context`
+  optionnel → `postToBrevo(payload, context)`. Attaché pour **refund**
+  (`refund_request`/`refundId`) et **commission** (`commission_payment`/`payment._id`).
+  gift_card/session différés (dispatcher prêt). `contextType` déjà auto-dérivé pour
+  tous (Phase 3).
+- **Total events métier émis** : 15 (10 Phase 4A + 5 Phase 4B) + `email.*`.
+- Events encore différés (gift_card.used, refund.recovered/failed,
+  formation.session_*) + raisons : rapport 61.
+- Tests : `tests/p1/{deferredBusinessEvents,sendLogContextAttachment}.test.js`.
+- Détails : `Rapports/version 1/61` (audit) + `62` (rapport).
+
 ---
 
 # Etat du projet au commit 180054c

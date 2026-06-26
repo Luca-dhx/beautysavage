@@ -658,6 +658,8 @@ export async function markNoShow(req, res) {
     booking.status = 'no_show';
     booking.noShowAt = new Date();
     await booking.save();
+    // Audit-only event (best-effort, no side effect).
+    await emitBookingEvent('booking.no_show_marked', booking);
 
     await NoShowRecord.create({
       clientId: booking.clientId,
@@ -671,6 +673,12 @@ export async function markNoShow(req, res) {
       const count = await NoShowRecord.countDocuments({ clientId: booking.clientId });
       if (count >= settings.noShowSuspensionThreshold) {
         await User.findByIdAndUpdate(booking.clientId, { bookingSuspended: true });
+        // Audit-only event (best-effort, no side effect).
+        await emitBookingEvent('booking.client_suspended', booking, {
+          contextType: 'user',
+          contextId: String(booking.clientId || ''),
+          extra: { userId: String(booking.clientId || '') }
+        });
       }
     }
 

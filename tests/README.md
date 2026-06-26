@@ -73,6 +73,17 @@ documented startup adaptation in `app.js`).
 > 39 files** (p0 44, p1 107, integration 6). See
 > `Rapports/version 1/65_rapport_phase4c_contexts_notifications_audit.md`.
 
+> **Phase 4D update** — first EventBus→Notification subscriber (flag-gated,
+> idempotent, in-app only). New green tests:
+> `tests/p1/notificationEventSubscriber.test.js` (flag off → no notif; registered →
+> new_sale / no_show_recorded; incomplete payload safe; no email) and
+> `tests/p1/notificationEventIdempotence.test.js` (re-emit → single notif; handler
+> failure never throws to emitter). Tests register subscribers explicitly
+> (`registerNotificationSubscribers()`); the boot flag
+> `ENABLE_EVENT_NOTIFICATION_SUBSCRIBERS` stays off in test. Suite: **166 tests /
+> 41 files** (p0 44, p1 116, integration 6). See
+> `Rapports/version 1/67_rapport_phase4d_notification_subscriber.md`.
+
 > **Phase 1A update** - the simple security P0s are now **fixed** (mock-pay
 > production guard, removed hardcoded secret fallbacks, gift-card password no
 > longer leaked by the public tracking endpoint, tracking-token debug log

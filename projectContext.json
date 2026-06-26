@@ -7,7 +7,20 @@
     "phase3": "completed",
     "phase4a": "completed",
     "phase4b": "completed",
-    "phase4c": "completed"
+    "phase4c": "completed",
+    "phase4d": "completed"
+  },
+  "phase4dNotificationSubscriber": {
+    "date": "2026-06",
+    "scope": [
+      "subscribers/notificationEventSubscriber.js: premier subscriber EventBus->Notification (sale.finalized->new_sale, booking.no_show_marked->no_show_recorded), in-app only, best-effort, reutilise triggerNotification",
+      "Correction mapping: brief disait new_client pour sale.finalized; new_client = inscription sans event source -> branche new_sale (rapport 66)",
+      "models/NotificationEventDelivery.js: idempotence, index unique (eventName, contextType, contextId, notificationType)",
+      "Flag ENABLE_EVENT_NOTIFICATION_SUBSCRIBERS (defaut false): enregistrement boot app.js si true (hors test); test = enregistrement explicite; rollback = flag false",
+      "Double-run: appels directs triggerNotification conserves; ne pas activer subscriber+direct simultanement en prod",
+      "Tests: notificationEventSubscriber, notificationEventIdempotence (suite 157->166 verts)",
+      "Rapports 66 (audit) et 67 (rapport). Aucun email declenche par event."
+    ]
   },
   "phase4cContextsNotificationsAudit": {
     "date": "2026-06",

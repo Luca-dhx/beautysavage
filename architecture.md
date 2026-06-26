@@ -2782,6 +2782,26 @@ broadcast d'audit).
 - Tests : `tests/p1/{emailRemainingContexts,notificationMigrationAudit}.test.js`.
 - Détails : `Rapports/version 1/63` (audit emails) + `64` (plan 4D) + `65` (rapport).
 
+### Phase 4D (2026-06) — Premier subscriber EventBus → Notification
+
+- **Subscriber** `subscribers/notificationEventSubscriber.js` :
+  `sale.finalized → new_sale`, `booking.no_show_marked → no_show_recorded`.
+  In-app uniquement (aucun email), best-effort (jamais de throw au métier),
+  réutilise `triggerNotification`. (Le brief disait `new_client` pour
+  `sale.finalized` ; corrigé en `new_sale` — `new_client` = inscription, sans event
+  source ; rapport 66.)
+- **Idempotence** : `models/NotificationEventDelivery.js`, index unique
+  `(eventName, contextType, contextId, notificationType)` → un event ré-émis ne
+  crée la notif qu'une fois.
+- **Flag** `ENABLE_EVENT_NOTIFICATION_SUBSCRIBERS` (défaut `false`) : enregistrement
+  au boot (`app.js`, hors test) seulement si `true` ; en test, enregistrement
+  explicite. Rollback = flag `false`.
+- **Double-run** : les appels directs `triggerNotification` (clientController /
+  serviceBookingController) sont **conservés** ; ne PAS activer subscriber + appel
+  direct simultanément en prod (le ledger ne dédoublonne pas les deux chemins).
+- Tests : `tests/p1/{notificationEventSubscriber,notificationEventIdempotence}.test.js`.
+- Détails : `Rapports/version 1/66` (audit) + `67` (rapport).
+
 ---
 
 # Etat du projet au commit 180054c

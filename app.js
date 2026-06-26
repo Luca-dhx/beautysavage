@@ -47,6 +47,7 @@ import { validateCredentialVaultKey } from './utils/credentialVault.js';
 import { seedIntegratedApisFromEnv } from './seeders/seedIntegratedApisFromEnv.js';
 import brevoWebhookRouter from './routers/brevoWebhookRouter.js';
 import devDiagnosticRouter from './routers/devDiagnosticRouter.js';
+import { registerNotificationSubscribers } from './subscribers/notificationEventSubscriber.js';
 import siteIdentityRouter from './routers/siteIdentityRouter.js';
 import contractRouter from './routers/contractRouter.js';
 import serviceRouter from './routers/serviceRouter.js';
@@ -469,6 +470,12 @@ if (process.env.NODE_ENV !== 'test') {
     await seedIntegratedApisFromEnv();
   } catch (seedError) {
     console.error('[seed] IntegratedApi vault seed failed (continuing with .env fallback):', seedError?.message || seedError);
+  }
+  // Phase 4D: EventBus -> Notification subscribers, flag-gated (default off).
+  // In-app notifications only; the direct triggerNotification() calls remain.
+  if (process.env.ENABLE_EVENT_NOTIFICATION_SUBSCRIBERS === 'true') {
+    registerNotificationSubscribers();
+    console.log('[boot] Notification event subscribers registered (flag on).');
   }
   await startSessionCancellationAutoRefundScheduler();
 startCommissionReminderJob();

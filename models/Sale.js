@@ -160,6 +160,19 @@ const saleSchema = new mongoose.Schema(
     consumerWaiverAcceptedAt: {
       type: Date
     },
+    // Sprint pré-React A1 — snapshot immuable des consentements légaux revalidés
+    // côté serveur au moment de l'achat (CGV / rétractation / renonciation). Tous
+    // les champs sont optionnels : les ventes historiques restent valides.
+    legalConsentSnapshot: {
+      cgvAccepted: { type: Boolean, default: null },
+      cgvAcceptedAt: { type: Date, default: null },
+      withdrawalNoticeAccepted: { type: Boolean, default: null },
+      withdrawalWaiverAccepted: { type: Boolean, default: null },
+      serviceDatedAcknowledged: { type: Boolean, default: null },
+      digitalContentImmediateAccessAccepted: { type: Boolean, default: null },
+      source: { type: String, trim: true, default: null },
+      version: { type: String, trim: true, default: null }
+    },
     client_ip: {
       type: String,
       trim: true,

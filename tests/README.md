@@ -289,7 +289,26 @@ tests/
     refund.recovery.test.js
     refund.creditNoteIdempotence.test.js
     invoice.recovery.test.js
+    legalConsentCheckout.test.js           # Sprint pré-React A1
+    businessTimezone.test.js               # Sprint pré-React A2
+    brevoWebhookProductionSecurity.test.js # Sprint pré-React A3
+    ... (et autres suites p1)
 ```
+
+## Sprint pré-React A1-A3 (rapports 85 / 86)
+
+- **A1 — consentement légal serveur** (`p1/legalConsentCheckout.test.js`) : refus
+  sans CGV / distanciel sans renonciation / prestation datée sans reconnaissance →
+  code `LEGAL_CONSENT_REQUIRED` ; consentement complet → checkout continue ; free
+  checkout 0€ applique les **mêmes** règles ; snapshot `Sale.legalConsentSnapshot`
+  présent. Fixture adaptée : `p0/giftcard.zeroPayment.characterization.test.js`
+  (Test 1) fournit la renonciation pour une prestation dans la fenêtre de rétractation.
+- **A2 — timezone Europe/Paris** (`p1/businessTimezone.test.js`) :
+  `BUSINESS_TIMEZONE === 'Europe/Paris'`, disponibilité câblée sur la constante,
+  offsets DST, garde de démarrage. Forçage `process.env.TZ` désactivé en test.
+- **A3 — webhook Brevo prod** (`p1/brevoWebhookProductionSecurity.test.js`) : prod
+  sans secret → 503, mauvais secret → 401, bon secret → 200, dev/test sans secret →
+  200 (toléré) ; le secret n'est jamais loggé.
 
 ## Safety (no real secrets / no real DB)
 

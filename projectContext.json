@@ -10,7 +10,23 @@
     "phase4c": "completed",
     "phase4d": "completed",
     "phase4e": "completed",
-    "phase5a": "completed"
+    "phase5a": "completed",
+    "sprintPreReactA1A3": "completed"
+  },
+  "sprintPreReactA1A3": {
+    "date": "2026-06",
+    "branch": "phase-0-security-baseline",
+    "reports": ["85_audit_sprint_pre_react_a1_a3.md", "86_rapport_sprint_pre_react_a1_a3.md"],
+    "scope": [
+      "A1 consentement legal serveur: services/legalConsentService.js (deriveLegalRequirements depuis le catalogue, validateCheckoutLegalConsents -> code LEGAL_CONSENT_REQUIRED, buildLegalConsentSnapshot version 1.0-a1)",
+      "A1 enforcement aux portails: stripeController.createCheckoutSession + clientController.finalizeFreeCheckout refusent les achats incomplets. Finaliseurs post-paiement ne rejettent jamais (charge encaissee), ils snapshotent",
+      "A1 modele: Sale.legalConsentSnapshot (sous-document optionnel: cgvAccepted, cgvAcceptedAt, withdrawalNoticeAccepted, withdrawalWaiverAccepted, serviceDatedAcknowledged, digitalContentImmediateAccessAccepted, source, version). Source stripe_checkout|free_checkout|mock_pay",
+      "A1 regles: CGV toujours; distanciel -> renonciation expresse (acces immediat); presentiel si session < max(14, refundDays) j; prestation datee si creneau < max(14, cancellationDays) j. Derivees du catalogue, jamais des booleens client",
+      "A2 timezone: constants/timezone.js (BUSINESS_TIMEZONE=Europe/Paris, offsets DST, assertBusinessTimezone). app.js force process.env.TZ hors test. serviceAvailabilityService cable sur la constante (getAvailabilityTimezone). Jobs rappels/cleanup = instants absolus, timezone-agnostiques",
+      "A3 webhook Brevo: prod sans secret -> 503, mauvais secret -> 401, bon secret -> 200, dev/test sans secret -> 200 tolere. Secret jamais logge. Role webhook_secret ajoute au seed brevo (BREVO_WEBHOOK_SECRET, optionnel hors prod, obligatoire en prod)",
+      "Tests: p1/legalConsentCheckout, p1/businessTimezone, p1/brevoWebhookProductionSecurity. Fixture p0/giftcard.zeroPayment adaptee (renonciation pour prestation dans la fenetre de retractation). Suite 209 verts (p0=44, p1=159, integration=6)",
+      "Limites juridiques restantes (conseil): case acknowledgement explicite execution date determinee prestation cote UI; relecture des textes de renonciation. Pas d'UI modifiee, pas de React lance"
+    ]
   },
   "phase5aEmailTemplateVersioning": {
     "date": "2026-06",

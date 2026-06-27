@@ -101,7 +101,10 @@ describe('P0 — 0€ checkout finalization (100% gift card / free item)', () =>
             remainingToPay: 0,
             totalAmount: Number(service.price)
           },
-          legal: { acceptedCgv: true, waiverText: '' }
+          // Sprint pré-React A1 — la prestation est réservée dans la fenêtre de
+          // rétractation (slot à +7j) : la reconnaissance d'exécution à date déterminée
+          // (renonciation) est désormais revalidée serveur, comme le fait l'UI réelle.
+          legal: { acceptedCgv: true, waiverRequired: true, waiverAccepted: true, waiverType: 'legal', waiverText: 'Je reconnais l\'exécution à la date choisie.' }
         }
       });
 

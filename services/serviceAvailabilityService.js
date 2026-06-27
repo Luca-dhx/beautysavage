@@ -11,8 +11,35 @@ import {
   ACTIVE_SERVICE_BOOKING_STATUSES,
   SERVICE_SLOT_ERROR_CODES
 } from '../constants/serviceBooking.js';
+import {
+  BUSINESS_TIMEZONE,
+  isServerAlignedWithBusinessTimezone
+} from '../constants/timezone.js';
 
 const MINUTE_IN_MS = 60 * 1000;
+
+// Sprint pré-React A2 — Tous les créneaux de ce service sont construits en heure
+// MURALE LOCALE (`new Date(y, m-1, d, h, min)`) et doivent donc être interprétés
+// dans le fuseau métier. La garde de démarrage (app.js) force TZ=Europe/Paris hors
+// test ; ce module expose le fuseau de référence et avertit (une seule fois) si le
+// process tourne sur un fuseau désaligné, signe d'un risque de décalage de créneaux.
+let warnedTimezoneMisalignment = false;
+
+/** Fuseau métier dans lequel les créneaux de disponibilité sont calculés. */
+export function getAvailabilityTimezone() {
+  return BUSINESS_TIMEZONE;
+}
+
+function guardAvailabilityTimezone(now = new Date()) {
+  if (warnedTimezoneMisalignment) return;
+  if (!isServerAlignedWithBusinessTimezone(now)) {
+    warnedTimezoneMisalignment = true;
+    console.warn(
+      `[serviceAvailability] ⚠ Fuseau serveur désaligné de ${BUSINESS_TIMEZONE} — ` +
+        'les créneaux calculés risquent d\'être décalés. Configurez TZ=Europe/Paris.'
+    );
+  }
+}
 
 function buildServiceSlotError(code, message, status, extra = {}) {
   const error = new Error(message);
@@ -300,6 +327,8 @@ export async function computeAvailableSlotsForPractitioner({
   session = null
 } = {}) {
   if (!practitioner?._id || !service?._id || !dateStr) return [];
+
+  guardAvailabilityTimezone(now);
 
   const requestedDate = dateFromLocalDateStr(dateStr, 12, 0, 0, 0);
   if (!requestedDate) return [];

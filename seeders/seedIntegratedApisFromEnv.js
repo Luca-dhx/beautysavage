@@ -49,7 +49,13 @@ const DEFINITIONS = [
     name: 'Brevo',
     provider: 'brevo',
     runtimeModel: 'single',
-    roles: [{ role: 'api_key', type: 'api_key', env: 'BREVO_API_KEY' }]
+    roles: [
+      { role: 'api_key', type: 'api_key', env: 'BREVO_API_KEY' },
+      // Sprint pré-React A3 — secret partagé du webhook Brevo. Optionnel hors prod
+      // (rôle seedé seulement si BREVO_WEBHOOK_SECRET est défini), OBLIGATOIRE en
+      // production (le contrôleur refuse en 503 si absent). Jamais loggé.
+      { role: 'webhook_secret', type: 'webhook_secret', env: 'BREVO_WEBHOOK_SECRET' }
+    ]
   }
 ];
 

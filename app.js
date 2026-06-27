@@ -97,9 +97,17 @@ import {
 } from './controllers/stripeController.js';
 import { cleanupExpiredGiftCardReservations } from './services/giftCardReservationService.js';
 import { getRefundByTrackingToken } from './controllers/salesController.js';
+import { assertBusinessTimezone } from './constants/timezone.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Sprint pré-React A2 — Garde fuseau métier. Logge le fuseau métier (Europe/Paris)
+// vs le fuseau serveur détecté et avertit en cas de divergence. Hors test, force
+// process.env.TZ=Europe/Paris dès le démarrage pour que les créneaux calendrier
+// (construits en heure murale locale) soient toujours interprétés en Europe/Paris.
+// En test, on NE force PAS (l'app est importée par supertest — voir constants/timezone.js).
+assertBusinessTimezone({ force: process.env.NODE_ENV !== 'test' });
 
 const app = express();
 app.set('trust proxy', 1);

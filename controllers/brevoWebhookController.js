@@ -2,11 +2,16 @@
 // Receives Brevo transactional webhooks (delivered / opened / hard_bounce /
 // soft_bounce) and updates the matching SendLog by providerMessageId.
 //
-// SECURITY: Brevo does NOT sign webhooks with HMAC. Protection here is an OPTIONAL
-// shared secret (header `x-brevo-secret` or `?secret=`), resolved from the vault
-// (brevo/webhook_secret) or env BREVO_WEBHOOK_SECRET. If none is configured the
-// endpoint accepts events but logs a one-time warning (documented V1 limitation;
-// add the secret + an IP allowlist for production).
+// SECURITY: Brevo does NOT sign webhooks with HMAC. Protection here is a SHARED
+// SECRET (header `x-brevo-secret` or `?secret=`), resolved from the vault
+// (brevo/webhook_secret) or env BREVO_WEBHOOK_SECRET.
+//
+// Sprint pré-React A3 — comportement par environnement :
+//   - PRODUCTION : le secret est OBLIGATOIRE. S'il est absent, l'endpoint répond
+//     503 (configuration manquante) et ne traite aucun événement. Secret fourni mais
+//     invalide → 401.
+//   - DEV / TEST : le secret reste optionnel (toléré, avertissement unique) pour ne
+//     pas casser les harnais locaux — comportement documenté.
 //
 // PRIVACY: never logs the recipient email or any secret.
 
@@ -39,15 +44,25 @@ function extractMessageId(e) {
 }
 
 export async function handleBrevoWebhook(req, res) {
+  const isProduction = process.env.NODE_ENV === 'production';
   const expected = await resolveBrevoWebhookSecret();
+
   if (expected) {
     const provided = String(req.get?.('x-brevo-secret') || req.headers?.['x-brevo-secret'] || req.query?.secret || '').trim();
     if (!safeEqual(provided, expected)) {
       return res.status(401).json({ ok: false, error: 'Webhook secret invalide.' });
     }
+  } else if (isProduction) {
+    // A3 : en production le secret est obligatoire. Sans secret configuré, on refuse
+    // de traiter (endpoint falsifiable sinon → pollution observabilité / logique bounce).
+    console.error(
+      '[brevoWebhook] BREVO_WEBHOOK_SECRET absent en production — endpoint désactivé (503). ' +
+        'Configurez le secret (vault brevo/webhook_secret ou env BREVO_WEBHOOK_SECRET).'
+    );
+    return res.status(503).json({ ok: false, error: 'Webhook indisponible (configuration manquante).' });
   } else if (!warnedNoSecret) {
     warnedNoSecret = true;
-    console.warn('[brevoWebhook] No BREVO_WEBHOOK_SECRET configured — endpoint is unauthenticated (V1). Configure a secret + IP allowlist for production.');
+    console.warn('[brevoWebhook] No BREVO_WEBHOOK_SECRET configured — endpoint unauthenticated (dev/test only). Mandatory in production.');
   }
 
   const body = req.body;

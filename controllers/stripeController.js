@@ -27,6 +27,10 @@ import { claimGiftCardRecredit } from '../services/refundRequestService.js';
 import { getAppBaseUrl } from '../utils/invoiceUrl.js';
 import { assertServiceSlotBookable } from '../services/serviceAvailabilityService.js';
 import { getCredential } from '../services/integratedApiCredentialService.js';
+import {
+  deriveLegalRequirements,
+  validateCheckoutLegalConsents
+} from '../services/legalConsentService.js';
 
 async function getStripe() {
   // Credential sourced from the IntegratedApi vault (env fallback during migration).
@@ -811,6 +815,22 @@ export async function createCheckoutSession(req, res) {
         code: validationError?.code || 'CHECKOUT_CONTEXT_INVALID'
       });
     }
+  }
+
+  // Sprint pré-React A1 — revalidation serveur des consentements légaux (CGV /
+  // rétractation / renonciation). Le serveur re-dérive les consentements requis
+  // depuis le CATALOGUE (type de formation, prestation datée, date de session) et
+  // refuse l'achat si un consentement requis manque — sans faire confiance aux
+  // booléens client (waiverRequired, accepted_cgv inventé). Voir rapports 74/82/84.
+  try {
+    const legalRequirements = await deriveLegalRequirements(checkoutState);
+    validateCheckoutLegalConsents(checkoutState, legalRequirements);
+  } catch (legalError) {
+    return res.status(Number(legalError?.status) || 400).json({
+      ok: false,
+      error: legalError?.message || 'Consentement légal requis.',
+      code: legalError?.code || 'LEGAL_CONSENT_REQUIRED'
+    });
   }
 
   const checkoutItems = normalizeCheckoutItems(checkoutState);

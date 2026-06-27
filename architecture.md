@@ -2902,7 +2902,8 @@ Socle backend du futur Email Template Studio. **Aucune UI, aucune automatisation
 - Diagnostic : `GET /api/gestion/dev/events` (`requireStrictDev`).
 
 ## Tests
-- **130 tests verts** / 33 fichiers : **p0 = 44**, **p1 = 80**, **integration = 6**.
+- **209 tests verts** / 49 fichiers : **p0 = 44**, **p1 = 159**, **integration = 6**
+  (inclut le Sprint pré-React A1-A3 — voir section dédiée plus bas).
 - Harnais : Vitest + `mongodb-memory-server` ; `tests/setup/testEnv.js` (env factice,
   clé de coffre factice, fallback activé en test), `testApp.js` (boot app en mémoire),
   `seedTestData.js` (users dev/admin/client + contrat actif).
@@ -2924,3 +2925,53 @@ Socle backend du futur Email Template Studio. **Aucune UI, aucune automatisation
 3. Migration progressive des notifications derrière le bus (idempotent, sans envoi auto).
 4. Versioning des templates email (draft→publish) — backend.
 5. **Migration React** puis UI IntegratedApi + Studio Email Template.
+
+## Sprint pré-React A1-A3 (2026-06 — rapports 85 / 86)
+
+Trois durcissements P1 à régler **avant** React (le frontend figerait sinon le contrat d'API).
+
+### A1 — Consentement légal revalidé serveur
+- **Service** `services/legalConsentService.js` :
+  - `deriveLegalRequirements(checkoutState)` — dérive du **catalogue** (jamais des
+    booléens client) les consentements requis : CGV (toujours) ; renonciation
+    expresse pour formation **distancielle** (accès immédiat) ; renonciation
+    présentielle si session `< max(14, refundDays)` j ; reconnaissance prestation
+    datée si créneau `< max(14, cancellationDays)` j.
+  - `validateCheckoutLegalConsents(checkoutState, requirements)` — fonction pure,
+    lève `{ status: 400, code: 'LEGAL_CONSENT_REQUIRED' }`.
+  - `buildLegalConsentSnapshot(...)` — snapshot immuable (`version` `1.0-a1`).
+- **Enforcement aux portails** : `stripeController.createCheckoutSession` et
+  `clientController.finalizeFreeCheckout` refusent les achats incomplets
+  (`LEGAL_CONSENT_REQUIRED`). Les finaliseurs post-paiement ne rejettent jamais (charge
+  encaissée) : ils se contentent de **snapshoter**.
+- **Modèle** : `Sale.legalConsentSnapshot` (sous-document optionnel : `cgvAccepted`,
+  `cgvAcceptedAt`, `withdrawalNoticeAccepted`, `withdrawalWaiverAccepted`,
+  `serviceDatedAcknowledged`, `digitalContentImmediateAccessAccepted`, `source`, `version`).
+  Renseigné par `persistSale` (formation/produit/carte cadeau/panier/mock) et directement
+  sur la vente prestation. `source` ∈ `stripe_checkout|free_checkout|mock_pay`.
+- **Limite** : la case d'acknowledgement explicite « exécution à date déterminée »
+  prestation reste à matérialiser côté UI (le serveur sait déjà l'imposer). Textes de
+  renonciation à faire relire par conseil.
+
+### A2 — Timezone métier Europe/Paris
+- **`constants/timezone.js`** : `BUSINESS_TIMEZONE='Europe/Paris'` + helpers (offset DST,
+  alignement serveur) + garde `assertBusinessTimezone({ force, logger })`.
+- **`app.js`** : garde appelée au boot ; **force `process.env.TZ='Europe/Paris'` hors test**
+  (non forcé en test car l'app est importée par supertest).
+- **`serviceAvailabilityService.js`** : référence la constante (`getAvailabilityTimezone`)
+  et avertit une fois si le fuseau serveur est désaligné lors d'un calcul de créneaux.
+- Les jobs (rappels/cleanup/auto-refund) comparent des **instants absolus** →
+  timezone-agnostiques. Migration UTC complète : roadmap D (non bloquant React).
+
+### A3 — Webhook Brevo sécurisé en production
+- `controllers/brevoWebhookController.js` : **PROD** sans secret → 503 ; mauvais secret →
+  401 ; bon secret → 200. **DEV/TEST** sans secret → 200 toléré (documenté). Secret
+  jamais loggé.
+- `seeders/seedIntegratedApisFromEnv.js` : rôle `webhook_secret` ajouté à l'intégration
+  `brevo` (env `BREVO_WEBHOOK_SECRET`, seedé si présent ; obligatoire en prod sinon 503).
+
+### Tests — 209 verts / 49 fichiers : p0=44, p1=159, integration=6
+- `p1/legalConsentCheckout.test.js`, `p1/businessTimezone.test.js`,
+  `p1/brevoWebhookProductionSecurity.test.js`. Fixture adaptée :
+  `p0/giftcard.zeroPayment.characterization.test.js` (prestation dans la fenêtre de
+  rétractation → renonciation fournie).

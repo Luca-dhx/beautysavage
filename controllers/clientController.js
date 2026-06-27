@@ -37,6 +37,11 @@ import { emitSaleEvent, emitBookingEvent } from '../services/businessEventServic
 import { getSessionUserId } from '../utils/session.js';
 import { extractClientIp } from '../utils/requestClientIp.js';
 import { validateAndBuildConsumerWaiver } from '../utils/consumerWaiver.js';
+import {
+  deriveLegalRequirements,
+  validateCheckoutLegalConsents,
+  buildLegalConsentSnapshot
+} from '../services/legalConsentService.js';
 import { getAppBaseUrl } from '../utils/invoiceUrl.js';
 import { buildModulePayload } from './formationModuleController.js';
 import { buildSessionPayload } from './formationSessionController.js';
@@ -643,7 +648,8 @@ async function persistSale({
   clientIp,
   stripePaymentIntentId = null,
   stripeSessionId = null,
-  skipPostSaleSideEffects = false
+  skipPostSaleSideEffects = false,
+  legalConsentSnapshot = null
 }) {
   if (!userId || !items?.length) return null;
   const normalizedItems = items.map(entry => {
@@ -702,6 +708,10 @@ async function persistSale({
   if (renonciationText) {
     sale.consumerWaiverAcceptedText = renonciationText;
     sale.consumerWaiverAcceptedAt = consumerWaiver?.consumerWaiverAcceptedAt || sale.date_achat;
+  }
+  // Sprint pré-React A1 — snapshot des consentements légaux revalidés serveur.
+  if (legalConsentSnapshot && typeof legalConsentSnapshot === 'object') {
+    sale.legalConsentSnapshot = legalConsentSnapshot;
   }
   // Phase 1B-1: set the Stripe PaymentIntent id AT INSERT so the unique partial
   // index on stripePaymentIntentId rejects a concurrent/duplicate webhook with an
@@ -1466,7 +1476,17 @@ export async function mockPay(req, res) {
         giftCardUsage: giftPlan.saleEntries,
         consumerWaiver,
         clientIp,
-        skipPostSaleSideEffects: true
+        skipPostSaleSideEffects: true,
+        legalConsentSnapshot: buildLegalConsentSnapshot({
+          legal: {
+            acceptedCgv: consumerWaiver?.accepted_cgv,
+            waiverAccepted: Boolean(consumerWaiver?.renonciation_text),
+            waiverText: consumerWaiver?.renonciation_text || '',
+            waiverAcceptedAt: consumerWaiver?.consumerWaiverAcceptedAt || legalDateAchat
+          },
+          acceptedAt: legalDateAchat,
+          source: 'mock_pay'
+        })
       });
       const formationEntries = saleItems
         .map(buildFormationEntryFromSale)
@@ -1549,7 +1569,17 @@ export async function mockPay(req, res) {
       giftCardUsage: giftPlan.saleEntries,
       consumerWaiver,
       clientIp,
-      skipPostSaleSideEffects: true
+      skipPostSaleSideEffects: true,
+      legalConsentSnapshot: buildLegalConsentSnapshot({
+        legal: {
+          acceptedCgv: consumerWaiver?.accepted_cgv,
+          waiverAccepted: Boolean(consumerWaiver?.renonciation_text),
+          waiverText: consumerWaiver?.renonciation_text || '',
+          waiverAcceptedAt: consumerWaiver?.consumerWaiverAcceptedAt || legalDateAchat
+        },
+        acceptedAt: legalDateAchat,
+        source: 'mock_pay'
+      })
     });
     saleRecord = saleDoc;
     if (saleDoc?.saleId && purchaseRecord?._id) {
@@ -2276,7 +2306,8 @@ async function processCartCheckoutStatePurchase({
   normalizedStripeSessionId,
   normalizedStripePaymentIntentId,
   legalDateAchat,
-  requireZeroRemaining = false
+  requireZeroRemaining = false,
+  legalConsentSnapshot = null
 }) {
   const cartItems = Array.isArray(normalizedCheckoutState?.items) ? normalizedCheckoutState.items : [];
   const rawGiftCards = Array.isArray(normalizedCheckoutState?.appliedGiftCards)
@@ -2535,7 +2566,8 @@ async function processCartCheckoutStatePurchase({
       clientIp: normalizedIp,
       stripePaymentIntentId: normalizedStripePaymentIntentId,
       stripeSessionId: normalizedStripeSessionId,
-      skipPostSaleSideEffects: true
+      skipPostSaleSideEffects: true,
+      legalConsentSnapshot
     });
 
     await applyStripeFieldsToSale(saleRecord);
@@ -2600,7 +2632,8 @@ async function processServiceCheckoutStatePurchase({
   normalizedIp,
   normalizedStripeSessionId,
   normalizedStripePaymentIntentId,
-  requireZeroRemaining = false
+  requireZeroRemaining = false,
+  legalConsentSnapshot = null
 }) {
   const serviceData = normalizedCheckoutState?.service;
   if (!serviceData?.serviceId || !serviceData?.slotStart || !serviceData?.slotEnd) {
@@ -2748,7 +2781,8 @@ async function processServiceCheckoutStatePurchase({
     itemCount: saleItems.length,
     accepted_cgv: true,
     client_ip: normalizedIp || '0.0.0.0',
-    giftCardUsage: giftPlan.saleEntries
+    giftCardUsage: giftPlan.saleEntries,
+    legalConsentSnapshot: legalConsentSnapshot || undefined
   });
   if (normalizedStripeSessionId) sale.stripeSessionId = normalizedStripeSessionId;
   if (normalizedStripePaymentIntentId) sale.stripePaymentIntentId = normalizedStripePaymentIntentId;
@@ -2822,6 +2856,16 @@ export async function processCheckoutStatePurchase({
     String(stripePaymentIntentId || normalizedStripeSessionId || '').trim() || null;
   const legalDateAchat = new Date();
 
+  // Sprint pré-React A1 — snapshot des consentements légaux capturés à l'achat,
+  // dérivé du checkoutState revalidé. Stocké sur la vente (audit/preuve).
+  const legalConsentSnapshot = normalizedCheckoutState
+    ? buildLegalConsentSnapshot({
+        checkoutState: normalizedCheckoutState,
+        acceptedAt: legalDateAchat,
+        source: requireZeroRemaining ? 'free_checkout' : 'stripe_checkout'
+      })
+    : null;
+
   // Multi-item cart: delegate to dedicated handler
   if (normalizedCheckoutState?.cart === true) {
     return processCartCheckoutStatePurchase({
@@ -2832,7 +2876,8 @@ export async function processCheckoutStatePurchase({
       normalizedStripeSessionId,
       normalizedStripePaymentIntentId,
       legalDateAchat,
-      requireZeroRemaining
+      requireZeroRemaining,
+      legalConsentSnapshot
     });
   }
 
@@ -2845,7 +2890,8 @@ export async function processCheckoutStatePurchase({
       normalizedIp,
       normalizedStripeSessionId,
       normalizedStripePaymentIntentId,
-      requireZeroRemaining
+      requireZeroRemaining,
+      legalConsentSnapshot
     });
   }
 
@@ -3004,7 +3050,8 @@ export async function processCheckoutStatePurchase({
         clientIp: normalizedIp,
         stripePaymentIntentId: normalizedStripePaymentIntentId,
         stripeSessionId: normalizedStripeSessionId,
-        skipPostSaleSideEffects: true
+        skipPostSaleSideEffects: true,
+        legalConsentSnapshot
       });
 
       await applyStripeFieldsToSale(saleRecord);
@@ -3103,7 +3150,8 @@ export async function processCheckoutStatePurchase({
         clientIp: normalizedIp,
         stripePaymentIntentId: normalizedStripePaymentIntentId,
         stripeSessionId: normalizedStripeSessionId,
-        skipPostSaleSideEffects: true
+        skipPostSaleSideEffects: true,
+        legalConsentSnapshot
       });
 
       await applyStripeFieldsToSale(saleRecord);
@@ -3190,7 +3238,8 @@ export async function processCheckoutStatePurchase({
       clientIp: normalizedIp,
       stripePaymentIntentId: normalizedStripePaymentIntentId,
       stripeSessionId: normalizedStripeSessionId,
-      skipPostSaleSideEffects: true
+      skipPostSaleSideEffects: true,
+      legalConsentSnapshot
     });
 
     await applyStripeFieldsToSale(saleRecord);
@@ -3259,12 +3308,17 @@ export async function finalizeFreeCheckout(req, res) {
       .status(400)
       .json({ ok: false, error: 'checkoutState manquant.', code: 'CHECKOUT_STATE_REQUIRED' });
   }
-  // CGV acceptance is required, exactly like the Stripe path — do not bypass legal validation.
-  if (checkoutState?.legal?.acceptedCgv !== true) {
-    return res.status(400).json({
+  // Sprint pré-React A1 — revalidation serveur des consentements légaux, exactement
+  // comme le chemin Stripe (free checkout 0€ respecte les mêmes règles). Les
+  // consentements requis sont dérivés du CATALOGUE serveur, jamais des booléens client.
+  try {
+    const legalRequirements = await deriveLegalRequirements(checkoutState);
+    validateCheckoutLegalConsents(checkoutState, legalRequirements);
+  } catch (legalError) {
+    return res.status(Number(legalError?.status) || 400).json({
       ok: false,
-      error: 'Conditions generales non acceptees.',
-      code: 'LEGAL_VALIDATION_REQUIRED'
+      error: legalError?.message || 'Consentement légal requis.',
+      code: legalError?.code || 'LEGAL_CONSENT_REQUIRED'
     });
   }
 

@@ -2902,8 +2902,8 @@ Socle backend du futur Email Template Studio. **Aucune UI, aucune automatisation
 - Diagnostic : `GET /api/gestion/dev/events` (`requireStrictDev`).
 
 ## Tests
-- **209 tests verts** / 49 fichiers : **p0 = 44**, **p1 = 159**, **integration = 6**
-  (inclut le Sprint pré-React A1-A3 — voir section dédiée plus bas).
+- **229 tests verts** / 53 fichiers : **p0 = 44**, **p1 = 179**, **integration = 6**
+  (inclut les Sprints pré-React A1-A3 et A4-A7 — voir sections dédiées plus bas).
 - Harnais : Vitest + `mongodb-memory-server` ; `tests/setup/testEnv.js` (env factice,
   clé de coffre factice, fallback activé en test), `testApp.js` (boot app en mémoire),
   `seedTestData.js` (users dev/admin/client + contrat actif).
@@ -2975,3 +2975,47 @@ Trois durcissements P1 à régler **avant** React (le frontend figerait sinon le
   `p1/brevoWebhookProductionSecurity.test.js`. Fixture adaptée :
   `p0/giftcard.zeroPayment.characterization.test.js` (prestation dans la fenêtre de
   rétractation → renonciation fournie).
+
+## Sprint pré-React A4-A7 (2026-06 — rapports 87 / 88)
+
+Derniers verrous métier avant React. **229 tests verts** / 53 fichiers (p0=44, p1=179,
+integration=6).
+
+### A4 — Gouvernance annulation / remboursement admin
+- `controllers/salesController.js → updateRefundStatus` : émet `refund.succeeded` /
+  `refund.failed` / `refund.requested` (`emitRefundEvent`) avec `actorId` (admin) +
+  `reason`, et persiste la raison dans `RefundRequest.meta.notes`. Aucun remboursement
+  silencieux.
+- `controllers/serviceBookingController.js → cancelBookingByAdmin` : `booking.cancelled`
+  enrichi `actorId` + `reason`.
+
+### A5 — Commissions après remboursement
+- `services/commissionPaymentService.js → computeCommissionsForPeriod` capture désormais
+  **tous** les remboursements réglés (Stripe **ou** carte cadeau **ou** statut succeeded),
+  date `stripeRefundConfirmedAt || refundedAt || processedAt`. Corrige le trou
+  « 100 % carte cadeau ». Déduction proportionnelle au **montant total remboursé**,
+  indépendante du moyen de paiement (commission au catalogue).
+- `services/refundService.js` émet `commission.adjusted` (provision),
+  `commission.reversal_required` (vente d'un `CommissionPayment` déjà `succeeded` →
+  claw-back manuelle), `commission.cancelled` (provision annulée). Ledger
+  `CommissionTransaction` inchangé.
+
+### A6 — Observabilité pannes webhook Stripe
+- `models/WebhookFailureLog.js` + `services/webhookFailureService.js → recordWebhookFailure`
+  (best-effort, safe). `controllers/stripeController.js → handleWebhook` trace : config
+  manquante, signature invalide (non rejouable), contexte introuvable + échec traitement
+  (rejouable). **Duplicate idempotent → 200 sans failure.** Endpoint dev
+  `GET /api/gestion/dev/webhook-failures` (`requireStrictDev`).
+
+### A7 — Acompte / solde / distanciel
+- `services/offerReadinessService.js` : prestation `paymentType='deposit'` non réservable
+  (`OFFER_BALANCE_UNSUPPORTED`, câblé dans `assertServiceSlotBookable`) ; formation
+  distancielle `accessDeliveryMode='immediate'` sans `accessUrl` → achat bloqué
+  (`OFFER_ACCESS_UNAVAILABLE`, portails Stripe + free). Distanciel `manual` (défaut)
+  vendable, marqué `Sale.accessDeliveryStatus='manual_pending'`.
+- Modèles : `Formation.accessDeliveryMode` + `accessUrl` ; `Sale.accessDeliveryStatus`.
+
+### Verdict React
+Les 7 points P1 du verdict GO conditionnel (rapport 84) sont traités (A1-A7). Contrat
+d'API gelable → **GO React**, sous réserve : collecte du solde d'acompte et remboursement
+distanciel à concevoir (non bloquants), claw-back commission manuelle, allowlist IP Brevo.

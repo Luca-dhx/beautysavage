@@ -178,6 +178,14 @@ const saleSchema = new mongoose.Schema(
       trim: true,
       default: '0.0.0.0'
     },
+    // Sprint pré-React A7 — statut de livraison d'accès pour les achats distanciel.
+    // 'manual_pending' = accès livré manuellement (pas de faux « accès immédiat ») ;
+    // 'immediate' = accès immédiat réellement configuré ; null = non applicable.
+    accessDeliveryStatus: {
+      type: String,
+      enum: ['manual_pending', 'immediate', null],
+      default: null
+    },
     createdAt: {
       type: Date,
       default: () => new Date()

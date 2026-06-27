@@ -11,7 +11,21 @@
     "phase4d": "completed",
     "phase4e": "completed",
     "phase5a": "completed",
-    "sprintPreReactA1A3": "completed"
+    "sprintPreReactA1A3": "completed",
+    "sprintPreReactA4A7": "completed"
+  },
+  "sprintPreReactA4A7": {
+    "date": "2026-06",
+    "branch": "phase-0-security-baseline",
+    "reports": ["87_audit_sprint_pre_react_a4_a7.md", "88_rapport_sprint_pre_react_a4_a7.md"],
+    "scope": [
+      "A4 gouvernance admin: salesController.updateRefundStatus emet refund.succeeded/failed/requested (emitRefundEvent) avec actorId admin + reason, raison persistee dans RefundRequest.meta.notes. serviceBookingController.cancelBookingByAdmin enrichit booking.cancelled (actorId + reason). Aucun remboursement/annulation silencieux",
+      "A5 commissions: commissionPaymentService.computeCommissionsForPeriod capture tous les remboursements regles (Stripe OU carte cadeau OU statut succeeded), date stripeRefundConfirmedAt||refundedAt||processedAt. Corrige le trou 100% carte cadeau. Deduction proportionnelle au montant total rembourse, independante du moyen (commission au catalogue). refundService emet commission.adjusted (provision), commission.reversal_required (vente d'un CommissionPayment deja succeeded -> claw-back manuelle), commission.cancelled (provision annulee)",
+      "A6 observabilite: models/WebhookFailureLog.js + services/webhookFailureService.js (recordWebhookFailure best-effort safe). stripeController.handleWebhook trace config/signature/processing. Duplicate idempotent -> 200 sans failure. Endpoint dev GET /api/gestion/dev/webhook-failures (requireStrictDev)",
+      "A7 offres incompletes: services/offerReadinessService.js. Prestation paymentType=deposit non reservable (OFFER_BALANCE_UNSUPPORTED, cable dans assertServiceSlotBookable). Formation distancielle accessDeliveryMode=immediate sans accessUrl -> achat bloque (OFFER_ACCESS_UNAVAILABLE, portails createCheckoutSession + finalizeFreeCheckout). Distanciel manual (defaut) vendable, Sale.accessDeliveryStatus=manual_pending. Modeles: Formation.accessDeliveryMode + accessUrl, Sale.accessDeliveryStatus",
+      "Tests: p1/adminRefundAudit, p1/commissionRefundConsistency, p1/stripeWebhookFailureObservability, p1/depositDistanceLearningGuards. Suite 229 verts (p0=44, p1=179, integration=6)",
+      "Verdict React: 7 points P1 du verdict GO conditionnel (rapport 84) traites (A1-A7). Contrat API gelable -> GO React. Limites: collecte solde acompte et remboursement distanciel a concevoir (non bloquants), claw-back commission manuelle, allowlist IP Brevo"
+    ]
   },
   "sprintPreReactA1A3": {
     "date": "2026-06",

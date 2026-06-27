@@ -726,6 +726,9 @@ export async function markCompleted(req, res) {
 export async function cancelBookingByAdmin(req, res) {
   try {
     const { bookingId } = req.params;
+    // A4 — acteur (admin) + raison pour l'audit. Best-effort si adminId absent.
+    const adminId = getSessionUserId(req);
+    const adminReason = String(req.body?.reason || '').trim().slice(0, 500);
     const booking = await ServiceBooking.findOne({ bookingId })
       .populate('clientId', 'firstName lastName email')
       .populate('serviceId');
@@ -740,8 +743,12 @@ export async function cancelBookingByAdmin(req, res) {
     booking.cancelledBy = 'admin';
     await booking.save();
     await releaseServiceBookingSlotLocks({ bookingId: booking.bookingId }).catch(() => {});
-    // Audit-only event (best-effort, no side effect).
-    await emitBookingEvent('booking.cancelled', booking, { extra: { cancelledBy: 'admin' } });
+    // A4 — annulation admin jamais silencieuse : event d'audit avec acteur + raison.
+    await emitBookingEvent('booking.cancelled', booking, {
+      actorType: adminId ? 'user' : 'system',
+      actorId: adminId ? String(adminId) : null,
+      extra: { cancelledBy: 'admin', reason: adminReason || null }
+    });
 
     const client = booking.clientId;
     const service = booking.serviceId;

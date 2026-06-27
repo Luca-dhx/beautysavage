@@ -4,10 +4,38 @@
  *
  * Logique de calcul :
  *  - Ventes de la période : Sale.commissionAmount > 0 et createdAt dans [periodStart, periodEnd)
- *  - Remboursements : RefundRequest.stripeRefundStatus === 'succeeded' et
- *    stripeRefundConfirmedAt dans [periodStart, periodEnd)
- *    → commission déduite proportionnellement au montant remboursé / totalAmount de la vente
+ *  - Remboursements (Sprint pré-React A5) : un remboursement réduit la commission dès
+ *    qu'il est RÉGLÉ par n'importe quel moyen — Stripe (`stripeRefundStatus==='succeeded'`)
+ *    OU carte cadeau (`giftCardRecredited` / `giftCardRefundStatus==='succeeded'`) OU
+ *    statut global `succeeded`. La date de règlement retenue est
+ *    `stripeRefundConfirmedAt || refundedAt || processedAt`.
+ *    → commission déduite proportionnellement au montant TOTAL remboursé / totalAmount
+ *      de la vente, INDÉPENDAMMENT du moyen de paiement (règle documentée : la commission,
+ *      calculée au catalogue sur Sale.commissionAmount, suit la valeur de vente conservée).
+ *    Corrige le trou « 100 % carte cadeau » (rapport 76) où la commission n'était jamais
+ *    déduite car le filtre exigeait `stripeRefundStatus==='succeeded'`.
  */
+
+// A5 — date de règlement effective d'un remboursement, tous moyens confondus.
+function resolveRefundSettledAt(refund) {
+  const candidates = [refund?.stripeRefundConfirmedAt, refund?.refundedAt, refund?.processedAt];
+  for (const c of candidates) {
+    if (!c) continue;
+    const d = new Date(c);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
+// A5 — un remboursement est-il terminalement réglé (par Stripe et/ou carte cadeau) ?
+function isRefundSettled(refund) {
+  return (
+    refund?.stripeRefundStatus === 'succeeded' ||
+    refund?.giftCardRecredited === true ||
+    refund?.giftCardRefundStatus === 'succeeded' ||
+    refund?.status === 'succeeded'
+  );
+}
 
 import mongoose from 'mongoose';
 
@@ -57,11 +85,23 @@ export async function computeCommissionsForPeriod(periodStart, periodEnd) {
     };
   });
 
-  // 2. Remboursements confirmés dans la période — on les lie aux ventes correspondantes
-  const refundRequests = await RefundRequest.find({
-    stripeRefundStatus: 'succeeded',
-    stripeRefundConfirmedAt: { $gte: periodStart, $lt: periodEnd }
+  // 2. Remboursements RÉGLÉS (tous moyens) — on récupère les candidats terminés puis on
+  //    filtre par date de règlement en JS (la date pertinente peut être dans plusieurs
+  //    champs selon le moyen de paiement).
+  const candidateRefunds = await RefundRequest.find({
+    $or: [
+      { stripeRefundStatus: 'succeeded' },
+      { giftCardRecredited: true },
+      { giftCardRefundStatus: 'succeeded' },
+      { status: 'succeeded' }
+    ]
   }).lean();
+
+  const refundRequests = candidateRefunds.filter(r => {
+    if (!isRefundSettled(r)) return false;
+    const settledAt = resolveRefundSettledAt(r);
+    return settledAt && settledAt >= periodStart && settledAt < periodEnd;
+  });
 
   // Construire un map saleId (string) → sale pour les calculs proportionnels
   const saleMap = {};
@@ -84,7 +124,8 @@ export async function computeCommissionsForPeriod(periodStart, periodEnd) {
     const sale = saleMap[r.saleId];
     if (!sale || !sale.commissionAmount || sale.commissionAmount <= 0) continue;
 
-    // Déduction proportionnelle : refundAmount / totalAmount * commissionAmount
+    // Déduction proportionnelle au montant TOTAL remboursé (tous moyens), indépendante
+    // du moyen de paiement : refundAmount / totalAmount * commissionAmount.
     const ratio = sale.totalAmount > 0
       ? Math.min(1, (r.amount || 0) / sale.totalAmount)
       : 0;
@@ -94,7 +135,7 @@ export async function computeCommissionsForPeriod(periodStart, periodEnd) {
     refundEntries.push({
       refundId: r._id,
       saleId: sale._id,
-      refundedAt: r.stripeRefundConfirmedAt || r.refundedAt || r.processedAt || null,
+      refundedAt: resolveRefundSettledAt(r),
       commissionType: sale.commissionRate != null ? 'percentage' : 'fixed',
       commissionRate: sale.commissionRate ?? null,
       commissionAmount: deducted

@@ -18,6 +18,8 @@ import {
 import { triggerRefundExecution } from '../services/refundExecutionService.js';
 import { requireSecret } from '../utils/secretEnv.js';
 import { getCredential } from '../services/integratedApiCredentialService.js';
+import { getSessionUserId } from '../utils/session.js';
+import { emitRefundEvent } from '../services/businessEventService.js';
 
 const GIFT_CARD_PASSWORD_SECRET = requireSecret('GIFT_CARD_PASSWORD_SECRET', { fallback: 'SESSION_SECRET' });
 const GIFT_CARD_PASSWORD_KEY = crypto
@@ -490,6 +492,15 @@ export async function listRefunds(req, res) {
   }
 }
 
+// A4 — Gouvernance : une décision admin de remboursement laisse toujours une trace
+// EventLog (qui/quand/raison/résultat). Mappe le statut cible vers l'event terminal.
+function refundEventNameForStatus(status) {
+  if (status === 'succeeded') return 'refund.succeeded';
+  if (status === 'failed' || status === 'canceled') return 'refund.failed';
+  if (status === 'requested' || status === 'pending') return 'refund.requested';
+  return null;
+}
+
 export async function updateRefundStatus(req, res) {
   const refundId = String(req.params.refundId || '').trim();
   if (!refundId) {
@@ -499,6 +510,21 @@ export async function updateRefundStatus(req, res) {
   if (!nextStatus) {
     return res.status(400).json({ ok: false, error: 'Statut remboursement invalide.' });
   }
+  // A4 — acteur (admin) + raison pour l'audit. Best-effort : adminId peut être absent.
+  const adminId = getSessionUserId(req);
+  const adminReason = String(req.body?.reason || '').trim().slice(0, 500);
+
+  // Émission audit (best-effort, ne casse jamais le flux). Appelée après chaque
+  // transition terminale pour qu'aucune décision financière ne soit silencieuse.
+  const emitAdminRefundAudit = async (refundDoc, status) => {
+    const eventName = refundEventNameForStatus(status);
+    if (!eventName) return;
+    await emitRefundEvent(eventName, refundDoc, {
+      actorType: adminId ? 'user' : 'system',
+      actorId: adminId ? String(adminId) : null,
+      extra: { decidedBy: 'admin', reason: adminReason || null, targetStatus: status }
+    });
+  };
 
   try {
     const refund = await RefundRequest.findOne({ refundId });
@@ -509,6 +535,14 @@ export async function updateRefundStatus(req, res) {
     const currentStatus = String(refund.status || '').trim();
     if (currentStatus === nextStatus) {
       return res.json({ ok: true, refund: refund.toObject() });
+    }
+
+    // Persiste la raison admin dans les notes (audit durable, sans donnée sensible).
+    if (adminReason) {
+      const existingNotes = String(refund?.meta?.notes || '').trim();
+      const tag = `admin:${nextStatus}:${adminReason}`;
+      refund.meta = refund.meta || {};
+      refund.meta.notes = existingNotes ? `${existingNotes} | ${tag}` : tag;
     }
 
     const closableStatuses = new Set(['succeeded', 'failed', 'canceled']);
@@ -530,6 +564,7 @@ export async function updateRefundStatus(req, res) {
       try {
         const execution = await triggerRefundExecution(refund, sale);
         await ensureRefundCommissionProvision(execution.refund || refund);
+        await emitAdminRefundAudit(execution.refund || refund, 'succeeded');
         return res.json({
           ok: true,
           stripeInitiated: Boolean(execution?.stripeInitiated),
@@ -555,6 +590,8 @@ export async function updateRefundStatus(req, res) {
     if (nextStatus === 'failed' || nextStatus === 'canceled') {
       await ensureRefundCommissionReversal(refund);
     }
+
+    await emitAdminRefundAudit(refund, nextStatus);
 
     return res.json({ ok: true, refund: refund.toObject() });
   } catch (error) {

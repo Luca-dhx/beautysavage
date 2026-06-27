@@ -42,6 +42,10 @@ import {
   validateCheckoutLegalConsents,
   buildLegalConsentSnapshot
 } from '../services/legalConsentService.js';
+import {
+  assertCheckoutFormationsPurchasable,
+  resolveAccessDeliveryStatusForFormation
+} from '../services/offerReadinessService.js';
 import { getAppBaseUrl } from '../utils/invoiceUrl.js';
 import { buildModulePayload } from './formationModuleController.js';
 import { buildSessionPayload } from './formationSessionController.js';
@@ -649,7 +653,8 @@ async function persistSale({
   stripePaymentIntentId = null,
   stripeSessionId = null,
   skipPostSaleSideEffects = false,
-  legalConsentSnapshot = null
+  legalConsentSnapshot = null,
+  accessDeliveryStatus = null
 }) {
   if (!userId || !items?.length) return null;
   const normalizedItems = items.map(entry => {
@@ -712,6 +717,11 @@ async function persistSale({
   // Sprint pré-React A1 — snapshot des consentements légaux revalidés serveur.
   if (legalConsentSnapshot && typeof legalConsentSnapshot === 'object') {
     sale.legalConsentSnapshot = legalConsentSnapshot;
+  }
+  // Sprint pré-React A7 — marqueur de livraison d'accès (distanciel : pas de faux
+  // « accès immédiat »).
+  if (accessDeliveryStatus) {
+    sale.accessDeliveryStatus = accessDeliveryStatus;
   }
   // Phase 1B-1: set the Stripe PaymentIntent id AT INSERT so the unique partial
   // index on stripePaymentIntentId rejects a concurrent/duplicate webhook with an
@@ -2557,6 +2567,15 @@ async function processCartCheckoutStatePurchase({
       consumerWaiverAcceptedAt: firstAcceptedWaiver ? legalDateAchat : null
     };
 
+    // A7 — si le panier contient une formation distancielle, marquer la livraison
+    // d'accès (pas de faux « accès immédiat »).
+    const cartDistancielFormation = formations.find(
+      f => String(f?.type || '').toLowerCase() === 'distanciel'
+    );
+    const cartAccessDeliveryStatus = cartDistancielFormation
+      ? resolveAccessDeliveryStatusForFormation(cartDistancielFormation)
+      : null;
+
     saleRecord = await persistSale({
       userId,
       customer,
@@ -2567,7 +2586,8 @@ async function processCartCheckoutStatePurchase({
       stripePaymentIntentId: normalizedStripePaymentIntentId,
       stripeSessionId: normalizedStripeSessionId,
       skipPostSaleSideEffects: true,
-      legalConsentSnapshot
+      legalConsentSnapshot,
+      accessDeliveryStatus: cartAccessDeliveryStatus
     });
 
     await applyStripeFieldsToSale(saleRecord);
@@ -3051,7 +3071,9 @@ export async function processCheckoutStatePurchase({
         stripePaymentIntentId: normalizedStripePaymentIntentId,
         stripeSessionId: normalizedStripeSessionId,
         skipPostSaleSideEffects: true,
-        legalConsentSnapshot
+        legalConsentSnapshot,
+        // A7 — marqueur d'accès distanciel (null pour présentiel).
+        accessDeliveryStatus: resolveAccessDeliveryStatusForFormation(formation)
       });
 
       await applyStripeFieldsToSale(saleRecord);
@@ -3319,6 +3341,17 @@ export async function finalizeFreeCheckout(req, res) {
       ok: false,
       error: legalError?.message || 'Consentement légal requis.',
       code: legalError?.code || 'LEGAL_CONSENT_REQUIRED'
+    });
+  }
+
+  // Sprint pré-React A7 — bloque les offres formation non finies (mêmes règles que Stripe).
+  try {
+    await assertCheckoutFormationsPurchasable(checkoutState);
+  } catch (offerError) {
+    return res.status(Number(offerError?.status) || 409).json({
+      ok: false,
+      error: offerError?.message || 'Offre indisponible.',
+      code: offerError?.code || 'OFFER_NOT_AVAILABLE'
     });
   }
 

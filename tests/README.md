@@ -292,6 +292,10 @@ tests/
     legalConsentCheckout.test.js           # Sprint pré-React A1
     businessTimezone.test.js               # Sprint pré-React A2
     brevoWebhookProductionSecurity.test.js # Sprint pré-React A3
+    adminRefundAudit.test.js               # Sprint pré-React A4
+    commissionRefundConsistency.test.js    # Sprint pré-React A5
+    stripeWebhookFailureObservability.test.js # Sprint pré-React A6
+    depositDistanceLearningGuards.test.js  # Sprint pré-React A7
     ... (et autres suites p1)
 ```
 
@@ -309,6 +313,22 @@ tests/
 - **A3 — webhook Brevo prod** (`p1/brevoWebhookProductionSecurity.test.js`) : prod
   sans secret → 503, mauvais secret → 401, bon secret → 200, dev/test sans secret →
   200 (toléré) ; le secret n'est jamais loggé.
+
+## Sprint pré-React A4-A7 (rapports 87 / 88)
+
+- **A4 — gouvernance admin** (`p1/adminRefundAudit.test.js`) : `refund.failed`/
+  `refund.requested` émis avec la raison admin + persistance dans `meta.notes` ;
+  `booking.cancelled` admin émis avec raison. Aucun remboursement silencieux.
+- **A5 — commissions post-remboursement** (`p1/commissionRefundConsistency.test.js`) :
+  déduction d'un remboursement 100 % carte cadeau (trou corrigé), déduction Stripe,
+  events `commission.adjusted` / `commission.reversal_required` (vente déjà payée) /
+  `commission.cancelled` (reversal).
+- **A6 — pannes webhook Stripe** (`p1/stripeWebhookFailureObservability.test.js`) :
+  signature invalide → failure safe (400), contexte introuvable → failure safe (500),
+  replay idempotent → 200 sans failure, aucune donnée sensible stockée.
+- **A7 — acompte / distanciel** (`p1/depositDistanceLearningGuards.test.js`) : offre
+  acompte bloquée (`OFFER_BALANCE_UNSUPPORTED`), distanciel immédiat sans accès bloqué
+  (`OFFER_ACCESS_UNAVAILABLE`), distanciel manuel marqué `accessDeliveryStatus='manual_pending'`.
 
 ## Safety (no real secrets / no real DB)
 

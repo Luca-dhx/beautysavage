@@ -3,8 +3,10 @@ import mongoose from 'mongoose';
 
 import Sale from '../models/Sale.js';
 import CommissionTransaction from '../models/CommissionTransaction.js';
+import CommissionPayment from '../models/CommissionPayment.js';
 import { RETRACTATION_DAYS } from '../constants/consumerWaiver.js';
 import { calculateCommissionAmount, getActiveCommissionConfig } from './commissionService.js';
+import { emitCommissionEvent } from './businessEventService.js';
 
 export const REFUND_REASON_CLIENT_CANCEL_PRESENTIEL = 'client_cancel_presentiel';
 export const REFUND_REASON_SESSION_CANCELED_BY_INSTITUTE = 'session_canceled_by_institute';
@@ -208,6 +210,49 @@ async function resolveCommissionBase(refundDoc) {
   return { commissionAmountAbs, commissionType, commissionValue };
 }
 
+// A5 — Émet les events d'audit commission après création d'une provision de
+// remboursement. `commission.adjusted` est toujours émis ; `commission.reversal_required`
+// l'est en plus si la commission de la vente a déjà été PAYÉE (CommissionPayment du mois
+// de la vente au statut `succeeded`), car la déduction ne peut plus réduire une facture
+// réglée → récupération manuelle nécessaire (claw-back non automatisée, cf. rapport 88).
+// Best-effort : ne throw jamais vers le flux remboursement.
+async function emitRefundCommissionAdjustmentEvents(refundDoc, adjustmentRow) {
+  try {
+    const saleId = String(refundDoc?.saleId || '').trim();
+    const refundId = String(refundDoc?.refundId || '').trim();
+    const amountAbs = roundToCents(Math.abs(Number(adjustmentRow?.commissionAmount || 0)));
+    const sale = saleId ? await Sale.findOne({ saleId }).select({ createdAt: 1 }).lean() : null;
+
+    let alreadyPaid = null;
+    if (sale?.createdAt) {
+      const saleDate = new Date(sale.createdAt);
+      alreadyPaid = await CommissionPayment.findOne({
+        month: saleDate.getMonth(),
+        year: saleDate.getFullYear(),
+        status: 'succeeded'
+      }).lean();
+    }
+
+    const baseExtra = { saleId: saleId || null, refundId: refundId || null, commissionAmountAdjusted: amountAbs };
+
+    await emitCommissionEvent('commission.adjusted', alreadyPaid, {
+      contextType: 'refund_request',
+      contextId: refundId || null,
+      extra: baseExtra
+    });
+
+    if (alreadyPaid) {
+      await emitCommissionEvent('commission.reversal_required', alreadyPaid, {
+        contextType: 'refund_request',
+        contextId: refundId || null,
+        extra: { ...baseExtra, reason: 'sale_commission_already_paid' }
+      });
+    }
+  } catch (err) {
+    console.warn('[commission] emit refund commission events failed:', err?.message || err);
+  }
+}
+
 export async function ensureRefundCommissionProvision(refundDoc) {
   const refundId = String(refundDoc?.refundId || '').trim();
   if (!refundId) return null;
@@ -236,6 +281,7 @@ export async function ensureRefundCommissionProvision(refundDoc) {
     commissionAmount: roundToCents(-Math.abs(base.commissionAmountAbs)),
     createdAt: refundDoc?.requestedAt || new Date()
   });
+  await emitRefundCommissionAdjustmentEvents(refundDoc, row.toObject());
   return row.toObject();
 }
 
@@ -312,5 +358,21 @@ export async function ensureRefundCommissionReversal(refundDoc) {
     commissionAmount: amountAbs,
     createdAt: new Date()
   });
+  // A5 — la provision de déduction est annulée (remboursement échoué/annulé) :
+  // la commission redevient due. Trace d'audit best-effort.
+  try {
+    await emitCommissionEvent('commission.cancelled', null, {
+      contextType: 'refund_request',
+      contextId: refundId || null,
+      extra: {
+        saleId: String(refundDoc.saleId || provision.saleId || '').trim() || null,
+        refundId: refundId || null,
+        commissionAmountRestored: amountAbs,
+        reason: 'refund_provision_reversed'
+      }
+    });
+  } catch (err) {
+    console.warn('[commission] emit commission.cancelled failed:', err?.message || err);
+  }
   return row.toObject();
 }

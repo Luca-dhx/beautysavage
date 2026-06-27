@@ -5,6 +5,7 @@
 
 import SendLog from '../models/SendLog.js';
 import EventLog from '../models/EventLog.js';
+import WebhookFailureLog from '../models/WebhookFailureLog.js';
 
 const SAFE_FIELDS = [
   'channel', 'provider', 'templateKey', 'recipientHash', 'status',
@@ -50,6 +51,33 @@ export async function getEvents(req, res) {
     return res.json({ ok: true, count: events.length, events });
   } catch (error) {
     console.error('[devDiagnostic] getEvents error', error?.message || error);
+    return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
+  }
+}
+
+// A6 — Pannes webhook (Stripe). Vue read-only dev. Aucune donnée sensible :
+// errorMessageSafe est tronqué/neutre, seuls des identifiants techniques sont stockés.
+const WEBHOOK_FAILURE_SAFE_FIELDS = [
+  'provider', 'webhookType', 'eventType', 'failureStage', 'errorCode',
+  'errorMessageSafe', 'stripeEventId', 'paymentIntentId', 'status', 'retryable',
+  'createdAt'
+].join(' ');
+
+export async function getWebhookFailures(req, res) {
+  try {
+    const limit = Math.min(Math.max(Number(req.query?.limit) || 50, 1), 200);
+    const filter = {};
+    if (req.query?.provider) filter.provider = String(req.query.provider);
+    if (req.query?.status) filter.status = String(req.query.status);
+    if (req.query?.paymentIntentId) filter.paymentIntentId = String(req.query.paymentIntentId);
+    const failures = await WebhookFailureLog.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .select(WEBHOOK_FAILURE_SAFE_FIELDS)
+      .lean();
+    return res.json({ ok: true, count: failures.length, failures });
+  } catch (error) {
+    console.error('[devDiagnostic] getWebhookFailures error', error?.message || error);
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
   }
 }

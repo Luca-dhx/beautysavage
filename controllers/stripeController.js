@@ -31,6 +31,8 @@ import {
   deriveLegalRequirements,
   validateCheckoutLegalConsents
 } from '../services/legalConsentService.js';
+import { recordWebhookFailure } from '../services/webhookFailureService.js';
+import { assertCheckoutFormationsPurchasable } from '../services/offerReadinessService.js';
 
 async function getStripe() {
   // Credential sourced from the IntegratedApi vault (env fallback during migration).
@@ -833,6 +835,18 @@ export async function createCheckoutSession(req, res) {
     });
   }
 
+  // Sprint pré-React A7 — bloque les offres formation non finies (distanciel immédiat
+  // sans accès configuré). Avant création du PaymentIntent.
+  try {
+    await assertCheckoutFormationsPurchasable(checkoutState);
+  } catch (offerError) {
+    return res.status(Number(offerError?.status) || 409).json({
+      ok: false,
+      error: offerError?.message || 'Offre indisponible.',
+      code: offerError?.code || 'OFFER_NOT_AVAILABLE'
+    });
+  }
+
   const checkoutItems = normalizeCheckoutItems(checkoutState);
   for (const item of checkoutItems) {
     if (item.type !== 'formation') continue;
@@ -991,6 +1005,15 @@ export async function handleWebhook(req, res) {
 
   if (!webhookSecret) {
     console.error('[Stripe Webhook] webhook_secret indisponible (coffre/.env)');
+    // A6 — panne de configuration : trace persistante safe (best-effort).
+    await recordWebhookFailure({
+      provider: 'stripe',
+      webhookType: 'institut',
+      failureStage: 'config',
+      errorCode: 'WEBHOOK_SECRET_UNAVAILABLE',
+      errorMessageSafe: 'webhook_secret indisponible (coffre/.env)',
+      retryable: false
+    });
     return res.status(500).send('Configuration webhook manquante.');
   }
 
@@ -999,6 +1022,15 @@ export async function handleWebhook(req, res) {
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
     console.warn('[Stripe Webhook] Signature invalide:', err.message);
+    // A6 — signature invalide : trace minimale safe (non rejouable).
+    await recordWebhookFailure({
+      provider: 'stripe',
+      webhookType: 'institut',
+      failureStage: 'signature',
+      errorCode: 'SIGNATURE_INVALID',
+      errorMessageSafe: 'Signature webhook invalide',
+      retryable: false
+    });
     return res.status(400).send(`Webhook signature invalide: ${err.message}`);
   }
 
@@ -1087,6 +1119,17 @@ export async function handleWebhook(req, res) {
     if (!fallbackPayload) {
       console.error('[Stripe Webhook] Contexte achat introuvable (DB + metadata) pour PI', stripeSessionId, {
         hasIntentId: Boolean(intentId)
+      });
+      await recordWebhookFailure({
+        provider: 'stripe',
+        webhookType: 'institut',
+        eventType: event.type,
+        failureStage: 'processing',
+        errorCode: 'CHECKOUT_CONTEXT_NOT_FOUND',
+        errorMessageSafe: 'Contexte achat introuvable (DB + metadata)',
+        stripeEventId: event.id,
+        paymentIntentId: stripeSessionId,
+        retryable: true
       });
       return res.status(500).send('Contexte achat introuvable pour ce paiement.');
     }
@@ -1195,6 +1238,20 @@ export async function handleWebhook(req, res) {
     });
     console.error('[Stripe Webhook] Erreur complete:', error);
     console.error('[Stripe Webhook] Stack:', error?.stack || '(stack indisponible)');
+    // A6 — échec de traitement : trace persistante safe. Rejouable (Stripe retente),
+    // donc retryable=true. On ne logge que des identifiants techniques + un code/message
+    // neutre — jamais le payload Stripe ni de donnée sensible.
+    await recordWebhookFailure({
+      provider: 'stripe',
+      webhookType: 'institut',
+      eventType: event.type,
+      failureStage: 'processing',
+      errorCode: error?.code ? String(error.code) : 'PROCESSING_ERROR',
+      errorMessageSafe: 'Echec traitement vente webhook',
+      stripeEventId: event.id,
+      paymentIntentId: stripeSessionId,
+      retryable: true
+    });
     // Return 500 so Stripe retries
     return res.status(500).send('Erreur interne lors du traitement de la vente.');
   }

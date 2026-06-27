@@ -15,6 +15,7 @@ import {
   BUSINESS_TIMEZONE,
   isServerAlignedWithBusinessTimezone
 } from '../constants/timezone.js';
+import { assertServiceOfferBookable } from './offerReadinessService.js';
 
 const MINUTE_IN_MS = 60 * 1000;
 
@@ -480,6 +481,9 @@ export async function assertServiceSlotBookable({
       404
     );
   }
+
+  // Sprint pré-React A7 — bloque les offres en acompte (solde non collectable).
+  assertServiceOfferBookable(service);
 
   if (!practitioner || !practitioner.isActive) {
     throw buildServiceSlotError(

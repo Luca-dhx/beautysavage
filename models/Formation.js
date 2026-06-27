@@ -63,6 +63,19 @@ const formationSchema = new mongoose.Schema({
     enum: TYPE_VALUES,
     default: 'distanciel'
   },
+  // Sprint pré-React A7 — modélisation minimale de l'accès distanciel. `manual`
+  // (défaut) = accès livré manuellement (pas de faux « accès immédiat »). `immediate`
+  // exige une `accessUrl` configurée, sinon l'achat est bloqué (cas faux).
+  accessDeliveryMode: {
+    type: String,
+    enum: ['manual', 'immediate'],
+    default: 'manual'
+  },
+  accessUrl: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   status: {
     type: String,
     enum: STATUS_VALUES,

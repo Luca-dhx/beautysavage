@@ -79,10 +79,17 @@
 - `models/Contract.js` : champ `commissions { type: 'fixed'|'percentage', value }` ajoute Ã¢â‚¬â€ auto-rempli a la creation depuis `getActiveCommissionConfig()`.
 
 ### Service
+> ⚠️ Cette section décrit l'historique 2026-03 ; la **correction commissions** (2026-06,
+> rapports 104/105) ci-dessous fait foi pour le comportement actuel (source unique,
+> carry-over, refresh, webhook Dev, idempotence).
+
 - `services/commissionPaymentService.js` :
-  - `computeCommissionsForPeriod(periodStart, periodEnd)` : trouve les ventes avec `commissionAmount > 0` dans la periode, les remboursements `stripeRefundStatus=succeeded` et `stripeRefundConfirmedAt` dans la periode, calcule le total net.
-  - `getOrComputeCommissionPayment(month, year)` : retourne le document existant ou le cree en `pending`.
-  - `refreshCommissionPayment(paymentId)` : recalcule un document pending.
+  - `computeCommissionsForPeriod(periodStart, periodEnd)` : ventes `commissionAmount > 0` de
+    la période + remboursements **réglés tous moyens** (Stripe/carte cadeau) ; expose
+    `grossCommissionAmount`, `refundDeductionAmount` (+ `total` compat).
+  - `buildMonthlyComputation(month, year)` : calcul mensuel complet avec **carry-over négatif**.
+  - `getOrComputeCommissionPayment(month, year)` : crée/refresh le document (source unique).
+  - `refreshCommissionPayment(paymentId)` : recalcule un document non payé (appelé avant paiement).
   - `getMonthsFromContractStart(activatedAt, now?)` : liste des `{ month, year }` depuis `activatedAt` jusqu au mois de `now` inclus (defaut : new Date()). Utilise un cursor Date pour eviter les off-by-one. Jamais de mois futurs sans simulation.
   - `getCommissionSettings()` : retourne (ou cree) le singleton settings.
 
@@ -2902,9 +2909,10 @@ Socle backend du futur Email Template Studio. **Aucune UI, aucune automatisation
 - Diagnostic : `GET /api/gestion/dev/events` (`requireStrictDev`).
 
 ## Tests
-- **249 tests verts** / 57 fichiers : **p0 = 44**, **p1 = 199**, **integration = 6**
+- **268 tests verts** / 63 fichiers : **p0 = 44**, **p1 = 218**, **integration = 6**
   (inclut les Sprints pré-React A1-A3, A4-A7 et B1-B2 — voir sections dédiées plus bas).
-- Harnais d'audit séparé : `npm run audit:business-scenarios` (36 probes, exclu de `npm test`).
+- Harnais d'audit séparés (exclus de `npm test`) : `npm run audit:business-scenarios`
+  (36 probes) et `npm run audit:commissions` (20 probes).
 - Harnais : Vitest + `mongodb-memory-server` ; `tests/setup/testEnv.js` (env factice,
   clé de coffre factice, fallback activé en test), `testApp.js` (boot app en mémoire),
   `seedTestData.js` (users dev/admin/client + contrat actif).
@@ -3047,6 +3055,45 @@ source de vérité du montant à payer**. **249 tests verts** / 57 fichiers.
   non appliquée ; carte inactive → ignorée.
 
 ### Commissions — exclues volontairement
-B1-B2 ne touche pas aux commissions. **Prochaine étape recommandée : discussion
-produit/architecture sur l'unification du système de commissions** (double mécanisme
-ledger/compute + claw-back + règle prix promu) avant de figer le contrat d'API commission.
+B1-B2 ne touche pas aux commissions (corrigées dans la section suivante).
+
+## Correction commissions (2026-06 — rapports 104 / 105 / 106)
+
+Unification de la facturation mensuelle des commissions + clarification des comptes Stripe.
+**FAIT FOI** pour le comportement commission actuel. **268 tests verts** / 63 fichiers.
+
+### Règle métier
+Commission sur le **prix réellement payé** (carte cadeau incluse, promotion incluse).
+Remboursement = **déduction sur la facture du mois courant** (ligne négative référençant
+`refundId` + `saleId`). Déductions > commissions → **facture 0 €** + **report négatif**
+(`negativeCarryOverAmount`) sur le mois suivant. `CommissionTransaction` = **ledger d'audit
+seulement** (hors facturation).
+
+### Source unique + carry-over (`commissionPaymentService`)
+- `computeCommissionsForPeriod` expose `grossCommissionAmount`/`refundDeductionAmount`.
+- `buildMonthlyComputation` : `netAmountDue = max(0, gross − refundDeduction − carryOverIn)` ;
+  `negativeCarryOverAmount = max(0, refundDeduction + carryOverIn − gross)`.
+- `getCommissionPayments` calcule les mois **séquentiellement** (carry-over ordre-dépendant).
+- Nouveaux champs `CommissionPayment` : `grossCommissionAmount`, `refundDeductionAmount`,
+  `carryOverAppliedAmount`, `negativeCarryOverAmount`, `netAmountDue`, `calculationSnapshot`,
+  `paymentInProgress`, `settledReason` (`paid`|`settled_zero`).
+
+### Paiement (`createCommissionIntent`)
+**Refresh obligatoire** avant le PaymentIntent → montant à jour (montant figé corrigé).
+`netAmountDue === 0` → **settled_zero** (succeeded, aucun PI). PI créé au **montant serveur**
+recalculé, `metadata.type='commission'` + `commissionPaymentId`, idempotency key
+`commission_payment_${year}_${month}_${cents}`. Verrou atomique `paymentInProgress` →
+double-clic concurrent = **un seul PI**. Mois `paid` → 409.
+
+### Webhook Dev (`devWebhookController`)
+`payment_intent.succeeded` avec `metadata.commissionPaymentId` → `finalizeCommissionPaymentById`
+(succeeded/paid, `commission.paid`, facture Stripe Dev), **idempotent** (replay sans effet).
+Le polling `check-status` reste un **fallback** via le même finaliseur.
+
+### IntegratedApi.accountPurpose
+Champ `accountPurpose` (`customer_payments` | `platform_billing` | `messaging`) +
+backfill seeder (`stripe-institut` / `stripe-dev` / `brevo`). Pas de modèle enfant.
+
+### Limites restantes
+Documents `CommissionPayment` historiques `paid` non rétro-corrigés ; commission uniquement
+sur formations ; idempotency key inclut le montant (compat refresh). Détail rapport 105.

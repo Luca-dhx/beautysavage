@@ -20,7 +20,8 @@ import { emitCommissionEvent } from '../services/businessEventService.js';
 import {
   getOrComputeCommissionPayment,
   getMonthsFromContractStart,
-  getCommissionSettings
+  getCommissionSettings,
+  refreshCommissionPayment
 } from '../services/commissionPaymentService.js';
 import { executeJob } from '../automatisme/commissionReminderJob.js';
 import { getNow } from '../utils/simulatedDate.js';
@@ -44,7 +45,7 @@ function respondError(res, error, context) {
 // ---------------------------------------------------------------------------
 // Génère la facture Stripe Invoice pour un CommissionPayment succeeded
 // ---------------------------------------------------------------------------
-async function generateCommissionInvoice(commissionPayment) {
+export async function generateCommissionInvoice(commissionPayment) {
   const stripeDevClient = await getStripeDevClient();
   if (!stripeDevClient) return;
 
@@ -147,6 +148,36 @@ async function generateCommissionInvoice(commissionPayment) {
 }
 
 // ---------------------------------------------------------------------------
+// finalizeCommissionPaymentById — marque un CommissionPayment réglé (paid). SOURCE de
+// finalisation serveur partagée par le webhook Dev ET le polling check-status.
+// Idempotent : un mois déjà 'paid' ne re-déclenche ni event ni facture.
+// ---------------------------------------------------------------------------
+export async function finalizeCommissionPaymentById(commissionPaymentId) {
+  const payment = await CommissionPayment.findById(commissionPaymentId);
+  if (!payment) return { ok: false, reason: 'not_found' };
+  if (payment.status === 'succeeded' && payment.settledReason === 'paid') {
+    return { ok: true, idempotent: true, payment };
+  }
+  payment.status = 'succeeded';
+  payment.settledReason = 'paid';
+  payment.paidAt = payment.paidAt || new Date();
+  payment.paymentInProgress = false;
+  payment.paymentInProgressAt = null;
+  await payment.save();
+  await emitCommissionEvent('commission.paid', payment);
+  // Facture Stripe Dev (non bloquante).
+  await generateCommissionInvoice(payment.toObject()).catch(err =>
+    console.error('[CommissionPayment] Erreur génération facture:', err)
+  );
+  return { ok: true, payment };
+}
+
+// Clé d'idempotence stable par mois (et montant) pour le PaymentIntent commission.
+function buildCommissionIdempotencyKey(payment, amountCents) {
+  return `commission_payment_${payment.year}_${payment.month}_${amountCents}`;
+}
+
+// ---------------------------------------------------------------------------
 // GET /api/commissions/payments
 // ---------------------------------------------------------------------------
 export async function getCommissionPayments(req, res) {
@@ -166,10 +197,13 @@ export async function getCommissionPayments(req, res) {
     const now = await getNow();
     const months = getMonthsFromContractStart(activatedAt, now);
 
-    // Pour chaque mois, récupérer ou créer le document CommissionPayment
-    const payments = await Promise.all(
-      months.map(({ month, year }) => getOrComputeCommissionPayment(month, year))
-    );
+    // SÉQUENTIEL (du plus ancien au plus récent) : le carry-over négatif d'un mois
+    // dépend du mois précédent. Un calcul parallèle casserait le report.
+    const payments = [];
+    for (const { month, year } of months) {
+      // eslint-disable-next-line no-await-in-loop
+      payments.push(await getOrComputeCommissionPayment(month, year));
+    }
 
     return res.json({
       ok: true,
@@ -192,47 +226,47 @@ export async function createCommissionIntent(req, res) {
       return res.status(500).json({ ok: false, error: 'Client Stripe Developer non configuré.' });
     }
 
-    const payment = await CommissionPayment.findById(req.params.id);
-    if (!payment) {
+    const existingPayment = await CommissionPayment.findById(req.params.id);
+    if (!existingPayment) {
       return res.status(404).json({ ok: false, error: 'Paiement introuvable.' });
     }
-
-    if (payment.status === 'succeeded') {
+    if (existingPayment.status === 'succeeded' && existingPayment.settledReason === 'paid') {
       return res.status(409).json({ ok: false, error: 'Ce mois a déjà été réglé.' });
     }
 
-    const amountCents = Math.round((payment.amount || 0) * 100);
+    // ── REFRESH OBLIGATOIRE ── recalcul du mois (source unique + carry-over) AVANT toute
+    // création de PaymentIntent → on ne paie jamais un montant figé/périmé.
+    await refreshCommissionPayment(req.params.id);
+    const payment = await CommissionPayment.findById(req.params.id);
+
+    const amountCents = Math.round((payment.netAmountDue || 0) * 100);
+
+    // netAmountDue === 0 → mois soldé sans paiement (settled_zero), aucun PaymentIntent.
     if (amountCents <= 0) {
-      return res.status(400).json({ ok: false, error: 'Montant de commission invalide ou nul.' });
+      return res.json({ ok: true, settledZero: true, status: payment.status, netAmountDue: payment.netAmountDue || 0 });
     }
 
-    // Idempotence — réutiliser un intent pending si possible
+    // Idempotence — réutiliser un intent existant si cohérent en montant.
     if (payment.stripePaymentIntentId) {
       try {
         const pi = await stripeDevClient.paymentIntents.retrieve(payment.stripePaymentIntentId);
         switch (pi.status) {
           case 'succeeded':
-            // Mettre à jour en base si pas encore reflété
-            payment.status = 'succeeded';
-            payment.paidAt = new Date();
-            await payment.save();
-            await emitCommissionEvent('commission.paid', payment);
-            await generateCommissionInvoice(payment.toObject());
+            await finalizeCommissionPaymentById(payment._id);
             return res.json({ ok: true, alreadySucceeded: true });
-          case 'canceled':
-          case 'requires_payment_method':
-            payment.stripePaymentIntentId = null;
-            await payment.save();
-            break;
           case 'requires_confirmation':
           case 'requires_action':
           case 'processing':
-            return res.json({
-              ok: true,
-              clientSecret: pi.client_secret,
-              paymentIntentId: pi.id,
-              amountCents
-            });
+            if (Number(pi.amount) === amountCents) {
+              return res.json({ ok: true, clientSecret: pi.client_secret, paymentIntentId: pi.id, amountCents });
+            }
+            // Montant changé depuis le refresh → annuler l'ancien PI et en recréer un.
+            try { await stripeDevClient.paymentIntents.cancel(pi.id); } catch (_) { /* best-effort */ }
+            payment.stripePaymentIntentId = null;
+            await payment.save();
+            break;
+          case 'canceled':
+          case 'requires_payment_method':
           default:
             payment.stripePaymentIntentId = null;
             await payment.save();
@@ -243,28 +277,58 @@ export async function createCommissionIntent(req, res) {
       }
     }
 
-    const monthLabel = `${MONTH_NAMES_FR[payment.month]} ${payment.year}`;
-    const paymentIntent = await stripeDevClient.paymentIntents.create({
-      amount: amountCents,
-      currency: 'eur',
-      automatic_payment_methods: { enabled: true },
-      metadata: {
-        commissionPaymentId: String(payment._id),
-        month: String(payment.month),
-        year: String(payment.year),
-        label: `Commissions ${monthLabel}`
+    // ── VERROU ANTI DOUBLE-CLIC ── claim atomique : un seul appel concurrent passe.
+    const claimed = await CommissionPayment.findOneAndUpdate(
+      { _id: payment._id, status: 'pending', paymentInProgress: { $ne: true } },
+      { $set: { paymentInProgress: true, paymentInProgressAt: new Date() } },
+      { new: true }
+    );
+    if (!claimed) {
+      // Un autre appel crée déjà l'intent. Retourner l'intent en cours s'il existe.
+      const fresh = await CommissionPayment.findById(payment._id);
+      if (fresh?.stripePaymentIntentId) {
+        try {
+          const pi = await stripeDevClient.paymentIntents.retrieve(fresh.stripePaymentIntentId);
+          return res.json({ ok: true, clientSecret: pi.client_secret, paymentIntentId: pi.id, amountCents });
+        } catch (_) { /* fallthrough */ }
       }
-    });
+      return res.status(409).json({ ok: false, code: 'PAYMENT_IN_PROGRESS', error: 'Un paiement est déjà en cours pour ce mois.' });
+    }
 
-    payment.stripePaymentIntentId = paymentIntent.id;
-    await payment.save();
+    try {
+      const monthLabel = `${MONTH_NAMES_FR[payment.month]} ${payment.year}`;
+      const paymentIntent = await stripeDevClient.paymentIntents.create(
+        {
+          amount: amountCents,
+          currency: 'eur',
+          automatic_payment_methods: { enabled: true },
+          metadata: {
+            type: 'commission',
+            commissionPaymentId: String(payment._id),
+            month: String(payment.month),
+            year: String(payment.year),
+            label: `Commissions ${monthLabel}`
+          }
+        },
+        { idempotencyKey: buildCommissionIdempotencyKey(payment, amountCents) }
+      );
 
-    return res.json({
-      ok: true,
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
-      amountCents
-    });
+      claimed.stripePaymentIntentId = paymentIntent.id;
+      await claimed.save();
+
+      return res.json({
+        ok: true,
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+        amountCents
+      });
+    } catch (createErr) {
+      // Libérer le verrou si la création échoue, pour permettre une nouvelle tentative.
+      claimed.paymentInProgress = false;
+      claimed.paymentInProgressAt = null;
+      await claimed.save().catch(() => {});
+      throw createErr;
+    }
   } catch (error) {
     return respondError(res, error, 'CreateIntent');
   }
@@ -296,23 +360,17 @@ export async function checkCommissionStatus(req, res) {
     const pi = await stripeDevClient.paymentIntents.retrieve(payment.stripePaymentIntentId);
 
     if (pi.status === 'succeeded' && payment.status !== 'succeeded') {
-      payment.status = 'succeeded';
-      payment.paidAt = new Date();
-      await payment.save();
-      await emitCommissionEvent('commission.paid', payment);
-
-      // Générer la facture (non-bloquant)
-      generateCommissionInvoice(payment.toObject()).catch(err =>
-        console.error('[CommissionPayment] Erreur génération facture:', err)
-      );
-
-      // Recharger pour avoir les données à jour (incl. invoice url si rapide)
+      // Fallback UX : le webhook Dev est la source de finalisation serveur, mais le
+      // polling peut finaliser aussi (idempotent via finalizeCommissionPaymentById).
+      await finalizeCommissionPaymentById(payment._id);
       const updated = await CommissionPayment.findById(payment._id).lean();
       return res.json({ ok: true, status: 'succeeded', paidAt: updated.paidAt });
     }
 
     if (pi.status === 'canceled' || pi.status === 'requires_payment_method') {
       payment.status = 'failed';
+      payment.paymentInProgress = false;
+      payment.paymentInProgressAt = null;
       await payment.save();
       return res.json({ ok: true, status: 'failed' });
     }
@@ -339,7 +397,10 @@ export async function resetCommissionPayment(req, res) {
     }
 
     payment.status = 'pending';
+    payment.settledReason = null;
     payment.stripePaymentIntentId = null;
+    payment.paymentInProgress = false;
+    payment.paymentInProgressAt = null;
     payment.stripeInvoiceId = null;
     payment.stripeInvoicePdfUrl = null;
     payment.paidAt = null;

@@ -32,14 +32,33 @@ const commissionPaymentSchema = new mongoose.Schema(
     periodStart: { type: Date, required: true },
     periodEnd: { type: Date, required: true },
 
+    // `amount` = montant réellement dû ce mois (= netAmountDue). Conservé pour
+    // compatibilité ascendante (frontend, anciens documents).
     amount: { type: Number, required: true, default: 0 },
 
+    // Décomposition du calcul mensuel (source unique : computeCommissionsForPeriod).
+    // Pré-React — correction commissions :
+    //   netAmountDue = max(0, gross - refundDeduction - carryOverApplied)
+    //   negativeCarryOverAmount = max(0, refundDeduction + carryOverApplied - gross)
+    grossCommissionAmount: { type: Number, default: 0 },   // somme des commissions de ventes
+    refundDeductionAmount: { type: Number, default: 0 },   // somme des déductions de remboursement du mois
+    carryOverAppliedAmount: { type: Number, default: 0 },  // report négatif du mois précédent consommé
+    negativeCarryOverAmount: { type: Number, default: 0 }, // report négatif transmis au mois suivant
+    netAmountDue: { type: Number, default: 0 },            // montant facturé/à payer (>= 0)
+    calculationSnapshot: { type: mongoose.Schema.Types.Mixed, default: null }, // trace du calcul
+
     stripePaymentIntentId: { type: String, default: null },
+    // Verrou applicatif anti double-clic (idempotence paiement commission).
+    paymentInProgress: { type: Boolean, default: false },
+    paymentInProgressAt: { type: Date, default: null },
     status: {
       type: String,
       enum: ['pending', 'succeeded', 'failed'],
       default: 'pending'
     },
+    // Marque un mois soldé sans paiement (netAmountDue === 0). status reste 'succeeded'
+    // pour compat ; settledReason distingue le 0 € du paiement effectif.
+    settledReason: { type: String, enum: ['paid', 'settled_zero', null], default: null },
     paidAt: { type: Date, default: null },
 
     stripeInvoiceId: { type: String, default: null },

@@ -145,9 +145,92 @@ export async function computeCommissionsForPeriod(periodStart, periodEnd) {
   // 3. Totaux
   const totalSales = saleEntries.reduce((sum, e) => sum + e.commissionAmount, 0);
   const totalRefunds = refundEntries.reduce((sum, e) => sum + e.commissionAmount, 0);
+  const grossCommissionAmount = roundToCents(totalSales);
+  const refundDeductionAmount = roundToCents(totalRefunds);
+  // `total` conservé pour compat (clamp à 0) ; le carry-over est géré au niveau mensuel
+  // (buildMonthlyComputation) — voir correction commissions pré-React.
   const total = roundToCents(Math.max(0, totalSales - totalRefunds));
 
-  return { saleEntries, refundEntries, total };
+  return { saleEntries, refundEntries, grossCommissionAmount, refundDeductionAmount, total };
+}
+
+// ---------------------------------------------------------------------------
+// Carry-over négatif — report du solde déficitaire d'un mois sur le suivant.
+// getPreviousMonthCarryOver lit le negativeCarryOverAmount stocké du mois précédent.
+// ---------------------------------------------------------------------------
+export async function getPreviousMonthCarryOver(month, year) {
+  let pm = month - 1;
+  let py = year;
+  if (pm < 0) { pm = 11; py = year - 1; }
+  const prev = await CommissionPayment.findOne({ month: pm, year: py })
+    .select('negativeCarryOverAmount')
+    .lean();
+  return roundToCents(Math.max(0, Number(prev?.negativeCarryOverAmount || 0)));
+}
+
+// buildMonthlyComputation — calcul mensuel COMPLET (source unique).
+//   netAmountDue            = max(0, gross - refundDeduction - carryOverIn)
+//   negativeCarryOverAmount = max(0, refundDeduction + carryOverIn - gross)
+// Le carry-over négatif (déductions non absorbées) est reporté au mois suivant au lieu
+// d'être perdu par un clamp à 0.
+export async function buildMonthlyComputation(month, year) {
+  const periodStart = new Date(year, month, 1);
+  const periodEnd = new Date(year, month + 1, 1);
+  const { saleEntries, refundEntries, grossCommissionAmount, refundDeductionAmount } =
+    await computeCommissionsForPeriod(periodStart, periodEnd);
+  const carryOverAppliedAmount = await getPreviousMonthCarryOver(month, year);
+
+  const netAmountDue = roundToCents(
+    Math.max(0, grossCommissionAmount - refundDeductionAmount - carryOverAppliedAmount)
+  );
+  const negativeCarryOverAmount = roundToCents(
+    Math.max(0, refundDeductionAmount + carryOverAppliedAmount - grossCommissionAmount)
+  );
+
+  const calculationSnapshot = {
+    grossCommissionAmount,
+    refundDeductionAmount,
+    carryOverAppliedAmount,
+    negativeCarryOverAmount,
+    netAmountDue,
+    salesCount: saleEntries.length,
+    refundsCount: refundEntries.length,
+    computedAt: new Date()
+  };
+
+  return {
+    periodStart,
+    periodEnd,
+    saleEntries,
+    refundEntries,
+    grossCommissionAmount,
+    refundDeductionAmount,
+    carryOverAppliedAmount,
+    negativeCarryOverAmount,
+    netAmountDue,
+    calculationSnapshot
+  };
+}
+
+// Applique une computation mensuelle sur un document (refresh des champs).
+function applyComputationToDoc(doc, comp) {
+  doc.sales = comp.saleEntries;
+  doc.refunds = comp.refundEntries;
+  doc.grossCommissionAmount = comp.grossCommissionAmount;
+  doc.refundDeductionAmount = comp.refundDeductionAmount;
+  doc.carryOverAppliedAmount = comp.carryOverAppliedAmount;
+  doc.negativeCarryOverAmount = comp.negativeCarryOverAmount;
+  doc.netAmountDue = comp.netAmountDue;
+  doc.amount = comp.netAmountDue; // compat ascendante
+  doc.calculationSnapshot = comp.calculationSnapshot;
+  if (comp.netAmountDue <= 0) {
+    // Mois soldé sans paiement (déductions/carry-over couvrent tout).
+    doc.status = 'succeeded';
+    doc.settledReason = 'settled_zero';
+    doc.paidAt = doc.paidAt || doc.periodStart;
+    doc.availableMailSentAt = doc.availableMailSentAt || new Date();
+  }
+  return doc;
 }
 
 // ---------------------------------------------------------------------------
@@ -155,47 +238,40 @@ export async function computeCommissionsForPeriod(periodStart, periodEnd) {
 // Retourne le CommissionPayment existant pour mois/année ou en crée un (pending).
 // ---------------------------------------------------------------------------
 export async function getOrComputeCommissionPayment(month, year) {
-  // Chercher un document existant
+  const comp = await buildMonthlyComputation(month, year);
   const existing = await CommissionPayment.findOne({ month, year });
 
   if (existing) {
-    // Corriger les docs créés avant le correctif "montant nul"
-    if (existing.amount === 0 && existing.status !== 'succeeded') {
-      existing.status = 'succeeded';
-      existing.paidAt = existing.periodStart;
-      existing.availableMailSentAt = existing.availableMailSentAt || new Date();
-      await existing.save();
+    // Un mois RÉGLÉ par paiement effectif est verrouillé (on ne recalcule pas un payé).
+    if (existing.status === 'succeeded' && existing.settledReason === 'paid') {
+      return existing.toObject();
     }
-    return existing;
+    // Pending OU settled_zero → REFRESH (source unique de calcul + carry-over).
+    applyComputationToDoc(existing, comp);
+    await existing.save();
+    return existing.toObject();
   }
 
-  // Calculer la période
-  const periodStart = new Date(year, month, 1);
-  const periodEnd = new Date(year, month + 1, 1);
-
-  const { saleEntries, refundEntries, total } = await computeCommissionsForPeriod(
-    periodStart,
-    periodEnd
-  );
-
-  // Créer le document (upsert pour éviter les race conditions)
-  // Si le total est 0 : aucune commission à encaisser, on marque directement succeeded
-  const status = total === 0 ? 'succeeded' : 'pending';
-  const paidAt = total === 0 ? periodStart : null;
-  const availableMailSentAt = total === 0 ? new Date() : null;
-
+  const isZero = comp.netAmountDue <= 0;
   try {
     const doc = await CommissionPayment.create({
       month,
       year,
-      periodStart,
-      periodEnd,
-      amount: total,
-      status,
-      paidAt,
-      availableMailSentAt,
-      sales: saleEntries,
-      refunds: refundEntries
+      periodStart: comp.periodStart,
+      periodEnd: comp.periodEnd,
+      amount: comp.netAmountDue,
+      netAmountDue: comp.netAmountDue,
+      grossCommissionAmount: comp.grossCommissionAmount,
+      refundDeductionAmount: comp.refundDeductionAmount,
+      carryOverAppliedAmount: comp.carryOverAppliedAmount,
+      negativeCarryOverAmount: comp.negativeCarryOverAmount,
+      calculationSnapshot: comp.calculationSnapshot,
+      status: isZero ? 'succeeded' : 'pending',
+      settledReason: isZero ? 'settled_zero' : null,
+      paidAt: isZero ? comp.periodStart : null,
+      availableMailSentAt: isZero ? new Date() : null,
+      sales: comp.saleEntries,
+      refunds: comp.refundEntries
     });
     return doc.toObject();
   } catch (err) {
@@ -209,20 +285,18 @@ export async function getOrComputeCommissionPayment(month, year) {
 
 // ---------------------------------------------------------------------------
 // refreshCommissionPayment
-// Recalcule et met à jour un CommissionPayment pending (non payé).
+// Recalcule et met à jour un CommissionPayment NON réglé (source unique + carry-over).
+// Appelé OBLIGATOIREMENT avant la création d'un PaymentIntent de commission.
 // ---------------------------------------------------------------------------
 export async function refreshCommissionPayment(paymentId) {
   const payment = await CommissionPayment.findById(paymentId);
-  if (!payment || payment.status === 'succeeded') return payment;
-
-  const { saleEntries, refundEntries, total } = await computeCommissionsForPeriod(
-    payment.periodStart,
-    payment.periodEnd
-  );
-
-  payment.sales = saleEntries;
-  payment.refunds = refundEntries;
-  payment.amount = total;
+  if (!payment) return null;
+  // Mois déjà réglé par paiement effectif → verrouillé.
+  if (payment.status === 'succeeded' && payment.settledReason === 'paid') {
+    return payment.toObject();
+  }
+  const comp = await buildMonthlyComputation(payment.month, payment.year);
+  applyComputationToDoc(payment, comp);
   await payment.save();
   return payment.toObject();
 }

@@ -15,7 +15,27 @@
     "sprintPreReactA4A7": "completed",
     "deepBusinessAudit": "completed",
     "sprintPreReactB1B2": "completed",
-    "commissionSystemAudit": "completed"
+    "commissionSystemAudit": "completed",
+    "commissionCorrection": "completed"
+  },
+  "commissionCorrection": {
+    "date": "2026-06",
+    "branch": "phase-0-security-baseline",
+    "reports": ["104_audit_pre_correction_commissions.md", "105_rapport_correction_commissions.md", "106_audit_documentation_post_commissions.md"],
+    "regleMetier": "Commission sur prix reellement paye (carte cadeau incluse, promo incluse). Remboursement = deduction sur la facture du mois courant (ligne negative refundId+saleId). Deductions > commissions -> facture 0 EUR + report negatif (negativeCarryOverAmount) sur le mois suivant. CommissionTransaction = ledger d'audit seulement.",
+    "scope": [
+      "Source unique: commissionPaymentService.computeCommissionsForPeriod expose gross/refundDeduction; buildMonthlyComputation calcule netAmountDue + carry-over. getCommissionPayments calcule les mois SEQUENTIELLEMENT (carry-over ordre-dependant)",
+      "Champs CommissionPayment: grossCommissionAmount, refundDeductionAmount, carryOverAppliedAmount, negativeCarryOverAmount, netAmountDue, calculationSnapshot, paymentInProgress, settledReason(paid|settled_zero)",
+      "Refresh obligatoire avant PaymentIntent (refreshCommissionPayment); netAmountDue===0 -> settled_zero sans PI; PI au montant serveur + idempotency key commission_payment_${year}_${month}_${cents} + verrou atomique paymentInProgress (double-clic -> un seul PI); mois paid -> 409",
+      "Webhook Dev finalise les PI commission via metadata.commissionPaymentId (finalizeCommissionPaymentById, idempotent); polling check-status = fallback partageant le meme finaliseur",
+      "IntegratedApi.accountPurpose (customer_payments|platform_billing|messaging) + backfill seeder (stripe-institut/stripe-dev/brevo). Pas de modele enfant",
+      "Tests: p1 commissionMonthlySourceOfTruth/commissionCarryOver/commissionPaymentRefresh/commissionPaymentIdempotence/commissionDevWebhookFinalization/integratedApiAccountPurpose. Harnais audit:commissions MAJ (C11/C17 = comportement corrige). Suite 268 verts (p0=44, p1=218, integration=6), audit business 36, audit commissions 20"
+    ],
+    "limitesRestantes": [
+      "Documents CommissionPayment historiques paid non retro-corriges (carry-over demarre sur les mois recalcules)",
+      "Commission uniquement sur formations (produits/prestations = 0) - comportement conserve",
+      "Idempotency key inclut le montant (compat refresh) plutot que strictement year_month"
+    ]
   },
   "commissionSystemAudit": {
     "date": "2026-06",

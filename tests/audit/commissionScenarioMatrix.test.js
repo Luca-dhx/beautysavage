@@ -116,15 +116,20 @@ describe('AUDIT — matrice commissions', () => {
     expect(m0.total).toBe(20); // mois de vente : pleine commission
     expect(m1.refundEntries).toHaveLength(1); // déduction sur le mois courant (règlement)
   });
-  it('C11 remboursement après commission payée + aucune vente mois courant → CLAMP à 0 [FRAGILE]', async () => {
-    // Vente en M0 (commission supposée déjà payée), refund réglé en M1 sans vente M1.
+  it('C11 computeCommissionsForPeriod.total reste clampé (compat) MAIS le carry-over est géré au niveau mensuel [PASS]', async () => {
+    // Vente en M0, refund réglé en M1 sans vente M1.
     const s = await saleFormation({ saleId: 'S-R5', total: 200, commission: 20, when: new Date(2026, 0, 15) });
     await settledRefund({ refundId: 'R5', saleId: s.saleId, amount: 200, when: new Date(2026, 1, 10) });
     const m1 = await computeCommissionsForPeriod(M1_START, M1_END);
-    // FRAGILE : la déduction (négatif) est présente en refundEntries mais le total est clampé
-    // à 0 — la déduction n'est PAS reportée (perte) si aucune vente ne l'absorbe.
+    // `total` (champ de compat) reste clampé à 0 ; gross/refundDeduction exposent le détail.
     expect(m1.refundEntries.length).toBeGreaterThanOrEqual(1);
     expect(m1.total).toBe(0);
+    expect(m1.refundDeductionAmount).toBe(20);
+    // CORRIGÉ : le report (carry-over) est désormais calculé par getOrComputeCommissionPayment
+    // (buildMonthlyComputation) → negativeCarryOverAmount, plus de perte silencieuse.
+    const doc = await getOrComputeCommissionPayment(1, 2026);
+    expect(doc.netAmountDue).toBe(0);
+    expect(doc.negativeCarryOverAmount).toBe(20);
   });
 
   // ── Ledger (audit) — provisions/reversals ──
@@ -170,12 +175,15 @@ describe('AUDIT — matrice commissions', () => {
     expect(doc.refunds.length).toBeGreaterThanOrEqual(1); // ligne négative référençant le refund
     expect(doc.amount).toBe(10);
   });
-  it('C17 montant pending FIGÉ : refund après création non répercuté (refresh non câblé) [FRAGILE]', async () => {
+  it('C17 montant pending RAFRAÎCHI : refund après création répercuté (correction commissions) [PASS]', async () => {
     const s = await saleFormation({ saleId: 'S-FRZ', total: 200, commission: 20 });
-    const doc1 = await getOrComputeCommissionPayment(0, 2026); // amount 20 figé
+    const doc1 = await getOrComputeCommissionPayment(0, 2026); // net 20 pending
+    expect(doc1.netAmountDue).toBe(20);
     await settledRefund({ refundId: 'R-FRZ', saleId: s.saleId, amount: 200 });
-    const doc2 = await getOrComputeCommissionPayment(0, 2026); // relit le doc existant, NE recalcule PAS
-    expect(doc2.amount).toBe(20); // FRAGILE : la déduction n'apparaît pas (montant périmé)
+    const doc2 = await getOrComputeCommissionPayment(0, 2026); // REFRESH (source unique)
+    // CORRIGÉ : le pending est recalculé → la déduction est répercutée (net 0, settled_zero).
+    expect(doc2.netAmountDue).toBe(0);
+    expect(doc2.settledReason).toBe('settled_zero');
   });
 
   // ── Idempotence / doublons ──

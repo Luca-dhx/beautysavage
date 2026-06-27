@@ -344,6 +344,20 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Correction commissions (rapports 104-106)
+
+Six suites `p1` valident l'unification de la facturation des commissions :
+- `commissionMonthlySourceOfTruth.test.js` — source unique (gross/refundDeduction/netAmountDue),
+  carte cadeau + promo incluses, ligne négative refundId+saleId, ledger non facturant.
+- `commissionCarryOver.test.js` — report négatif (facture 0 € + carry-over appliqué le mois suivant).
+- `commissionPaymentRefresh.test.js` — refresh obligatoire avant PaymentIntent ; settled_zero.
+- `commissionPaymentIdempotence.test.js` — double-clic concurrent → un seul PaymentIntent ; mois payé → 409.
+- `commissionDevWebhookFinalization.test.js` — webhook Dev finalise (idempotent) ; polling fallback.
+- `integratedApiAccountPurpose.test.js` — accountPurpose seedé + backfill.
+
+Harnais `npm run audit:commissions` (20 probes) mis à jour : C11/C17 caractérisent désormais
+le comportement **corrigé** (carry-over, refresh).
+
 ## Audit pré-React — matrice de scénarios métier (rapports 89-96)
 
 Harnais **exploratoire et isolé** : `tests/audit/businessScenarioMatrix.test.js`

@@ -26,6 +26,7 @@ const DEFINITIONS = [
     slug: 'stripe-institut',
     name: 'Stripe Institut',
     provider: 'stripe',
+    accountPurpose: 'customer_payments',
     runtimeModel: 'dual_environment',
     roles: [
       { role: 'secret_key', type: 'secret_key', env: 'STRIPE_SECRET_KEY', drivesMode: true },
@@ -37,6 +38,7 @@ const DEFINITIONS = [
     slug: 'stripe-dev',
     name: 'Stripe Developer',
     provider: 'stripe',
+    accountPurpose: 'platform_billing',
     runtimeModel: 'dual_environment',
     roles: [
       { role: 'secret_key', type: 'secret_key', env: 'STRIPE_DEV_SECRET_KEY', drivesMode: true },
@@ -48,6 +50,7 @@ const DEFINITIONS = [
     slug: 'brevo',
     name: 'Brevo',
     provider: 'brevo',
+    accountPurpose: 'messaging',
     runtimeModel: 'single',
     roles: [
       { role: 'api_key', type: 'api_key', env: 'BREVO_API_KEY' },
@@ -87,10 +90,18 @@ export async function seedIntegratedApisFromEnv() {
         slug: def.slug,
         name: def.name,
         provider: def.provider,
+        accountPurpose: def.accountPurpose || null,
         runtimeModel: def.runtimeModel,
         mode: def.runtimeModel === 'dual_environment' ? accountRuntime : 'test',
         credentials: []
       });
+    }
+
+    // Backfill idempotent : pose accountPurpose sur les documents existants sans valeur.
+    let purposeBackfilled = false;
+    if (def.accountPurpose && api.accountPurpose !== def.accountPurpose) {
+      api.accountPurpose = def.accountPurpose;
+      purposeBackfilled = true;
     }
 
     let added = 0;
@@ -122,13 +133,13 @@ export async function seedIntegratedApisFromEnv() {
       added += 1;
     }
 
-    if (created || added > 0) {
+    if (created || added > 0 || purposeBackfilled) {
       await api.save();
       result.seeded.push(def.slug);
-      result.details.push({ slug: def.slug, created, credentialsAdded: added, mode: api.mode });
+      result.details.push({ slug: def.slug, created, credentialsAdded: added, mode: api.mode, accountPurpose: api.accountPurpose, purposeBackfilled });
     } else {
       result.skipped.push(def.slug);
-      result.details.push({ slug: def.slug, created: false, credentialsAdded: 0, mode: api.mode });
+      result.details.push({ slug: def.slug, created: false, credentialsAdded: 0, mode: api.mode, accountPurpose: api.accountPurpose });
     }
   }
 

@@ -12,6 +12,13 @@ import mongoose from 'mongoose';
 const CREDENTIAL_TYPES = ['secret_key', 'publishable_key', 'webhook_secret', 'api_key'];
 const RUNTIME_MODELS = ['single', 'dual_environment'];
 const MODES = ['test', 'prod'];
+// Pré-React — clarifie la vocation de chaque intégration (notamment les DEUX comptes
+// Stripe) sans créer de modèle enfant :
+//   customer_payments → encaissement des clients (Stripe Institut)
+//   platform_billing  → l'institut paie la plateforme : commissions, frais de lancement,
+//                        abonnement mensuel (Stripe Developer)
+//   messaging         → emails transactionnels (Brevo)
+const ACCOUNT_PURPOSES = ['customer_payments', 'platform_billing', 'messaging'];
 
 const credentialSchema = new mongoose.Schema(
   {
@@ -41,6 +48,8 @@ const integratedApiSchema = new mongoose.Schema(
     },
     name: { type: String, required: true, trim: true, minlength: 2, maxlength: 120 },
     provider: { type: String, required: true, trim: true, lowercase: true, maxlength: 60 },
+    // Vocation du compte/intégration (cf. ACCOUNT_PURPOSES). Nullable pour compat ascendante.
+    accountPurpose: { type: String, enum: [...ACCOUNT_PURPOSES, null], default: null },
     runtimeModel: { type: String, enum: RUNTIME_MODELS, default: 'single' },
     mode: { type: String, enum: MODES, default: 'test' },
     modeUpdatedAt: { type: Date, default: null },
@@ -93,4 +102,4 @@ integratedApiSchema.pre('validate', function enforceInvariants(next) {
 const IntegratedApi = mongoose.models.IntegratedApi || mongoose.model('IntegratedApi', integratedApiSchema);
 
 export default IntegratedApi;
-export { CREDENTIAL_TYPES, RUNTIME_MODELS, MODES };
+export { CREDENTIAL_TYPES, RUNTIME_MODELS, MODES, ACCOUNT_PURPOSES };

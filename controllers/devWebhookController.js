@@ -5,6 +5,7 @@ import ContractCheckoutIntent from '../models/ContractCheckoutIntent.js';
 import { getStripeDevClient } from '../utils/stripeDevClient.js';
 import { invalidateContractCache } from '../middlewares/contractGuard.js';
 import { getCredential } from '../services/integratedApiCredentialService.js';
+import { finalizeCommissionPaymentById } from './commissionPaymentController.js';
 
 // ---------------------------------------------------------------------------
 // Event handlers
@@ -12,6 +13,22 @@ import { getCredential } from '../services/integratedApiCredentialService.js';
 
 async function handlePaymentIntentSucceeded(paymentIntent) {
   const piId = paymentIntent.id;
+
+  // Pré-React — finalisation des commissions via webhook (source serveur de vérité).
+  // Reconnaître un PaymentIntent de commission via metadata.commissionPaymentId.
+  const commissionPaymentId = paymentIntent?.metadata?.commissionPaymentId;
+  if (commissionPaymentId) {
+    const result = await finalizeCommissionPaymentById(commissionPaymentId);
+    // Idempotent : un replay ou un mois déjà 'paid' ne re-finalise pas.
+    if (!result.ok) {
+      console.warn(`[DevWebhook] commission PI ${piId}: CommissionPayment introuvable (${commissionPaymentId}).`);
+    } else if (result.idempotent) {
+      console.log(`[DevWebhook] commission PI ${piId}: déjà finalisé (idempotent).`);
+    } else {
+      console.log(`[DevWebhook] commission PI ${piId}: CommissionPayment ${commissionPaymentId} marqué payé.`);
+    }
+    return;
+  }
 
   const intent = await ContractCheckoutIntent.findOne({
     stripePaymentIntentId: piId,

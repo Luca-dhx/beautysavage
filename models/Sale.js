@@ -192,6 +192,18 @@ const saleSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
+    // Pré-React — snapshot pricing : promotion (une seule), carte cadeau comme MOYEN DE
+    // PAIEMENT (pas une remise), base de commission = prix vendu. Tous champs optionnels.
+    pricingSnapshot: {
+      catalogAmount: { type: Number, default: null },
+      promotionDiscountAmount: { type: Number, default: null },
+      soldAmount: { type: Number, default: null },
+      giftCardPaymentAmount: { type: Number, default: null },
+      stripePaymentAmount: { type: Number, default: null },
+      commissionBaseAmount: { type: Number, default: null },
+      refundableAmount: { type: Number, default: null },
+      version: { type: String, default: null }
+    },
     // Pré-React B1 — snapshot fiscal V1 (franchise en base, TVA non applicable).
     // HT = TTC, vatAmount = 0. Source : constants/tax.js. Tous champs optionnels :
     // les ventes historiques restent valides.

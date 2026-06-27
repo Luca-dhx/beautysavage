@@ -344,6 +344,17 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Unification promotions + base commission (rapports 113-114)
+
+- `promotionSingleApplication.test.js` — une seule promotion (pickSinglePromotion meilleure
+  réduction) ; Promotion/Service.promotion disjointes (pas de cumul) ; promo expirée ignorée.
+- `giftCardPaymentNotDiscount.test.js` — carte cadeau = moyen de paiement (ne réduit ni
+  soldPrice ni commissionBase) ; capée au prix vendu ; stripe = sold − giftCard.
+- `commissionBaseIncludesGiftCard.test.js` — base commission = soldPrice quel que soit le
+  split carte cadeau/Stripe ; remboursement partiel → déduction proportionnelle sur la base.
+- `invoiceGiftCardPaymentLine.test.js` — ligne facturée = prix vendu ; carte cadeau =
+  règlement séparé ; facture officielle = Stripe.
+
 ## Pré-React C1-C3 (rapports 107-112)
 
 - `giftCardRecreditRecovery.test.js` (C1) — reprise `rollback_needed` (réussie, idempotente

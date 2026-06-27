@@ -17,7 +17,31 @@
     "sprintPreReactB1B2": "completed",
     "commissionSystemAudit": "completed",
     "commissionCorrection": "completed",
-    "preReactC1C6": "completed"
+    "preReactC1C6": "completed",
+    "promotionsGiftCardCommissionBase": "completed"
+  },
+  "promotionsGiftCardCommissionBase": {
+    "date": "2026-06",
+    "branch": "phase-0-security-baseline",
+    "reports": ["113_audit_promotions_giftcard_commission_base.md", "114_rapport_promotions_giftcard_commission_base.md"],
+    "regles": [
+      "Promotion: une seule par ligne (pas de cumul). Promotion (product/formation) et Service.promotion (prestation) = cibles disjointes -> aucun cumul possible. pickSinglePromotion retient la meilleure reduction. soldPrice = catalog - promo (plancher 0). Promo expiree ignoree. Service.promotion = source legacy prestation",
+      "Carte cadeau = MOYEN DE PAIEMENT, jamais une remise: ne reduit ni soldPrice ni la base de commission; capee au prix vendu et au solde; ligne de reglement (negative) sur la facture officielle Stripe; stripePayment = sold - giftCard",
+      "Base commission = soldPrice (apres promo, AVANT moyens de paiement). Deja le cas (recordCommissionTransactions sur finalPrice), rendu explicite via Sale.pricingSnapshot.commissionBaseAmount. computeCommissionsForPeriod inchange (somme Sale.commissionAmount sur soldPrice)"
+    ],
+    "implementation": [
+      "constants/pricingConcepts.js: buildPricingSnapshot + pickSinglePromotion + vocabulaire (catalogPrice/promotionDiscountAmount/soldPrice/giftCardPaymentAmount/stripePaymentAmount/commissionBaseAmount/refundableAmount)",
+      "checkoutPricingService: priceFormation/Product/Service exposent catalog+discount; buildServerCheckoutPricing retourne soldAmount/giftCardPaymentAmount/stripePaymentAmount/commissionBaseAmount/pricingSnapshot",
+      "Sale.pricingSnapshot (sous-document additif) renseigne dans persistSale (tous chemins) + vente prestation"
+    ],
+    "exemplesValides": "100-promo20 -> sold80 stripe80 base80; sold80+giftcard20 -> stripe60 base80; sold80+giftcard80 -> stripe0 base80; refund40 sur base80 -> deduction 4",
+    "tests": "p1 promotionSingleApplication/giftCardPaymentNotDiscount/commissionBaseIncludesGiftCard/invoiceGiftCardPaymentLine (+15). Suite 298 verts (p0=44, p1=248, integration=6), audit business 36, audit commissions 20",
+    "limitesRestantes": [
+      "Dualite Promotion/Service.promotion non migree (pas de cumul possible, dette maintenabilite) -> migration future Promotion(targetType:service)",
+      "Facture interne PDF n'affiche pas la ligne carte cadeau (facture officielle Stripe la montre)",
+      "pricingSnapshot non retro-rempli sur les ventes anterieures"
+    ],
+    "verdictReact": "GO React. Concepts pricing formalises, base commission explicite et independante du moyen de paiement, promotion unique garantie, carte cadeau = moyen de paiement. Dettes restantes non bloquantes."
   },
   "preReactC1C6": {
     "date": "2026-06",

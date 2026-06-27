@@ -24,6 +24,7 @@ import GiftCardConfig from '../models/GiftCardConfig.js';
 import { getActivePromotion } from './promotionService.js';
 import { calculateFinalPrice } from './promotionService.js';
 import { buildTaxSnapshot } from '../constants/tax.js';
+import { buildPricingSnapshot, pickSinglePromotion } from '../constants/pricingConcepts.js';
 
 const PRICING_TOLERANCE = 0.01; // 1 centime
 
@@ -103,31 +104,40 @@ async function computeServerGiftCardCoverage(appliedGiftCards, amountBase) {
   return { coverage, remaining };
 }
 
+// UNE seule promotion par ligne (pas de cumul). `Promotion` (product/formation) et
+// `Service.promotion` (prestation) ciblent des types DISJOINTS → aucune cumulation possible
+// par construction ; pickSinglePromotion garantit néanmoins « meilleure réduction unique ».
 async function priceFormation(itemId, selectedOptions = [], now = new Date()) {
   if (!isValidObjectId(itemId)) throw pricingError('INVALID_ITEM_ID', 'Formation invalide.');
   const formation = await Formation.findById(itemId).lean();
   if (!formation || formation.status !== 'published') {
     throw pricingError('FORMATION_NOT_FOUND', 'Formation introuvable.', 404);
   }
+  const basePrice = Number(formation.price || 0);
   const promotion = await getActivePromotion('formation', itemId, now);
-  const { finalPrice } = calculateFinalPrice(Number(formation.price || 0), promotion);
-  let total = roundToCents(finalPrice);
-  // Options (présentiel) : prix catalogue, non promues (cf. validateAndBuildSelectedOptions).
+  const { finalPrice, discountAmount } = calculateFinalPrice(basePrice, promotion);
+  // Une seule promotion (source 'promotion'), pas de cumul.
+  const promo = pickSinglePromotion([{ discountAmount, promotionId: promotion?._id, source: 'promotion' }]);
+  let optionsTotal = 0;
   const optionMap = new Map((formation.options || []).map(o => [String(o._id), o]));
   for (const sel of Array.isArray(selectedOptions) ? selectedOptions : []) {
     const opt = optionMap.get(String(sel?.optionId || '').trim());
-    if (opt) total = roundToCents(total + Number(opt.price || 0));
+    if (opt) optionsTotal = roundToCents(optionsTotal + Number(opt.price || 0)); // options non promues
   }
-  return { total, name: formation.name, type: formation.type };
+  const catalog = roundToCents(basePrice + optionsTotal);
+  const total = roundToCents(roundToCents(finalPrice) + optionsTotal);
+  return { total, catalog, discount: promo.discountAmount, name: formation.name, type: formation.type };
 }
 
 async function priceProduct(itemId, now = new Date()) {
   if (!isValidObjectId(itemId)) throw pricingError('INVALID_ITEM_ID', 'Produit invalide.');
   const product = await Product.findById(itemId).lean();
   if (!product || !product.active) throw pricingError('PRODUCT_NOT_FOUND', 'Produit introuvable.', 404);
+  const basePrice = Number(product.price || 0);
   const promotion = await getActivePromotion('product', itemId, now);
-  const { finalPrice } = calculateFinalPrice(Number(product.price || 0), promotion);
-  return { total: roundToCents(finalPrice), name: product.name };
+  const { finalPrice, discountAmount } = calculateFinalPrice(basePrice, promotion);
+  const promo = pickSinglePromotion([{ discountAmount, promotionId: promotion?._id, source: 'promotion' }]);
+  return { total: roundToCents(finalPrice), catalog: roundToCents(basePrice), discount: promo.discountAmount, name: product.name };
 }
 
 async function priceService(serviceData, now = new Date()) {
@@ -135,7 +145,8 @@ async function priceService(serviceData, now = new Date()) {
   if (!isValidObjectId(serviceId)) throw pricingError('INVALID_ITEM_ID', 'Prestation invalide.');
   const service = await Service.findById(serviceId).lean();
   if (!service || !service.isActive) throw pricingError('SERVICE_NOT_BOOKABLE', 'Prestation introuvable.', 404);
-  const unit = effectiveServicePrice(service, now);
+  const baseUnit = Number(service.price || 0);
+  const unit = effectiveServicePrice(service, now); // Service.promotion (legacy, source unique pour les prestations)
   let optionsTotal = 0;
   const rawOptions = Array.isArray(serviceData?.selectedOptions) ? serviceData.selectedOptions : [];
   for (const sel of rawOptions) {
@@ -143,6 +154,7 @@ async function priceService(serviceData, now = new Date()) {
     if (opt) optionsTotal = roundToCents(optionsTotal + Number(opt.price || 0));
   }
   const totalPrice = roundToCents(unit + optionsTotal);
+  const catalog = roundToCents(baseUnit + optionsTotal);
   // Acompte (bloqué par A7 mais calculé pour cohérence) : base de paiement = acompte.
   let payBase = totalPrice;
   if (service.paymentType === 'deposit') {
@@ -150,7 +162,7 @@ async function priceService(serviceData, now = new Date()) {
       ? roundToCents(totalPrice * Number(service.depositValue || 0) / 100)
       : roundToCents(Math.min(Number(service.depositValue || 0), totalPrice));
   }
-  return { total: totalPrice, payBase, name: service.name };
+  return { total: totalPrice, catalog, discount: roundToCents(Math.max(0, catalog - totalPrice)), payBase, name: service.name };
 }
 
 async function priceGiftCardPurchase(item) {
@@ -165,7 +177,7 @@ async function priceGiftCardPurchase(item) {
   if (amount < minAmount) {
     throw pricingError('GIFT_CARD_MIN_AMOUNT', `Le montant minimal est de ${minAmount} EUR.`);
   }
-  return { total: amount, name: String(item?.name || 'Carte cadeau') };
+  return { total: amount, catalog: amount, discount: 0, name: String(item?.name || 'Carte cadeau') };
 }
 
 /**
@@ -185,13 +197,14 @@ export async function buildServerCheckoutPricing(checkoutState, { now = new Date
   const isService = rawType === 'service' || Boolean(checkoutState?.service?.serviceId);
 
   let subtotal = 0;
+  let catalogTotal = 0;
   let payBase = 0;
   let kind = 'single';
 
   if (isService) {
     kind = 'service';
     const r = await priceService(checkoutState.service || item, now);
-    subtotal = r.total;
+    subtotal = r.total; catalogTotal = r.catalog;
     payBase = r.payBase; // acompte éventuel
   } else if (isCart) {
     kind = 'cart';
@@ -203,35 +216,50 @@ export async function buildServerCheckoutPricing(checkoutState, { now = new Date
         ? await priceProduct(it?.id, now)
         : await priceFormation(it?.id, it?.selectedOptions, now);
       subtotal = roundToCents(subtotal + r.total);
+      catalogTotal = roundToCents(catalogTotal + r.catalog);
     }
     payBase = subtotal;
   } else if (rawType === 'gift-card') {
     kind = 'gift-card';
     const r = await priceGiftCardPurchase(item);
-    subtotal = r.total; payBase = r.total;
+    subtotal = r.total; catalogTotal = r.catalog; payBase = r.total;
   } else if (rawType === 'product') {
     const r = await priceProduct(item?.id, now);
-    subtotal = r.total; payBase = r.total;
+    subtotal = r.total; catalogTotal = r.catalog; payBase = r.total;
   } else {
     // défaut : formation
     const r = await priceFormation(item?.id, item?.selectedOptions, now);
-    subtotal = r.total; payBase = r.total;
+    subtotal = r.total; catalogTotal = r.catalog; payBase = r.total;
   }
 
   payBase = roundToCents(payBase);
   const { coverage } = await computeServerGiftCardCoverage(checkoutState.appliedGiftCards, payBase);
   const amountToPay = roundToCents(Math.max(0, payBase - coverage));
 
+  // Snapshot pricing formalisé : carte cadeau = moyen de paiement, commissionBase = soldPrice.
+  const pricingSnapshot = buildPricingSnapshot({
+    catalogAmount: roundToCents(catalogTotal),
+    soldAmount: roundToCents(subtotal),
+    giftCardPaymentAmount: roundToCents(coverage)
+  });
+
   return {
     kind,
     subtotal: roundToCents(subtotal),
+    catalogAmount: roundToCents(catalogTotal),
+    promotionDiscountAmount: pricingSnapshot.promotionDiscountAmount,
+    soldAmount: roundToCents(subtotal),
     payBase,
     giftCardCoverage: roundToCents(coverage),
+    giftCardPaymentAmount: roundToCents(coverage),
+    stripePaymentAmount: amountToPay,
+    commissionBaseAmount: roundToCents(subtotal),
     amountToPay,
     remainingToPay: amountToPay,
     isZeroPayment: amountToPay <= 0,
     currency: 'eur',
-    taxSnapshot: buildTaxSnapshot(subtotal)
+    taxSnapshot: buildTaxSnapshot(subtotal),
+    pricingSnapshot
   };
 }
 

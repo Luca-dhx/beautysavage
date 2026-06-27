@@ -2909,7 +2909,7 @@ Socle backend du futur Email Template Studio. **Aucune UI, aucune automatisation
 - Diagnostic : `GET /api/gestion/dev/events` (`requireStrictDev`).
 
 ## Tests
-- **283 tests verts** / 66 fichiers : **p0 = 44**, **p1 = 233**, **integration = 6**
+- **298 tests verts** / 70 fichiers : **p0 = 44**, **p1 = 248**, **integration = 6**
   (inclut les Sprints pré-React A1-A3, A4-A7 et B1-B2 — voir sections dédiées plus bas).
 - Harnais d'audit séparés (exclus de `npm test`) : `npm run audit:business-scenarios`
   (36 probes) et `npm run audit:commissions` (20 probes).
@@ -3123,3 +3123,31 @@ obligatoire avant accès immédiat (A1). Achat sans renonciation → `LEGAL_CONS
 - **Acomptes** (rapport 109) : `deposit` bloqué V1 (`OFFER_BALANCE_UNSUPPORTED`), roadmap V2.
 - **Refactor contrôleurs** (rapports 110/111) : `clientController`/`mailService` monolithes →
   extraction progressive (cœurs critiques d'abord, tests d'abord).
+
+## Unification promotions + base commission (2026-06 — rapports 113 / 114)
+
+### Concepts pricing (`constants/pricingConcepts.js`)
+`catalogPrice`, `promotionDiscountAmount`, `soldPrice (= catalog − promo)`,
+`giftCardPaymentAmount` (moyen de paiement), `stripePaymentAmount (= sold − giftCard)`,
+`commissionBaseAmount (= soldPrice)`, `refundableAmount (= sold)`.
+`buildPricingSnapshot(...)` + `pickSinglePromotion(...)` (meilleure réduction, **pas de cumul**).
+
+### Promotion
+**Une seule** promotion par ligne. `Promotion` (produit/formation) et `Service.promotion`
+(prestation) = cibles **disjointes** → aucun cumul possible. Promo expirée ignorée.
+`Service.promotion` = source legacy prestation (migration future vers `Promotion`).
+
+### Carte cadeau = moyen de paiement
+Ne réduit JAMAIS `soldPrice` ni la base de commission. `pricingSnapshot.giftCardPaymentAmount`
++ `Sale.giftCardUsage` ; ligne négative (règlement) sur la facture officielle Stripe.
+
+### Base de commission
+`commissionBaseAmount = soldPrice` (après promo, avant moyens de paiement) — déjà le cas
+(`recordCommissionTransactions` sur `finalPrice`), désormais **explicite** via
+`Sale.pricingSnapshot`. Exemples : 80 € vendu / 20 € ou 80 € carte cadeau → commission base
+**80 €** dans les deux cas.
+
+### Snapshot
+`Sale.pricingSnapshot` (catalog/promo/sold/giftCard/stripe/commissionBase/refundable) renseigné
+par `persistSale` (formation/produit/carte cadeau/panier/mock) et la vente prestation.
+Additif, non rétro-rempli.

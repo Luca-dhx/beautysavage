@@ -48,6 +48,7 @@ import {
 } from '../services/offerReadinessService.js';
 import { buildTaxSnapshot } from '../constants/tax.js';
 import { buildServerCheckoutPricing } from '../services/checkoutPricingService.js';
+import { buildPricingSnapshot } from '../constants/pricingConcepts.js';
 import { getAppBaseUrl } from '../utils/invoiceUrl.js';
 import { buildModulePayload } from './formationModuleController.js';
 import { buildSessionPayload } from './formationSessionController.js';
@@ -732,6 +733,22 @@ async function persistSale({
   }
   // Pré-React B1 — snapshot fiscal V1 (franchise en base, TVA non applicable, HT=TTC).
   sale.taxSnapshot = buildTaxSnapshot(sale.totalAmount);
+  // Pré-React — snapshot pricing : promotion (sold = catalogue − promo) + carte cadeau comme
+  // MOYEN DE PAIEMENT (ne réduit pas sold ni la base de commission).
+  const catalogAmount = roundToCents(
+    normalizedItems.reduce((sum, item) => sum + Number(item.basePrice || 0), 0)
+  );
+  const giftCardPaymentAmount = roundToCents(
+    (Array.isArray(giftCardUsage) ? giftCardUsage : []).reduce(
+      (sum, g) => sum + Number(g?.amountUsed || 0),
+      0
+    )
+  );
+  sale.pricingSnapshot = buildPricingSnapshot({
+    catalogAmount,
+    soldAmount: roundToCents(totalAmount),
+    giftCardPaymentAmount
+  });
   // Phase 1B-1: set the Stripe PaymentIntent id AT INSERT so the unique partial
   // index on stripePaymentIntentId rejects a concurrent/duplicate webhook with an
   // E11000 BEFORE any side effect (gift-card debit, commission) runs — preventing
@@ -2813,7 +2830,15 @@ async function processServiceCheckoutStatePurchase({
     giftCardUsage: giftPlan.saleEntries,
     legalConsentSnapshot: legalConsentSnapshot || undefined,
     // B1 — snapshot fiscal V1 (TVA non applicable, HT=TTC).
-    taxSnapshot: buildTaxSnapshot(saleTotal)
+    taxSnapshot: buildTaxSnapshot(saleTotal),
+    // Pricing snapshot : carte cadeau = moyen de paiement (ne réduit pas sold).
+    pricingSnapshot: buildPricingSnapshot({
+      catalogAmount: saleTotal,
+      soldAmount: saleTotal,
+      giftCardPaymentAmount: roundToCents(
+        (giftPlan.saleEntries || []).reduce((sum, g) => sum + Number(g?.amountUsed || 0), 0)
+      )
+    })
   });
   if (normalizedStripeSessionId) sale.stripeSessionId = normalizedStripeSessionId;
   if (normalizedStripePaymentIntentId) sale.stripePaymentIntentId = normalizedStripePaymentIntentId;

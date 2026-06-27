@@ -34,7 +34,7 @@ const {
   OFFER_READINESS_CODES
 } = await import('../../services/offerReadinessService.js');
 const { assertServiceSlotBookable } = await import('../../services/serviceAvailabilityService.js');
-const { processCheckoutStatePurchase } = await import('../../controllers/clientController.js');
+const { processCheckoutStatePurchase } = await import('../../services/checkout/checkoutFacade.js');
 
 const FINALIZE_FREE = '/api/client/checkout/finalize-free';
 

@@ -32,7 +32,7 @@ const { stopMemoryDb, clearDatabase } = await import('../setup/testDb.js');
 const { seedTestData, TEST_PASSWORD } = await import('../setup/seedTestData.js');
 const Sale = (await import('../../models/Sale.js')).default;
 const Product = (await import('../../models/Product.js')).default;
-const { processCheckoutStatePurchase } = await import('../../controllers/clientController.js');
+const { processCheckoutStatePurchase } = await import('../../services/checkout/checkoutFacade.js');
 
 const FINALIZE_FREE = '/api/client/checkout/finalize-free';
 

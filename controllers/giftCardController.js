@@ -21,9 +21,9 @@ import { requireSecret } from '../utils/secretEnv.js';
 import {
   applySaleCommissionSnapshot,
   persistSale,
-  runPostSaleSideEffects,
-  serializePurchasePayload
-} from './clientController.js';
+  runPostSaleSideEffects
+} from '../services/checkout/checkoutFacade.js';
+import { serializePurchasePayload } from './clientController.js';
 import User from '../models/user.js';
 import { extractClientIp } from '../utils/requestClientIp.js';
 import { validateAndBuildConsumerWaiver } from '../utils/consumerWaiver.js';

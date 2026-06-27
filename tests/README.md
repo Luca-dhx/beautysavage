@@ -344,6 +344,20 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Sprint F1 — Extraction Checkout (rapports 123-124)
+
+- `checkoutExtractionParity.test.js` (+4) — prouve que l'extraction du domaine Checkout hors de
+  `clientController` (3253 → 1707 lignes) est **purement structurelle** :
+  (1) **identité référentielle** — `checkoutFacade.X === sousService.X` pour les 11 fonctions
+  ré-exportées (une seule définition, aucune duplication) ;
+  (2) **contrat HTTP `finalize-free` inchangé** — 401 sans auth, 400 `CHECKOUT_STATE_REQUIRED`,
+  402 `PAYMENT_REQUIRED` (solde dû).
+- Les 8 suites qui finalisaient via `processCheckoutStatePurchase` importent désormais ce
+  finaliseur depuis `services/checkout/checkoutFacade.js` (au lieu de `controllers/clientController.js`) —
+  aucun changement de comportement, mêmes assertions.
+- Domaine couvert inchangé (Stripe checkout, 0 €, carte cadeau, acompte, consentement, slot,
+  distanciel, promotion, webhook idempotent) par les suites existantes.
+
 ## Pré-React E1-E2 (rapports 120-122)
 
 - **E1 — Promotion source unique DÉFINITIVE** : `promotionMigrationService.test.js` et

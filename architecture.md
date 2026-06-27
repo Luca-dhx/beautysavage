@@ -3203,3 +3203,26 @@ Extraction des cœurs critiques **sans modification de comportement**. Rapport 1
   est repointé vers ces façades.
 - **Reporté (tests de caractérisation d'abord)** : `checkoutFinalizationService` (finaliseurs),
   `stripeCheckoutService`/`stripeWebhookService`, split interne de `mailService`.
+
+## Sprint F1 — Extraction complète du Checkout (2026-06-28)
+`clientController` (3253 → **1707 lignes**, −47 %) devient un orchestrateur HTTP mince. Le
+domaine Checkout vit dans `services/checkout/` (DAG acyclique). Rapports 123 + 124.
+**Zéro changement fonctionnel / contrat API / statut HTTP / payload / pricing / refund / booking.**
+- `checkoutPersistenceService` : `persistSale`, `runPostSaleSideEffects`, builders de vente
+  (`buildSaleId/buildSaleEntry/validateAndBuildSelectedOptions/buildFormationEntryFromSale/
+  buildSaleCommissionSnapshot/applySaleCommissionSnapshot/normalizeSnapshotItem`),
+  `persistCartSnapshot`, `clearCartSnapshotBestEffort`, `rollbackSingleSale`,
+  `assertZeroRemainingForFreeOrder`, `buildCustomerProfile`. (Base : n'importe aucun finaliseur.)
+- `checkoutBookingService` : `processServiceCheckoutStatePurchase` (réservation prestation).
+- `checkoutFinalizationService` : `processCheckoutStatePurchase` (dispatcher cart/service/single),
+  `processCartCheckoutStatePurchase`, `waitForExistingFreeSale`.
+- `checkoutValidationService` : `validateFreeCheckoutPreconditions` (legal A1 + offre A7 + pricing B2).
+- `checkoutResponseMapper` : mapping erreur → réponse HTTP (statuts/payloads identiques).
+- `checkoutFacade` : `finalizeFreeCheckout` (HTTP) + **point d'entrée unique** ; consommé par
+  stripeController (`processCheckoutStatePurchase`), serviceBookingController (`runPostSaleSideEffects`),
+  giftCardController (`persistSale/runPostSaleSideEffects/applySaleCommissionSnapshot`),
+  clientRouter (`finalizeFreeCheckout`), et clientController (mockPay/saveCartSnapshot).
+- Graphe : `facade → finalization → {persistence, bookingService}` ; `bookingService → persistence`.
+  La branche gift-card du dispatcher charge giftCardController par import dynamique (pas de cycle).
+- Identité référentielle prouvée par `tests/p1/checkoutExtractionParity.test.js` (aucune duplication).
+- `createCheckoutSession`/`handleWebhook` restent dans stripeController → **Sprint F2**.

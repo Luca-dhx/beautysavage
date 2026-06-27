@@ -20,7 +20,33 @@
     "preReactC1C6": "completed",
     "promotionsGiftCardCommissionBase": "completed",
     "preReactD1D4": "completed",
-    "preReactE1E2": "completed"
+    "preReactE1E2": "completed",
+    "preReactF1CheckoutExtraction": "completed"
+  },
+  "preReactF1CheckoutExtraction": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["123_audit_pre_sprint_f1_checkout_extraction.md", "124_rapport_sprint_f1_checkout_extraction.md"],
+    "summary": "Extraction complete du domaine Checkout hors de clientController (3253 -> 1707 lignes, -47%). clientController = orchestrateur HTTP mince. ZERO changement fonctionnel/contrat API/statut HTTP/payload/pricing/refund/booking.",
+    "servicesCreated": {
+      "checkoutPersistenceService": "persistSale, runPostSaleSideEffects, buildSaleId, buildCustomerProfile, buildSaleEntry, validateAndBuildSelectedOptions, buildFormationEntryFromSale, buildSaleCommissionSnapshot, applySaleCommissionSnapshot, normalizeSnapshotItem, persistCartSnapshot, clearCartSnapshotBestEffort, rollbackSingleSale, assertZeroRemainingForFreeOrder. Base du DAG (n'importe aucun finaliseur).",
+      "checkoutBookingService": "processServiceCheckoutStatePurchase (reservation prestation).",
+      "checkoutFinalizationService": "processCheckoutStatePurchase (dispatcher), processCartCheckoutStatePurchase, waitForExistingFreeSale.",
+      "checkoutValidationService": "validateFreeCheckoutPreconditions (legal A1 + offre A7 + pricing B2, erreurs normalisees).",
+      "checkoutResponseMapper": "mapCheckoutValidationError, mapCheckoutFinalizationError.",
+      "checkoutFacade": "finalizeFreeCheckout (HTTP) + point d'entree unique des consommateurs."
+    },
+    "dag": "facade -> finalization -> {persistence, bookingService} ; bookingService -> persistence ; validation/responseMapper feuilles. Branche gift-card du dispatcher = import dynamique giftCardController (pas de cycle).",
+    "consumersRepointed": ["stripeController (processCheckoutStatePurchase)", "serviceBookingController (runPostSaleSideEffects)", "giftCardController (persistSale/runPostSaleSideEffects/applySaleCommissionSnapshot ; serializePurchasePayload reste de clientController)", "clientRouter (finalizeFreeCheckout)", "clientController mockPay/saveCartSnapshot", "8 fichiers de test (import depuis checkoutFacade)"],
+    "tests": "321 verts (p0=44, p1=271, integration=6) dont checkoutExtractionParity (+4 : identite referentielle facade===sous-services + contrat HTTP 401/400/402). audit business 36, audit commissions 20.",
+    "noLint": "Aucun script lint defini dans package.json (absence documentee).",
+    "detteRestante": [
+      "stripeController.createCheckoutSession + handleWebhook/handleRefundUpdatedEvent : hors clientController, a extraire en F2 (stripeCheckoutService/stripeWebhookService)",
+      "Mutualiser validation checkout Stripe + 0 EUR dans checkoutValidationService (F2)",
+      "mockPay legacy : suppression possible apres confirmation non-usage prod",
+      "Split interne mailService (rapport 122)"
+    ],
+    "recommandationF2": "Extraire le domaine Stripe de stripeController : createCheckoutSession + webhook (delegue deja a checkoutFacade.processCheckoutStatePurchase), avec tests de caracterisation."
   },
   "preReactE1E2": {
     "date": "2026-06-27",

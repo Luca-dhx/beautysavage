@@ -13,7 +13,7 @@ const { seedTestData } = await import('../setup/seedTestData.js');
 const Sale = (await import('../../models/Sale.js')).default;
 const RefundRequest = (await import('../../models/RefundRequest.js')).default;
 const CommissionConfig = (await import('../../models/CommissionConfig.js')).default;
-const { processCheckoutStatePurchase } = await import('../../controllers/clientController.js');
+const { processCheckoutStatePurchase } = await import('../../services/checkout/checkoutFacade.js');
 const { computeCommissionsForPeriod } = await import('../../services/commissionPaymentService.js');
 const { DISTANT_LEARNING_WAIVER_TEXT } = await import('../../constants/consumerWaiver.js');
 

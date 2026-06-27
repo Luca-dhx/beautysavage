@@ -13,7 +13,6 @@ import {
   getMyPresentielSession,
   getPurchaseStatus,
   mockPay,
-  finalizeFreeCheckout,
   changeFormationSession,
   postFormationReview,
   saveCartSnapshot,
@@ -24,6 +23,8 @@ import {
   updateProfile,
   cancelFormationParticipation
 } from '../controllers/clientController.js';
+// Sprint F1 — finalizeFreeCheckout est désormais exposé par la facade checkout.
+import { finalizeFreeCheckout } from '../services/checkout/checkoutFacade.js';
 import { downloadClientInvoice } from '../controllers/invoiceController.js';
 import {
   createBooking,

@@ -11,7 +11,7 @@ vi.mock('../../services/stripeInvoiceService.js', async o => ({ ...(await o()), 
 const { startMemoryDb, stopMemoryDb, clearDatabase } = await import('../setup/testDb.js');
 const { seedTestData } = await import('../setup/seedTestData.js');
 const Sale = (await import('../../models/Sale.js')).default;
-const { processCheckoutStatePurchase } = await import('../../controllers/clientController.js');
+const { processCheckoutStatePurchase } = await import('../../services/checkout/checkoutFacade.js');
 const { TAX_MODE, VAT_RATE, VAT_LEGAL_LABEL, buildTaxSnapshot } = await import('../../constants/tax.js');
 
 describe('B1 — V1 tax exemption (franchise 293 B)', () => {

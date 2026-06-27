@@ -12,7 +12,7 @@ import User from '../models/user.js';
 import Product from '../models/Product.js';
 import Formation from '../models/Formation.js';
 import FormationSession, { buildActiveFormationSessionFilter } from '../models/FormationSession.js';
-import { processCheckoutStatePurchase } from './clientController.js';
+import { processCheckoutStatePurchase } from '../services/checkout/checkoutFacade.js';
 import { sendRefundConfirmedEmail } from '../services/mailService.js';
 import { sendRefundConfirmedEmailInternal } from '../services/refundExecutionService.js';
 import { ensureRefundCommissionReversal } from '../services/refundService.js';

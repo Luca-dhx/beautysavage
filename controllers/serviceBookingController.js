@@ -13,7 +13,7 @@ import RefundRequest from '../models/RefundRequest.js';
 import { getSessionUserId } from '../utils/session.js';
 import { extractClientIp } from '../utils/requestClientIp.js';
 import { emitBookingEvent } from '../services/businessEventService.js';
-import { runPostSaleSideEffects } from './clientController.js';
+import { runPostSaleSideEffects } from '../services/checkout/checkoutFacade.js';
 import {
   getServiceRefundEligibility,
   buildRefundId,

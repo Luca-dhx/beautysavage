@@ -13,7 +13,7 @@ const { startMemoryDb, stopMemoryDb, clearDatabase } = await import('../setup/te
 const { seedTestData } = await import('../setup/seedTestData.js');
 const Sale = (await import('../../models/Sale.js')).default;
 const Invoice = (await import('../../models/Invoice.js')).default;
-const { processCheckoutStatePurchase } = await import('../../controllers/clientController.js');
+const { processCheckoutStatePurchase } = await import('../../services/checkout/checkoutFacade.js');
 const { resolveOfficialInvoiceRef } = await import('../../services/invoiceService.js');
 
 describe('Facture — carte cadeau = ligne de règlement', () => {

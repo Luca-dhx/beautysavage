@@ -9,7 +9,7 @@ const { getAgent } = await import('../setup/testApp.js');
 const { stopMemoryDb, clearDatabase } = await import('../setup/testDb.js');
 const { seedTestData } = await import('../setup/seedTestData.js');
 const ServiceBooking = (await import('../../models/ServiceBooking.js')).default;
-const { processCheckoutStatePurchase } = await import('../../controllers/clientController.js');
+const { processCheckoutStatePurchase } = await import('../../services/checkout/checkoutFacade.js');
 
 describe('P0 - service booking slot revalidation', () => {
   let agent;

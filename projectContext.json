@@ -16,7 +16,30 @@
     "deepBusinessAudit": "completed",
     "sprintPreReactB1B2": "completed",
     "commissionSystemAudit": "completed",
-    "commissionCorrection": "completed"
+    "commissionCorrection": "completed",
+    "preReactC1C6": "completed"
+  },
+  "preReactC1C6": {
+    "date": "2026-06",
+    "branch": "phase-0-security-baseline",
+    "reports": ["107_audit_pre_corrections_c1_c5.md", "108_audit_promotions_unification_usage.md", "109_audit_acomptes_usage_blocage.md", "110_audit_refactor_client_stripe_controllers.md", "111_roadmap_refactor_maintenabilite_10_10.md", "112_rapport_corrections_c1_c3_audits_c4_c6.md"],
+    "corrections": [
+      "C1 reprise recredit carte cadeau: services/giftCardRecreditRecoveryService.js + automatisme/giftCardRecreditRecoveryJob.js (scheduler 15min). Cible giftCardRefundStatus=rollback_needed, idempotent (claim atomique claimGiftCardRecredit, jamais double-credit), limite giftCardRecreditAttempts=5. Events gift_card.recredit_recovered/failed",
+      "C2 facture officielle = Stripe: Invoice.documentKind(internal_snapshot|stripe_official)+official(bool). PDF interne = snapshot non fiscal (official:false); facture Stripe (client) / Stripe Dev (commission) = officielle. Helper invoiceService.resolveOfficialInvoiceRef. 0 EUR -> pas de facture officielle. Label 293B conserve",
+      "C3 distanciel acces a vie non remboursable: Formation.accessLifetime(true)/accessExpiresAt(null)/isRefundableAfterAccess(false); Sale.accessGrantedAt (acces immediat); refundService.getDistancielRefundEligibility -> refus distanciel_access_granted_non_refundable une fois l'acces donne. Renonciation obligatoire avant acces immediat (A1)"
+    ],
+    "audits": [
+      "C4 promotions (rapport 108): dualite Promotion/Service.promotion -> unifier (non bloquant React)",
+      "C5 acomptes (rapport 109): deposit bloque V1 (OFFER_BALANCE_UNSUPPORTED), roadmap V2 (suivi solde/relance/paiement/facture/remboursement partiel)",
+      "C6 refactor (rapports 110/111): clientController ~3445l + mailService ~3845l monolithes -> extraction progressive services purs, tests d'abord, coeurs critiques (checkoutFinalizationService, stripeWebhookService) d'abord"
+    ],
+    "tests": "p1 giftCardRecreditRecovery/stripeInvoicesOfficialSource/distanceLearningLifetimeAccessRefund (+15). Suite 283 verts (p0=44, p1=233, integration=6), audit business 36, audit commissions 20",
+    "limitesRestantes": [
+      "Reprise recredit multi-cartes best-effort (cas courant mono-carte)",
+      "Distanciel: pas d'endpoint client de remboursement (regle portee par l'helper d'eligibilite + absence d'endpoint)",
+      "Promotions dualite, acomptes V2, refactor controleurs: dettes non bloquantes"
+    ],
+    "verdictReact": "GO React. Coeurs paiement/checkout/remboursement/commission securises, testes, documentes. Dettes restantes non bloquantes. Recommande: extraire checkoutFinalizationService + stripeWebhookService avant ouverture massive React."
   },
   "commissionCorrection": {
     "date": "2026-06",

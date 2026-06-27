@@ -656,7 +656,8 @@ async function persistSale({
   stripeSessionId = null,
   skipPostSaleSideEffects = false,
   legalConsentSnapshot = null,
-  accessDeliveryStatus = null
+  accessDeliveryStatus = null,
+  accessGrantedAt = null
 }) {
   if (!userId || !items?.length) return null;
   const normalizedItems = items.map(entry => {
@@ -724,6 +725,10 @@ async function persistSale({
   // « accès immédiat »).
   if (accessDeliveryStatus) {
     sale.accessDeliveryStatus = accessDeliveryStatus;
+  }
+  // Pré-React C3 — horodatage d'octroi d'accès (distanciel immédiat → non remboursable).
+  if (accessGrantedAt) {
+    sale.accessGrantedAt = accessGrantedAt;
   }
   // Pré-React B1 — snapshot fiscal V1 (franchise en base, TVA non applicable, HT=TTC).
   sale.taxSnapshot = buildTaxSnapshot(sale.totalAmount);
@@ -3079,7 +3084,9 @@ export async function processCheckoutStatePurchase({
         skipPostSaleSideEffects: true,
         legalConsentSnapshot,
         // A7 — marqueur d'accès distanciel (null pour présentiel).
-        accessDeliveryStatus: resolveAccessDeliveryStatusForFormation(formation)
+        accessDeliveryStatus: resolveAccessDeliveryStatusForFormation(formation),
+        // C3 — accès distanciel immédiat octroyé → horodatage (non remboursable ensuite).
+        accessGrantedAt: resolveAccessDeliveryStatusForFormation(formation) === 'immediate' ? new Date() : null
       });
 
       await applyStripeFieldsToSale(saleRecord);

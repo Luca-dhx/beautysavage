@@ -134,6 +134,9 @@ const refundRequestSchema = new mongoose.Schema(
     giftCardRecredited: { type: Boolean, default: false },
     giftCardRecreditInProgress: { type: Boolean, default: false },
     giftCardRecreditAmount: { type: Number, default: null },
+    // Pré-React C1 — nombre de tentatives de reprise du recrédit carte cadeau
+    // (moteur giftCardRecreditRecoveryService). Limite raisonnable avant abandon manuel.
+    giftCardRecreditAttempts: { type: Number, default: 0 },
     creditNoteId: { type: String, default: null },
     creditNotePdfUrl: { type: String, default: null }
   },

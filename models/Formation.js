@@ -76,6 +76,20 @@ const formationSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  // Pré-React C3 — distanciel = contenu numérique à VIE, non remboursable une fois l'accès
+  // donné (renonciation au droit de rétractation obligatoire avant accès immédiat, cf. A1).
+  accessLifetime: {
+    type: Boolean,
+    default: true
+  },
+  accessExpiresAt: {
+    type: Date,
+    default: null
+  },
+  isRefundableAfterAccess: {
+    type: Boolean,
+    default: false
+  },
   status: {
     type: String,
     enum: STATUS_VALUES,

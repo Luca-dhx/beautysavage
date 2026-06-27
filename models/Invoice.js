@@ -65,6 +65,20 @@ const invoiceSchema = new mongoose.Schema(
       type: String,
       default: null
     },
+    // Pré-React C2 — la facture OFFICIELLE (fiscale) est la facture Stripe. Le PDF interne
+    // (pdfPath/htmlContent) est un snapshot opérationnel NON fiscal (fallback admin).
+    //   documentKind: 'internal_snapshot' (défaut) → non officiel ;
+    //                 'stripe_official' → la facture Stripe est attachée (officielle).
+    //   official: true uniquement quand un stripeInvoiceId est présent.
+    documentKind: {
+      type: String,
+      enum: ['internal_snapshot', 'stripe_official'],
+      default: 'internal_snapshot'
+    },
+    official: {
+      type: Boolean,
+      default: false
+    },
     createdAt: {
       type: Date,
       default: () => new Date()

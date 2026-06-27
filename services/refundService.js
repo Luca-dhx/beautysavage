@@ -85,6 +85,43 @@ export function getPresentielRefundEligibility({ sale, formation, now = new Date
   };
 }
 
+// Pré-React C3 — Éligibilité remboursement d'une formation DISTANCIELLE (contenu numérique
+// à vie). Règle produit : une fois l'accès donné, PAS de remboursement (renonciation au droit
+// de rétractation obligatoire avant accès immédiat, cf. A1). Tant que l'accès n'est pas donné
+// et que la fenêtre légale n'est pas expirée, le cas reste à arbitrer (documenté, non auto).
+export const REFUND_REASON_DISTANCIEL_ACCESS_GRANTED = 'distanciel_access_granted_non_refundable';
+
+export function getDistancielRefundEligibility({ formation, sale, now = new Date() } = {}) {
+  const type = String(formation?.type || '').trim().toLowerCase();
+  if (type !== 'distanciel') {
+    return { applicable: false, eligibleRefund: false, reason: 'not_distanciel' };
+  }
+  const isRefundableAfterAccess = formation?.isRefundableAfterAccess === true;
+  const accessGranted = Boolean(
+    sale?.accessGrantedAt ||
+      String(sale?.accessDeliveryStatus || '') === 'immediate'
+  );
+
+  if (accessGranted && !isRefundableAfterAccess) {
+    return {
+      applicable: true,
+      eligibleRefund: false,
+      reason: REFUND_REASON_DISTANCIEL_ACCESS_GRANTED,
+      accessGranted: true,
+      lifetime: formation?.accessLifetime !== false
+    };
+  }
+  // Accès non encore donné : la rétractation légale pourrait s'appliquer si aucune
+  // renonciation immédiate n'a été acceptée — arbitrage manuel (documenté rapport 112).
+  return {
+    applicable: true,
+    eligibleRefund: false,
+    reason: 'distanciel_access_pending_manual_review',
+    accessGranted: false,
+    lifetime: formation?.accessLifetime !== false
+  };
+}
+
 function findSaleItemForFormation(saleDoc, formationId) {
   const target = String(formationId || '').trim();
   const items = Array.isArray(saleDoc?.items) ? saleDoc.items : [];

@@ -2909,7 +2909,7 @@ Socle backend du futur Email Template Studio. **Aucune UI, aucune automatisation
 - Diagnostic : `GET /api/gestion/dev/events` (`requireStrictDev`).
 
 ## Tests
-- **268 tests verts** / 63 fichiers : **p0 = 44**, **p1 = 218**, **integration = 6**
+- **283 tests verts** / 66 fichiers : **p0 = 44**, **p1 = 233**, **integration = 6**
   (inclut les Sprints pré-React A1-A3, A4-A7 et B1-B2 — voir sections dédiées plus bas).
 - Harnais d'audit séparés (exclus de `npm test`) : `npm run audit:business-scenarios`
   (36 probes) et `npm run audit:commissions` (20 probes).
@@ -3097,3 +3097,29 @@ backfill seeder (`stripe-institut` / `stripe-dev` / `brevo`). Pas de modèle enf
 ### Limites restantes
 Documents `CommissionPayment` historiques `paid` non rétro-corrigés ; commission uniquement
 sur formations ; idempotency key inclut le montant (compat refresh). Détail rapport 105.
+
+## Pré-React C1-C3 + audits C4-C6 (2026-06 — rapports 107-112)
+
+### C1 — Reprise recrédit carte cadeau
+`services/giftCardRecreditRecoveryService.js` + `automatisme/giftCardRecreditRecoveryJob.js`
+(scheduler 15 min). Reprend les `RefundRequest` en `giftCardRefundStatus='rollback_needed'`,
+**idempotent** (claim atomique `claimGiftCardRecredit`, jamais de double-crédit), limite
+`giftCardRecreditAttempts` (5). Events `gift_card.recredit_recovered` / `gift_card.recredit_failed`.
+
+### C2 — Facture officielle = Stripe
+`Invoice.documentKind` (`internal_snapshot`|`stripe_official`) + `Invoice.official`. Le PDF
+interne est un **snapshot opérationnel non fiscal** (`official:false`) ; la facture **Stripe**
+(client) / **Stripe Dev** (commission) est la facture **officielle**. Helper
+`invoiceService.resolveOfficialInvoiceRef`. 0 € → pas de facture officielle. Label 293 B conservé.
+
+### C3 — Distanciel = accès numérique à vie, non remboursable
+`Formation.accessLifetime`(true)/`accessExpiresAt`(null)/`isRefundableAfterAccess`(false) ;
+`Sale.accessGrantedAt` (accès immédiat). `refundService.getDistancielRefundEligibility` →
+refus `distanciel_access_granted_non_refundable` une fois l'accès donné. Renonciation
+obligatoire avant accès immédiat (A1). Achat sans renonciation → `LEGAL_CONSENT_REQUIRED`.
+
+### C4/C5/C6 — Audits (non bloquants React)
+- **Promotions** (rapport 108) : dualité `Promotion`/`Service.promotion` → unifier (V2/pendant React).
+- **Acomptes** (rapport 109) : `deposit` bloqué V1 (`OFFER_BALANCE_UNSUPPORTED`), roadmap V2.
+- **Refactor contrôleurs** (rapports 110/111) : `clientController`/`mailService` monolithes →
+  extraction progressive (cœurs critiques d'abord, tests d'abord).

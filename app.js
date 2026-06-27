@@ -80,6 +80,7 @@ import { startSessionCancellationAutoRefundScheduler } from './automatisme/sessi
 import { startRefundRecoveryScheduler } from './automatisme/refundRecoveryJob.js';
 import { startContractPaymentSyncJob } from './automatisme/contractPaymentSyncJob.js';
 import { startPendingPaymentCleanupJob } from './automatisme/pendingPaymentCleanupJob.js';
+import { startGiftCardRecreditRecoveryScheduler } from './automatisme/giftCardRecreditRecoveryJob.js';
 import {
   gestionRouter as editableContentGestionRouter,
   vitrineRouter as editableContentVitrineRouter
@@ -507,6 +508,7 @@ startStripeFeesRecoveryScheduler('startup');
 startGiftCardReservationCleanupScheduler('startup');
 startContractPaymentSyncJob();
 startPendingPaymentCleanupJob();
+startGiftCardRecreditRecoveryScheduler();
 
 const PORT = Number(process.env.PORT || 3000);
 app.listen(PORT, () => {

@@ -212,7 +212,10 @@ export async function createStripeInvoiceForSale(sale, user) {
         stripeInvoiceId: finalized.id,
         stripeInvoiceNumber: finalized.number,
         stripeInvoicePdfUrl: finalized.invoice_pdf,
-        stripeHostedUrl: finalized.hosted_invoice_url
+        stripeHostedUrl: finalized.hosted_invoice_url,
+        // C2 — la facture Stripe attachée devient la facture officielle/fiscale.
+        documentKind: 'stripe_official',
+        official: true
       }
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }

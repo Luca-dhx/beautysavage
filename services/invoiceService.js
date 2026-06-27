@@ -307,7 +307,31 @@ export async function createInvoiceForSale(sale) {
     fileName,
     pdfPath: relativePath,
     htmlContent,
-    invoiceDate
+    invoiceDate,
+    // C2 — le PDF interne est un snapshot opérationnel NON fiscal. La facture officielle
+    // reste la facture Stripe (cf. resolveOfficialInvoiceRef / stripeInvoiceService).
+    documentKind: 'internal_snapshot',
+    official: false
   });
   return invoiceDoc;
+}
+
+/**
+ * Pré-React C2 — Résout la référence de facture OFFICIELLE (fiscale) d'une vente.
+ * La source officielle est la facture STRIPE ; le PDF interne n'est jamais officiel.
+ * @param {object} invoice document Invoice (lean ou doc)
+ * @returns {{ official: boolean, source: 'stripe'|'none', id: string|null, url: string|null }}
+ */
+export function resolveOfficialInvoiceRef(invoice) {
+  const stripeInvoiceId = String(invoice?.stripeInvoiceId || '').trim();
+  if (stripeInvoiceId) {
+    return {
+      official: true,
+      source: 'stripe',
+      id: stripeInvoiceId,
+      url: String(invoice?.stripeHostedUrl || invoice?.stripeInvoicePdfUrl || '').trim() || null
+    };
+  }
+  // Aucune facture Stripe (ex. 0 € / carte cadeau 100 %) → pas de document fiscal officiel.
+  return { official: false, source: 'none', id: null, url: null };
 }

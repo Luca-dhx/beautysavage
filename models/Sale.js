@@ -186,6 +186,12 @@ const saleSchema = new mongoose.Schema(
       enum: ['manual_pending', 'immediate', null],
       default: null
     },
+    // Pré-React C3 — horodatage de l'octroi d'accès distanciel (accès immédiat). Une fois
+    // posé, la formation distancielle n'est plus remboursable (contenu numérique à vie).
+    accessGrantedAt: {
+      type: Date,
+      default: null
+    },
     // Pré-React B1 — snapshot fiscal V1 (franchise en base, TVA non applicable).
     // HT = TTC, vatAmount = 0. Source : constants/tax.js. Tous champs optionnels :
     // les ventes historiques restent valides.

@@ -344,6 +344,15 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Pré-React C1-C3 (rapports 107-112)
+
+- `giftCardRecreditRecovery.test.js` (C1) — reprise `rollback_needed` (réussie, idempotente
+  sans double-crédit, balayage, échec persistant → compteur, refund succeeded intact).
+- `stripeInvoicesOfficialSource.test.js` (C2) — facture officielle = Stripe ; PDF interne
+  non fiscal ; 0 € sans facture officielle ; commission Stripe Dev ; label 293 B.
+- `distanceLearningLifetimeAccessRefund.test.js` (C3) — distanciel sans renonciation refusé ;
+  accès immédiat → granted/lifetime + snapshot légal ; remboursement après accès refusé.
+
 ## Correction commissions (rapports 104-106)
 
 Six suites `p1` valident l'unification de la facturation des commissions :

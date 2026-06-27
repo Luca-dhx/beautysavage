@@ -44,6 +44,11 @@ const serviceBookingSchema = new mongoose.Schema({
 
   totalPrice: { type: Number, required: true },
   depositAmount: { type: Number, default: 0 },
+  // Pré-React D3 — acompte : montant total vendu + solde restant (réglé sur place en V1).
+  totalSoldAmount: { type: Number, default: 0 },
+  balanceDueAmount: { type: Number, default: 0 },
+  balanceSettlementMode: { type: String, enum: ['none', 'pay_on_site', null], default: null },
+  balancePaidAt: { type: Date, default: null },
 
   paymentType: {
     type: String,

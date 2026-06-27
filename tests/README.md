@@ -344,6 +344,17 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Pré-React D1-D4 (rapports 115-119)
+
+- `promotionMigrationService.test.js` (D1) — Promotion source unique (priorité Promotion,
+  fallback Service.promotion legacy, jamais les deux) ; migration dry-run/--apply.
+- `giftCardUsageReceipt.test.js` (D2) — commande 100 % carte cadeau → reçu interne non fiscal
+  (`gift_card_usage_receipt`) ; facture officielle = Stripe ; label 293 B.
+- `depositPaymentFlow.test.js` (D3) — acompte autorisé si `pay_on_site` (sinon bloqué) ;
+  solde tracé ; remboursement capé à l'acompte ; `markBalancePaidOnSite`.
+- `businessHistoryCleanup.test.js` (D4) — dry-run ne supprime rien ; `--apply` cible les
+  collections transactionnelles ; configuration (Service…) toujours intacte.
+
 ## Unification promotions + base commission (rapports 113-114)
 
 - `promotionSingleApplication.test.js` — une seule promotion (pickSinglePromotion meilleure

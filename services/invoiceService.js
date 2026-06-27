@@ -246,6 +246,25 @@ function renderPdf(targetPath, payload) {
     doc.font('Helvetica-Bold').fontSize(12).text(`Montant total : ${payload.totalAmount}`, {
       align: 'right'
     });
+    // D2 — carte cadeau comme LIGNE DE RÈGLEMENT (pas une remise) + reste à payer.
+    const gc = payload.giftCardReceipt;
+    if (gc && Number(gc.giftCardPaymentAmount) > 0) {
+      doc.font('Helvetica').fontSize(11).text(
+        `Carte cadeau (règlement) : -${formatCurrency(gc.giftCardPaymentAmount)}`,
+        { align: 'right' }
+      );
+      doc.font('Helvetica-Bold').fontSize(12).text(
+        `Reste à payer : ${formatCurrency(gc.balanceDue)}`,
+        { align: 'right' }
+      );
+      if (gc.fullyCoveredByGiftCard) {
+        doc.moveDown(0.3);
+        doc.font('Helvetica-Oblique').fontSize(9).text(
+          'Reçu d\'utilisation de carte cadeau — document interne, non fiscal.',
+          { align: 'left' }
+        );
+      }
+    }
     doc.moveDown(1.2);
     doc.font('Helvetica').fontSize(9).text(LEGAL_MENTION, {
       align: 'left'
@@ -255,6 +274,29 @@ function renderPdf(targetPath, payload) {
     stream.on('finish', resolve);
     stream.on('error', reject);
   });
+}
+
+/**
+ * Pré-React D2 — Info "carte cadeau comme règlement" pour le reçu interne.
+ * La carte cadeau n'est PAS une remise : ligne de règlement, le prix vendu reste inchangé.
+ * @param {object} sale
+ * @returns {{ soldAmount:number, giftCardPaymentAmount:number, balanceDue:number, fullyCoveredByGiftCard:boolean }}
+ */
+export function buildGiftCardReceiptInfo(sale) {
+  const soldAmount = roundToCents(sale?.totalAmount);
+  const giftCardPaymentAmount = roundToCents(
+    (Array.isArray(sale?.giftCardUsage) ? sale.giftCardUsage : []).reduce(
+      (sum, g) => sum + Number(g?.amountUsed || 0),
+      0
+    )
+  );
+  const balanceDue = roundToCents(Math.max(0, soldAmount - giftCardPaymentAmount));
+  return {
+    soldAmount,
+    giftCardPaymentAmount,
+    balanceDue,
+    fullyCoveredByGiftCard: giftCardPaymentAmount > 0 && balanceDue <= 0
+  };
 }
 
 export async function createInvoiceForSale(sale) {
@@ -286,6 +328,8 @@ export async function createInvoiceForSale(sale) {
   const fileName = `facture-${invoiceNumber}.pdf`;
   const filePath = path.join(STORAGE_DIR, fileName);
   await ensureStorageDir();
+  // D2 — la carte cadeau apparaît comme ligne de RÈGLEMENT (pas une remise).
+  const giftCardReceipt = buildGiftCardReceiptInfo(sale);
   await renderPdf(filePath, {
     vendorName: process.env.INSTITUTE_NAME || 'Institut Beauty Savage',
     vendorEmail: process.env.INVOICE_CONTACT_EMAIL || process.env.MAIL_FROM || 'contact@beautysavage.fr',
@@ -295,6 +339,7 @@ export async function createInvoiceForSale(sale) {
     invoiceDate: formatDisplayDate(invoiceDate),
     saleId: sale.saleId,
     totalAmount: formatCurrency(sale.totalAmount),
+    giftCardReceipt,
     items
   });
   const relativePath = path.relative(process.cwd(), filePath);
@@ -308,9 +353,10 @@ export async function createInvoiceForSale(sale) {
     pdfPath: relativePath,
     htmlContent,
     invoiceDate,
-    // C2 — le PDF interne est un snapshot opérationnel NON fiscal. La facture officielle
-    // reste la facture Stripe (cf. resolveOfficialInvoiceRef / stripeInvoiceService).
-    documentKind: 'internal_snapshot',
+    // C2/D2 — document interne NON fiscal. Si la commande est réglée 100 % en carte cadeau,
+    // c'est un REÇU D'UTILISATION de carte cadeau (gift_card_usage_receipt) ; sinon un
+    // snapshot interne. La facture officielle reste la facture Stripe (resolveOfficialInvoiceRef).
+    documentKind: giftCardReceipt.fullyCoveredByGiftCard ? 'gift_card_usage_receipt' : 'internal_snapshot',
     official: false
   });
   return invoiceDoc;

@@ -42,6 +42,13 @@ const serviceSchema = new mongoose.Schema({
     default: 'percentage'
   },
   depositValue: { type: Number, default: 0 },
+  // Pré-React D3 — circuit de règlement du solde d'acompte. 'none' = aucun circuit (acompte
+  // BLOQUÉ, cf. A7). 'pay_on_site' = solde tracé et réglé sur place (acompte AUTORISÉ en V1).
+  balanceSettlementMode: {
+    type: String,
+    enum: ['none', 'pay_on_site'],
+    default: 'none'
+  },
 
   capacity: { type: Number, default: 1, min: 1 },
   bufferTime: { type: Number, default: 0, min: 0 },

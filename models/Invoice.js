@@ -72,7 +72,10 @@ const invoiceSchema = new mongoose.Schema(
     //   official: true uniquement quand un stripeInvoiceId est présent.
     documentKind: {
       type: String,
-      enum: ['internal_snapshot', 'stripe_official'],
+      // D2 — gift_card_usage_receipt : reçu d'utilisation carte cadeau (commande réglée 100 %
+      // en carte cadeau), NON fiscal. internal_snapshot : PDF interne non fiscal.
+      // stripe_official : facture Stripe officielle (fiscale).
+      enum: ['internal_snapshot', 'gift_card_usage_receipt', 'stripe_official'],
       default: 'internal_snapshot'
     },
     official: {

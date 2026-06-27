@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 import Promotion from '../models/Promotion.js';
 
-const VALID_TARGETS = ['product', 'formation'];
+const VALID_TARGETS = ['product', 'formation', 'service'];
 
 function normalizeTargetType(value) {
   const candidate = String(value || '').trim().toLowerCase();
@@ -92,6 +92,37 @@ export function calculateFinalPrice(basePrice, promotion) {
   }
   const discountAmount = roundToCents(normalizedBase - finalPrice);
   return { finalPrice, discountAmount };
+}
+
+// Pré-React D1 — Prix unitaire effectif d'une prestation après promotion. SOURCE UNIQUE :
+// la `Promotion(targetType:'service')` officielle est prioritaire ; à défaut, fallback sur
+// le sous-document legacy `Service.promotion`. JAMAIS les deux (pas de cumul).
+export async function resolveEffectiveServiceUnitPrice(service, now = new Date()) {
+  const base = Number(service?.price || 0);
+  const effectiveDate = ensureDate(now);
+
+  // 1. Promotion officielle (modèle Promotion).
+  const promo = await getActivePromotion('service', service?._id, effectiveDate);
+  if (promo) {
+    const { finalPrice, discountAmount } = calculateFinalPrice(base, promo);
+    return { unitPrice: finalPrice, discountAmount, source: 'promotion', promotionId: promo._id || null };
+  }
+
+  // 2. Fallback legacy : Service.promotion (déprécié — migrer vers Promotion).
+  const legacy = service?.promotion;
+  if (legacy?.isActive) {
+    const start = legacy.startDate ? new Date(legacy.startDate) : null;
+    const end = legacy.endDate ? new Date(legacy.endDate) : null;
+    if ((!start || effectiveDate >= start) && (!end || effectiveDate <= end)) {
+      let finalPrice = base;
+      if (legacy.type === 'percentage') finalPrice = base - (base * Number(legacy.value || 0)) / 100;
+      else finalPrice = base - Number(legacy.value || 0);
+      finalPrice = roundToCents(Math.max(0, finalPrice));
+      return { unitPrice: finalPrice, discountAmount: roundToCents(base - finalPrice), source: 'service.promotion_legacy', promotionId: null };
+    }
+  }
+
+  return { unitPrice: roundToCents(base), discountAmount: 0, source: null, promotionId: null };
 }
 
 export function buildPromotionSummary(promotion) {

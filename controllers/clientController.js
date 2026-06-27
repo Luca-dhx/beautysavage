@@ -25,7 +25,8 @@ import { recordCommissionTransactions } from '../services/commissionService.js';
 import {
   calculateFinalPrice,
   getActivePromotion,
-  getActivePromotionsForTargets
+  getActivePromotionsForTargets,
+  resolveEffectiveServiceUnitPrice
 } from '../services/promotionService.js';
 import {
   sendClientSessionCancellationEmail,
@@ -2691,20 +2692,9 @@ async function processServiceCheckoutStatePurchase({
     throw Object.assign(new Error('Prestation introuvable ou inactive.'), { status: 404 });
   }
 
-  // Compute effective service price (apply promo if active)
-  const effectiveServicePrice = (() => {
-    const promo = service.promotion;
-    if (promo?.isActive) {
-      const now = new Date();
-      const start = promo.startDate ? new Date(promo.startDate) : null;
-      const end = promo.endDate ? new Date(promo.endDate) : null;
-      if ((!start || now >= start) && (!end || now <= end)) {
-        if (promo.type === 'percentage') return roundToCents(service.price * (1 - promo.value / 100));
-        if (promo.type === 'fixed') return roundToCents(Math.max(0, service.price - promo.value));
-      }
-    }
-    return service.price;
-  })();
+  // D1 — prix prestation après promotion : SOURCE UNIQUE (Promotion(service) prioritaire,
+  // fallback Service.promotion legacy ; jamais les deux).
+  const { unitPrice: effectiveServicePrice } = await resolveEffectiveServiceUnitPrice(service, new Date());
 
   // Validate and price selected options
   const rawOptions = Array.isArray(serviceData.selectedOptions) ? serviceData.selectedOptions : [];
@@ -2772,6 +2762,10 @@ async function processServiceCheckoutStatePurchase({
   const startAt = new Date(serviceData.slotStart);
   const endAt = new Date(serviceData.slotEnd);
 
+  // D3 — acompte : solde tracé (réglé sur place en V1, balanceSettlementMode='pay_on_site').
+  const isDeposit = service.paymentType === 'deposit';
+  const balanceDueAmount = isDeposit ? roundToCents(Math.max(0, totalPrice - depositAmount)) : 0;
+
   // Create ServiceBooking
   const { booking } = await createServiceBookingWithProtection({
     bookingData: {
@@ -2783,8 +2777,11 @@ async function processServiceCheckoutStatePurchase({
       endAt,
       totalPrice,
       depositAmount,
+      totalSoldAmount: roundToCents(totalPrice),
+      balanceDueAmount,
+      balanceSettlementMode: isDeposit ? (service.balanceSettlementMode || 'none') : null,
       paymentType: service.paymentType || 'full',
-      paymentStatus: service.paymentType === 'deposit' ? 'deposit_paid' : 'paid',
+      paymentStatus: isDeposit ? 'deposit_paid' : 'paid',
       status: 'confirmed',
       selectedOptions: validatedOptions,
       consumerWaiverSnapshot,

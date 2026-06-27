@@ -23,6 +23,7 @@ import GiftCard from '../models/GiftCard.js';
 import GiftCardConfig from '../models/GiftCardConfig.js';
 import { getActivePromotion } from './promotionService.js';
 import { calculateFinalPrice } from './promotionService.js';
+import { resolveEffectiveServiceUnitPrice } from './promotionService.js';
 import { buildTaxSnapshot } from '../constants/tax.js';
 import { buildPricingSnapshot, pickSinglePromotion } from '../constants/pricingConcepts.js';
 
@@ -44,20 +45,6 @@ function isValidObjectId(value) {
   return mongoose.Types.ObjectId.isValid(String(value || '').trim());
 }
 
-// Effective service price (promo inline, comme processServiceCheckoutStatePurchase).
-function effectiveServicePrice(service, now = new Date()) {
-  const base = Number(service?.price || 0);
-  const promo = service?.promotion;
-  if (promo?.isActive) {
-    const start = promo.startDate ? new Date(promo.startDate) : null;
-    const end = promo.endDate ? new Date(promo.endDate) : null;
-    if ((!start || now >= start) && (!end || now <= end)) {
-      if (promo.type === 'percentage') return roundToCents(base * (1 - Number(promo.value || 0) / 100));
-      if (promo.type === 'fixed') return roundToCents(Math.max(0, base - Number(promo.value || 0)));
-    }
-  }
-  return roundToCents(base);
-}
 
 // Couverture carte cadeau SERVEUR : capée au solde réel et au montant dû.
 // Lecture seule (aucun débit/réservation ici). Réplique la logique de planGiftCardUsage.
@@ -146,7 +133,8 @@ async function priceService(serviceData, now = new Date()) {
   const service = await Service.findById(serviceId).lean();
   if (!service || !service.isActive) throw pricingError('SERVICE_NOT_BOOKABLE', 'Prestation introuvable.', 404);
   const baseUnit = Number(service.price || 0);
-  const unit = effectiveServicePrice(service, now); // Service.promotion (legacy, source unique pour les prestations)
+  // D1 — source unique : Promotion(service) prioritaire, fallback Service.promotion legacy.
+  const { unitPrice: unit } = await resolveEffectiveServiceUnitPrice(service, now);
   let optionsTotal = 0;
   const rawOptions = Array.isArray(serviceData?.selectedOptions) ? serviceData.selectedOptions : [];
   for (const sel of rawOptions) {

@@ -6,6 +6,7 @@ import {
   markNoShow,
   markCompleted,
   cancelBookingByAdmin,
+  markBalancePaidOnSite,
   simulateReminders
 } from '../controllers/serviceBookingController.js';
 
@@ -21,5 +22,6 @@ router.get('/bookings/:bookingId/detail', getBookingDetail);
 router.post('/bookings/:bookingId/no-show', markNoShow);
 router.post('/bookings/:bookingId/complete', markCompleted);
 router.post('/bookings/:bookingId/cancel', cancelBookingByAdmin);
+router.post('/bookings/:bookingId/balance-paid', markBalancePaidOnSite);
 
 export default router;

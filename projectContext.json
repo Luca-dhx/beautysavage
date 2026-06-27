@@ -18,7 +18,24 @@
     "commissionSystemAudit": "completed",
     "commissionCorrection": "completed",
     "preReactC1C6": "completed",
-    "promotionsGiftCardCommissionBase": "completed"
+    "promotionsGiftCardCommissionBase": "completed",
+    "preReactD1D4": "completed"
+  },
+  "preReactD1D4": {
+    "date": "2026-06",
+    "branch": "phase-0-security-baseline",
+    "reports": ["115_audit_pre_react_d1_d4.md", "116_rapport_migration_promotions.md", "117_rapport_factures_recus_carte_cadeau.md", "118_rapport_acomptes_v1.md", "119_rapport_cleanup_business_history.md"],
+    "D1": "Promotion = source unique. Promotion.targetType += service. promotionService.resolveEffectiveServiceUnitPrice (Promotion(service) prioritaire, fallback Service.promotion legacy, jamais les deux). checkoutPricingService.priceService + processServiceCheckoutStatePurchase l'utilisent. Script scripts/migrateServicePromotionsToPromotionModel.js (dry-run/--apply, idempotent). Service.promotion = legacy/deprecated.",
+    "D2": "Facture officielle = Stripe (client + commission). Invoice.documentKind += gift_card_usage_receipt. Commande 100% carte cadeau -> recu interne NON fiscal; 0 EUR Stripe -> pas de facture officielle. PDF interne affiche la carte cadeau en ligne de reglement (buildGiftCardReceiptInfo). resolveOfficialInvoiceRef. Label 293B conserve.",
+    "D3": "Acompte V1: Service.balanceSettlementMode (none|pay_on_site). Acompte autorise uniquement si pay_on_site (sinon bloque A7 OFFER_BALANCE_UNSUPPORTED). ServiceBooking.totalSoldAmount/balanceDueAmount/balanceSettlementMode/balancePaidAt. Acompte encaisse en ligne (facture Stripe); solde regle sur place via POST /api/gestion/bookings/:bookingId/balance-paid (markBalancePaidOnSite). Remboursement cape a l'acompte (Sale.totalAmount=depositAmount). Pas de paiement Stripe du solde en V1.",
+    "D4": "scripts/cleanupBusinessHistory.js: dry-run par defaut, --apply, options --include-bookings/--include-event-logs/--include-send-logs. Whitelist stricte transactionnelle (Sale/RefundRequest/CommissionPayment/CommissionTransaction/Invoice/Purchase/StripeCheckoutIntent/GiftCardTransaction/BookingSlotLock + optionnels). Configuration (User/Service/Formation/Product/GiftCard/IntegratedApi/Contract/...) JAMAIS supprimee. Jamais au boot.",
+    "tests": "p1 promotionMigrationService/giftCardUsageReceipt/depositPaymentFlow/businessHistoryCleanup (+19). Suite 317 verts (p0=44, p1=267, integration=6), audit business 36, audit commissions 20",
+    "limitesRestantes": [
+      "Migration Service.promotion -> Promotion non executee auto (script volontaire); retrait du sous-document apres --apply en prod",
+      "Acompte: pas de paiement Stripe du solde en V1 (regle sur place); relance solde + remboursement partiel du solde = V2; formations presentielles en acompte non cablees",
+      "Limites juridiques recu/facture a valider par conseil comptable (293B)"
+    ],
+    "verdictReact": "GO React. Promotion unifiee, facture officielle Stripe clarifiee, recu carte cadeau non fiscal, acompte deblocable proprement (pay_on_site), cleanup volontaire securise. Dettes restantes non bloquantes (V2)."
   },
   "promotionsGiftCardCommissionBase": {
     "date": "2026-06",

@@ -44,7 +44,6 @@ function roundToCents(value) {
 export function evaluateServiceOfferReadiness(service) {
   const paymentType = String(service?.paymentType || 'full').toLowerCase();
   if (paymentType === 'deposit') {
-    // L'acompte est encaissé mais le solde n'est jamais collecté automatiquement.
     const total = roundToCents(service?.price);
     let deposit = 0;
     if (String(service?.depositType || '') === 'percentage') {
@@ -52,11 +51,29 @@ export function evaluateServiceOfferReadiness(service) {
     } else {
       deposit = roundToCents(Math.min(Number(service?.depositValue || 0), total));
     }
+    const balanceDue = roundToCents(Math.max(0, total - deposit));
+    // Pré-React D3 — l'acompte est AUTORISÉ uniquement si un circuit de solde existe
+    // (`balanceSettlementMode='pay_on_site'` : solde tracé et réglé sur place). Sinon BLOQUÉ
+    // (réservation financièrement incomplète sans circuit de solde).
+    const settlementMode = String(service?.balanceSettlementMode || 'none').toLowerCase();
+    if (settlementMode === 'pay_on_site') {
+      return {
+        ready: true,
+        code: null,
+        remainingPaymentRequired: true,
+        depositAmount: deposit,
+        balanceDue,
+        balanceSettlementMode: 'pay_on_site',
+        paymentType
+      };
+    }
     return {
       ready: false,
       code: OFFER_READINESS_CODES.OFFER_BALANCE_UNSUPPORTED,
       remainingPaymentRequired: true,
-      balanceDue: roundToCents(Math.max(0, total - deposit)),
+      depositAmount: deposit,
+      balanceDue,
+      balanceSettlementMode: settlementMode,
       paymentType
     };
   }
@@ -64,7 +81,9 @@ export function evaluateServiceOfferReadiness(service) {
     ready: true,
     code: null,
     remainingPaymentRequired: false,
+    depositAmount: 0,
     balanceDue: 0,
+    balanceSettlementMode: null,
     paymentType
   };
 }

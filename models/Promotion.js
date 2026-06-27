@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 
-const PROMOTION_TARGETS = ['product', 'formation'];
+// Pré-React D1 — `service` ajouté : Promotion devient la source officielle unique de
+// promotion, y compris pour les prestations (Service.promotion devient legacy).
+const PROMOTION_TARGETS = ['product', 'formation', 'service'];
 const PROMOTION_TYPES = ['fixed', 'percentage'];
 
 const promotionSchema = new mongoose.Schema(

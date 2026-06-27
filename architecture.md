@@ -2909,7 +2909,7 @@ Socle backend du futur Email Template Studio. **Aucune UI, aucune automatisation
 - Diagnostic : `GET /api/gestion/dev/events` (`requireStrictDev`).
 
 ## Tests
-- **298 tests verts** / 70 fichiers : **p0 = 44**, **p1 = 248**, **integration = 6**
+- **317 tests verts** / 74 fichiers : **p0 = 44**, **p1 = 267**, **integration = 6**
   (inclut les Sprints pré-React A1-A3, A4-A7 et B1-B2 — voir sections dédiées plus bas).
 - Harnais d'audit séparés (exclus de `npm test`) : `npm run audit:business-scenarios`
   (36 probes) et `npm run audit:commissions` (20 probes).
@@ -3151,3 +3151,30 @@ Ne réduit JAMAIS `soldPrice` ni la base de commission. `pricingSnapshot.giftCar
 `Sale.pricingSnapshot` (catalog/promo/sold/giftCard/stripe/commissionBase/refundable) renseigné
 par `persistSale` (formation/produit/carte cadeau/panier/mock) et la vente prestation.
 Additif, non rétro-rempli.
+
+## Pré-React D1-D4 (2026-06 — rapports 115-119)
+
+### D1 — Promotion = source unique (Service.promotion legacy)
+`Promotion.targetType` += `service`. `promotionService.resolveEffectiveServiceUnitPrice` :
+Promotion(service) **prioritaire**, fallback `Service.promotion` legacy, **jamais les deux**.
+`checkoutPricingService.priceService` + `processServiceCheckoutStatePurchase` l'utilisent.
+Script `scripts/migrateServicePromotionsToPromotionModel.js` (dry-run / `--apply`).
+
+### D2 — Facture officielle Stripe / reçu carte cadeau
+`Invoice.documentKind` += `gift_card_usage_receipt`. Commande 100 % carte cadeau → reçu
+interne **non fiscal** ; facture officielle = Stripe (`resolveOfficialInvoiceRef`). PDF interne
+affiche la carte cadeau en **ligne de règlement** (`buildGiftCardReceiptInfo`).
+
+### D3 — Acompte V1 (pay_on_site)
+`Service.balanceSettlementMode` (`none`|`pay_on_site`). Acompte autorisé **uniquement** si
+`pay_on_site` (sinon bloqué A7). `ServiceBooking` : `totalSoldAmount`/`balanceDueAmount`/
+`balanceSettlementMode`/`balancePaidAt`. Acompte encaissé en ligne (facture Stripe) ; solde
+**réglé sur place** via `POST /api/gestion/bookings/:bookingId/balance-paid`
+(`markBalancePaidOnSite`). Remboursement capé à l'acompte (`Sale.totalAmount=depositAmount`).
+Pas de paiement Stripe du solde en V1.
+
+### D4 — Cleanup historique
+`scripts/cleanupBusinessHistory.js` : dry-run par défaut, `--apply`, options
+`--include-bookings/--include-event-logs/--include-send-logs`. Whitelist stricte des
+collections transactionnelles ; configuration (User/Service/Formation/Product/GiftCard/
+IntegratedApi/Contract/…) **jamais** supprimée. Jamais au boot.

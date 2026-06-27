@@ -721,6 +721,39 @@ export async function markCompleted(req, res) {
   }
 }
 
+// ─── POST /api/gestion/bookings/:bookingId/balance-paid ────────────────────
+// Pré-React D3 — solde d'acompte réglé sur place (pay_on_site). Trace le règlement du
+// solde : balanceDueAmount → 0, paymentStatus 'paid'. Idempotent.
+export async function markBalancePaidOnSite(req, res) {
+  try {
+    const { bookingId } = req.params;
+    const booking = await ServiceBooking.findOne({ bookingId });
+    if (!booking) return res.status(404).json({ ok: false, error: 'Réservation introuvable.' });
+    if (booking.paymentType !== 'deposit') {
+      return res.status(409).json({ ok: false, error: 'Cette réservation n\'est pas un acompte.' });
+    }
+    if (booking.balanceSettlementMode !== 'pay_on_site') {
+      return res.status(409).json({ ok: false, code: 'BALANCE_NO_CIRCUIT', error: 'Aucun circuit de règlement du solde.' });
+    }
+    if (booking.paymentStatus === 'paid' && Number(booking.balanceDueAmount || 0) <= 0) {
+      return res.json({ ok: true, idempotent: true, balanceDueAmount: 0 });
+    }
+    booking.balanceDueAmount = 0;
+    booking.paymentStatus = 'paid';
+    booking.balancePaidAt = new Date();
+    await booking.save();
+    // Audit-only event (best-effort).
+    await emitBookingEvent('booking.balance_paid_on_site', booking, {
+      actorType: getSessionUserId(req) ? 'user' : 'system',
+      actorId: getSessionUserId(req) ? String(getSessionUserId(req)) : null
+    });
+    return res.json({ ok: true, balanceDueAmount: 0, paymentStatus: 'paid' });
+  } catch (error) {
+    console.error('markBalancePaidOnSite error', error);
+    return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
+  }
+}
+
 // ─── POST /api/gestion/bookings/:bookingId/cancel ──────────────────────────
 
 export async function cancelBookingByAdmin(req, res) {

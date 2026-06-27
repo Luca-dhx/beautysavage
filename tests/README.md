@@ -344,6 +344,17 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Sprint F2 — Extraction Stripe (rapports 125-126)
+
+- `stripeControllerExtractionParity.test.js` (+4) — le contrôleur `stripeController` (1727 → 135
+  lignes) n'est qu'un délégateur : la logique vit dans `services/stripe/*`. Vérifie les 7 handlers,
+  `GET /config` 200/500, createCheckoutSession 401, **aucun secret exposé**.
+- `stripeWebhookExtractionParity.test.js` (+4) — routing webhook inchangé après extraction :
+  signature invalide → 400, event non géré → 200 `{received:true}`, résultat structuré
+  `{status, json}` du service, `payment_intent.payment_failed` sans id → 200.
+- Domaine couvert inchangé (idempotence PI/refund, secret coffre, failure log safe, pricing
+  serveur, amount tampering, invoices officielles) par les suites existantes, toutes vertes.
+
 ## Sprint F1 — Extraction Checkout (rapports 123-124)
 
 - `checkoutExtractionParity.test.js` (+4) — prouve que l'extraction du domaine Checkout hors de

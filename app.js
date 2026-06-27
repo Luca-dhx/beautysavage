@@ -95,7 +95,7 @@ import {
   listPendingStripeFeesSales,
   recoverStripeFeesAndUpdateSale,
   registerPendingStripeFeeCreatedListener
-} from './controllers/stripeController.js';
+} from './services/stripe/stripeFeeService.js';
 import { cleanupExpiredGiftCardReservations } from './services/giftCardReservationService.js';
 import { getRefundByTrackingToken } from './controllers/salesController.js';
 import { assertBusinessTimezone } from './constants/timezone.js';

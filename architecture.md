@@ -3226,3 +3226,24 @@ domaine Checkout vit dans `services/checkout/` (DAG acyclique). Rapports 123 + 1
   La branche gift-card du dispatcher charge giftCardController par import dynamique (pas de cycle).
 - Identité référentielle prouvée par `tests/p1/checkoutExtractionParity.test.js` (aucune duplication).
 - `createCheckoutSession`/`handleWebhook` restent dans stripeController → **Sprint F2**.
+
+## Sprint F2 — Extraction du domaine Stripe (2026-06-28)
+`stripeController` (1727 → **135 lignes**, −92 %) devient un orchestrateur HTTP mince : 7 handlers
+délégateurs (requête → service → `stripeResponseMapper`). Domaine dans `services/stripe/` (DAG
+acyclique). Rapports 125 + 126. **Zéro changement fonctionnel / contrat API / statut HTTP /
+payload / pricing / commission / refund / invoice / booking.**
+- `stripeConfigService` : `getStripeClient`, `getStripePublishableKey`, `getStripeWebhookSecret`
+  (compte institut via `getCredential`).
+- `stripeMetadataService` : build/parse metadata PaymentIntent + `buildWebhookFallbackPayload`.
+- `stripeFeeService` : récupération frais Stripe (BalanceTransaction) ; **app.js repointé** (job).
+- `stripeCheckoutService` : `createCheckoutSessionFromRequest` + validateurs (legal A1, offre A7,
+  anti-doublon, pricing serveur B2 faisant foi), StripeCheckoutIntent, réservation carte cadeau.
+- `stripeWebhookService` : `handleWebhookFromRequest` (secret + `constructEvent` + routing + failure log).
+- `stripeWebhookEventHandlers` : `payment_intent.succeeded` (idempotence E11000 / fallback / retry /
+  recovery frais) + `payment_intent.payment_failed`.
+- `stripeRefundEventService` : `charge.refund.updated` (credit note, recredit carte cadeau, reversal).
+- `stripePaymentQueryService` : `getSessionStatus` / `getPaymentResult`.
+- `stripeResponseMapper` : `send(res, { status, json|send })` — JSON (API) vs texte (webhook) préservés.
+- Handlers délégateurs : `handleWebhook`/`getConfig` gardent `(req,res)` (appels directs en test).
+  Parité prouvée par `stripeControllerExtractionParity` + `stripeWebhookExtractionParity`.
+- Reste (F2B) : Stripe **Dev** (`devWebhookController`, facturation contrat/commission) non touché.

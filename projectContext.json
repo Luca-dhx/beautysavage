@@ -21,7 +21,36 @@
     "promotionsGiftCardCommissionBase": "completed",
     "preReactD1D4": "completed",
     "preReactE1E2": "completed",
-    "preReactF1CheckoutExtraction": "completed"
+    "preReactF1CheckoutExtraction": "completed",
+    "preReactF2StripeExtraction": "completed"
+  },
+  "preReactF2StripeExtraction": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["125_audit_pre_sprint_f2_stripe_extraction.md", "126_rapport_sprint_f2_stripe_extraction.md"],
+    "summary": "Extraction du domaine Stripe hors de stripeController (1727 -> 135 lignes, -92%). Controleur = orchestrateur HTTP mince (7 handlers delegateurs -> service -> stripeResponseMapper). ZERO changement fonctionnel/contrat API/statut HTTP/payload/pricing/commission/refund/invoice/booking.",
+    "servicesCreated": {
+      "stripeConfigService": "getStripeClient / getStripePublishableKey / getStripeWebhookSecret (compte institut via getCredential). Feuille du DAG.",
+      "stripeMetadataService": "build/parse metadata PaymentIntent + buildWebhookFallbackPayload + normalizeStripeId/Currency.",
+      "stripeFeeService": "recovery frais Stripe (fetch/persist/recover/count/list + listener). app.js repointe (job).",
+      "stripeCheckoutService": "createCheckoutSessionFromRequest + validateurs (legal A1, offre A7, anti-doublon, pricing serveur B2), StripeCheckoutIntent, reservation carte cadeau.",
+      "stripeRefundEventService": "handleRefundUpdatedEvent (charge.refund.updated) : credit note, recredit carte cadeau, commission reversal.",
+      "stripeWebhookEventHandlers": "payment_intent.succeeded (idempotence E11000/fallback/retry/fees) + payment_intent.payment_failed.",
+      "stripeWebhookService": "handleWebhookFromRequest : secret + constructEvent + routing + failure log.",
+      "stripePaymentQueryService": "getSessionStatusFromRequest / getPaymentResultFromRequest.",
+      "stripeResponseMapper": "send(res, {status, json|send}) — JSON (API) vs texte (webhook) preserves."
+    },
+    "dag": "webhookService -> {webhookEventHandlers -> {checkoutFacade, feeService, metadata, webhookFailure}, refundEventService} ; checkoutService -> {config, metadata, pricing, legal, offer, giftCardReservation} ; feeService -> {config, metadata} ; tous -> config (feuille). Acyclique (charge verifie).",
+    "controllerHandlers": ["createCheckoutSession", "handleWebhook", "getSessionStatus", "getPaymentResult", "getConfig", "getTransactionFees", "getPendingFeesCount"],
+    "note": "handleWebhook et getConfig gardent la signature (req,res) — appeles directement en test. app.js importe les fns frais depuis stripeFeeService.",
+    "tests": "329 verts (p0=44, p1=279, integration=6) dont stripeControllerExtractionParity + stripeWebhookExtractionParity (+8). audit business 36, audit commissions 20.",
+    "gate": "git grep constructEvent/payment_intent.succeeded/charge.refund.updated/handleRefundUpdatedEvent dans stripeController = aucune occurrence (logique deplacee). createCheckoutSession = delegateur mince uniquement.",
+    "detteRestante": [
+      "F2B Stripe Dev: devWebhookController (~271 lignes) + facturation contrat/commission NON touche, a extraire vers services/stripe/dev/* en reutilisant le pattern config/webhook/responseMapper",
+      "Split interne mailService (rapport 122) toujours en attente",
+      "Possible saleFinalizationPort pour decoupler webhook <-> checkout"
+    ],
+    "recommandationF3": "F2B Stripe Dev (compte plateforme) puis split mailService (mailTemplateRuntime/mailContextResolver/mailBrevoGateway/mailTrackingService) derriere mailDispatcher (seam E2). Tests de caracterisation avant chaque deplacement."
   },
   "preReactF1CheckoutExtraction": {
     "date": "2026-06-28",

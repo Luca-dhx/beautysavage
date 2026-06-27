@@ -12,7 +12,8 @@
         "test:watch": "vitest",
         "test:p0": "vitest run tests/p0",
         "test:p1": "vitest run tests/p1",
-        "test:integration": "vitest run tests/integration"
+        "test:integration": "vitest run tests/integration",
+        "audit:business-scenarios": "vitest run --config vitest.audit.config.js"
     },
     "dependencies": {
         "argon2": "^0.41.1",

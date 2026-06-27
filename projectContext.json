@@ -12,7 +12,31 @@
     "phase4e": "completed",
     "phase5a": "completed",
     "sprintPreReactA1A3": "completed",
-    "sprintPreReactA4A7": "completed"
+    "sprintPreReactA4A7": "completed",
+    "deepBusinessAudit": "completed"
+  },
+  "deepBusinessAudit": {
+    "date": "2026-06",
+    "branch": "phase-0-security-baseline",
+    "type": "audit lecture seule (aucun code metier modifie)",
+    "reports": [
+      "89_audit_cartographie_circuits_metier.md",
+      "90_catalogue_100_scenarios_metier.md (125 scenarios)",
+      "91_audit_multi_prestataires.md",
+      "92_audit_tva_factures_avoirs_deep.md",
+      "93_audit_reductions_promotions.md",
+      "94_audit_fragilites_systemiques.md",
+      "95_roadmap_corrections_pre_react_deep.md",
+      "96_verdict_deep_go_no_go_react.md"
+    ],
+    "harness": "tests/audit/businessScenarioMatrix.test.js (36 probes vertes) via npm run audit:business-scenarios (config vitest.audit.config.js, exclu de npm test)",
+    "bilan": "PASS 78 / FRAGILE 27 / FAIL 6 / INDETERMINE 14. Score global 72/100.",
+    "verdict": "GO React conditionnel: demarrage UI immediat sur circuits PASS; Bac 1 (TVA regime, montant Stripe vs catalogue, reconciliation commission) a traiter avant de figer l'API factures/commissions.",
+    "blocantsAvantReact": [
+      "B1 decision regime TVA (293B vs assujetti) - aucune TVA calculee/stockee aujourd'hui",
+      "B2 contrainte montant Stripe encaisse vs catalogue avant PaymentIntent",
+      "B3 reconciliation commission (ledger CommissionTransaction vs computeCommissionsForPeriod) + claw-back"
+    ]
   },
   "sprintPreReactA4A7": {
     "date": "2026-06",

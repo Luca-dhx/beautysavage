@@ -330,6 +330,19 @@ tests/
   acompte bloquée (`OFFER_BALANCE_UNSUPPORTED`), distanciel immédiat sans accès bloqué
   (`OFFER_ACCESS_UNAVAILABLE`), distanciel manuel marqué `accessDeliveryStatus='manual_pending'`.
 
+## Audit pré-React — matrice de scénarios métier (rapports 89-96)
+
+Harnais **exploratoire et isolé** : `tests/audit/businessScenarioMatrix.test.js`
+(**36 probes de caractérisation** vertes). Couvre créneaux/locks multi-praticiennes,
+éligibilités remboursement, split carte cadeau, commission (A5), promotions, garde-fous
+offres (A7), consentement (A1), observabilité webhook (A6), anti-doublon remboursement.
+
+- Lancement dédié : `npm run audit:business-scenarios` (config `vitest.audit.config.js`).
+- **Exclu** de `npm test` (via `exclude: ['tests/audit/**']` dans `vitest.config.js`) pour
+  qu'un scénario révélant un FAIL/FRAGILE ne casse jamais le CI P0/P1/integration.
+- Chaque probe fige le comportement OBSERVÉ ; les risques (PASS/FAIL/FRAGILE/INDÉTERMINÉ)
+  sont classés analytiquement dans le rapport 90.
+
 ## Safety (no real secrets / no real DB)
 
 - `tests/setup/testEnv.js` sets fake values for every sensitive env var **before**

@@ -14,7 +14,35 @@
     "sprintPreReactA1A3": "completed",
     "sprintPreReactA4A7": "completed",
     "deepBusinessAudit": "completed",
-    "sprintPreReactB1B2": "completed"
+    "sprintPreReactB1B2": "completed",
+    "commissionSystemAudit": "completed"
+  },
+  "commissionSystemAudit": {
+    "date": "2026-06",
+    "branch": "phase-0-security-baseline",
+    "type": "audit lecture seule (aucune correction metier)",
+    "reports": [
+      "99_audit_commissions_systeme_actuel.md",
+      "100_audit_page_paiement_commissions_gestion.md",
+      "101_audit_stripe_institut_vs_developpeur.md",
+      "102_audit_regles_commissions_cibles.md",
+      "103_roadmap_corrections_commissions.md"
+    ],
+    "harness": "tests/audit/commissionScenarioMatrix.test.js (20 probes vertes) via npm run audit:commissions",
+    "decisionMetier": "Commission sur prix reellement paye (carte cadeau incluse, promo incluse). Remboursement = deduction sur la facture de commission du mois courant, referencant l'ID du remboursement.",
+    "constatsCles": [
+      "Base de calcul DEJA conforme: commission = finalPrice formation (CC incluse, promo incluse). Seules les formations generent une commission (produits/prestations = 0)",
+      "Frequence: mensuelle (CommissionPayment unique {month,year}), payee par admin OU dev via le compte Stripe Developer",
+      "generateCommissionInvoice reference deja l'ID du remboursement (REF-xxx -> SALE-xxx) en ligne negative",
+      "FRAGILE: refreshCommissionPayment sans appelant -> montant pending fige (mauvais montant si refund tardif)",
+      "FRAGILE: clamp max(0, ventes-remboursements) -> deduction perdue si remboursements > ventes du mois (pas de carry-over)",
+      "FRAGILE: webhook Stripe Dev ne finalise PAS la commission (handlePaymentIntentSucceeded ne traite que les launch intents) -> finalisation par polling frontend uniquement",
+      "DOUBLON: CommissionTransaction (ledger) non consomme par computeCommissionsForPeriod (facturation) -> deux mecanismes paralleles",
+      "Double-clic concurrent create-intent: fenetre deux PaymentIntents (verrou applicatif absent)"
+    ],
+    "modeleCibleIntegratedApi": "Option B recommandee: ajouter accountPurpose (customer_payments|platform_billing) sur IntegratedApi, backfille depuis le slug, garder deux documents separes. Pas de modele enfant (option C) en V1.",
+    "roadmap": "Rapport 103. Avant React: C1 refresh montant avant paiement, C2 webhook Dev finalise commission, C3 decision carry-over, C4 reconciliation ledger/facturation, C5 verrou anti double-clic.",
+    "scope": "Aucune correction appliquee. Input pour la discussion produit/architecture d'unification des commissions."
   },
   "sprintPreReactB1B2": {
     "date": "2026-06",

@@ -357,6 +357,15 @@ offres (A7), consentement (A1), observabilité webhook (A6), anti-doublon rembou
 - Chaque probe fige le comportement OBSERVÉ ; les risques (PASS/FAIL/FRAGILE/INDÉTERMINÉ)
   sont classés analytiquement dans le rapport 90.
 
+### Audit commissions (rapports 99-103)
+
+`tests/audit/commissionScenarioMatrix.test.js` (**20 probes** vertes), lancé via
+`npm run audit:commissions`. Couvre : base de calcul (prix payé, carte cadeau incluse, promo),
+remboursements avant/après commission, cross-mois, ledger vs facturation (doublon),
+montant figé (refresh non câblé), clamp à 0, idempotence/doublon, 0 €. Caractérisation :
+vert = comportement observé ; les FRAGILE (C11 clamp, C14 doublon ledger, C17 montant figé)
+sont documentés dans les rapports 99/102/103.
+
 ## Safety (no real secrets / no real DB)
 
 - `tests/setup/testEnv.js` sets fake values for every sensitive env var **before**

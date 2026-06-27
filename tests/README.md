@@ -344,6 +344,20 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Pré-React E1-E2 (rapports 120-122)
+
+- **E1 — Promotion source unique DÉFINITIVE** : `promotionMigrationService.test.js` et
+  `promotionSingleApplication.test.js` mis à jour — le fallback legacy `Service.promotion` a
+  disparu du runtime. `resolveEffectiveServiceUnitPrice` sans Promotion(service) → **prix
+  plein** (`source: null`) ; une Promotion(service) fait foi. Migration dry-run/`--apply`
+  toujours validée (idempotence).
+- **E2 — Refactor SEAM-FIRST (zéro changement de comportement)** : `planGiftCardUsage` /
+  `finalizeGiftCardUsage` déplacés vers `services/checkout/checkoutGiftCardService.js` ; les
+  11 sites d'appel dans `clientController` (couverts par les tests checkout/webhook/0 €)
+  passent inchangés par import. Seams re-export `services/stripe/*Facade.js` et
+  `services/mail/mailDispatcher.js` (consommés par clientController). Aucun test nouveau requis
+  (extraction structurelle), suite **317 verte** inchangée.
+
 ## Pré-React D1-D4 (rapports 115-119)
 
 - `promotionMigrationService.test.js` (D1) — Promotion source unique (priorité Promotion,

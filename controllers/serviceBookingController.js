@@ -33,6 +33,7 @@ import {
   createServiceBookingWithProtection,
   releaseServiceBookingSlotLocks
 } from '../services/serviceAvailabilityService.js';
+import { resolveEffectiveServiceUnitPrice } from '../services/promotionService.js';
 
 function formatDateFR(date) {
   if (!date) return '—';
@@ -164,20 +165,8 @@ export async function createBooking(req, res) {
       optionsTotal += opt.price;
     }
 
-    // Compute prices
-    const effectiveServicePrice = (() => {
-      const promo = service.promotion;
-      if (promo?.isActive) {
-        const now = new Date();
-        const start = promo.startDate ? new Date(promo.startDate) : null;
-        const end = promo.endDate ? new Date(promo.endDate) : null;
-        if ((!start || now >= start) && (!end || now <= end)) {
-          if (promo.type === 'percentage') return roundToCents(service.price * (1 - promo.value / 100));
-          if (promo.type === 'fixed') return roundToCents(Math.max(0, service.price - promo.value));
-        }
-      }
-      return service.price;
-    })();
+    // Compute prices — E1 : promotion via la source unique Promotion (plus de legacy).
+    const { unitPrice: effectiveServicePrice } = await resolveEffectiveServiceUnitPrice(service);
 
     const totalPrice = roundToCents(effectiveServicePrice + optionsTotal);
     const depositAmount = (() => {

@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import Service from '../models/Service.js';
 import PractitionerProfile from '../models/PractitionerProfile.js';
+import { getActivePromotion, calculateFinalPrice } from '../services/promotionService.js';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -56,17 +57,8 @@ function buildServicePayload(doc) {
   };
 }
 
-function computeEffectivePrice(service) {
-  const promo = service.promotion;
-  if (!promo || !promo.isActive) return service.price;
-  const now = new Date();
-  if (promo.startDate && new Date(promo.startDate) > now) return service.price;
-  if (promo.endDate && new Date(promo.endDate) < now) return service.price;
-  if (promo.type === 'percentage') {
-    return Math.max(0, service.price - (service.price * promo.value) / 100);
-  }
-  return Math.max(0, service.price - promo.value);
-}
+// E1 — `computeEffectivePrice` (lecture legacy `Service.promotion`) supprimé : le prix promo
+// vient désormais de la source unique `Promotion` (cf. buildPublicPayload).
 
 // ─── Admin CRUD ──────────────────────────────────────────────────────────────
 
@@ -295,10 +287,12 @@ export async function patchServicePromotion(req, res) {
 
 // ─── Vitrine (public) ────────────────────────────────────────────────────────
 
-function buildPublicPayload(doc) {
-  const effectivePrice = computeEffectivePrice(doc);
-  const hasPromo = doc.promotion?.isActive &&
-    effectivePrice < doc.price;
+// E1 — prix d'affichage vitrine : la promotion vient de la SOURCE UNIQUE `Promotion`
+// (plus du sous-document legacy `Service.promotion`). Cohérent avec le checkout/pricing serveur.
+async function buildPublicPayload(doc) {
+  const promo = await getActivePromotion('service', doc._id);
+  const effectivePrice = promo ? calculateFinalPrice(doc.price, promo).finalPrice : doc.price;
+  const hasPromo = Boolean(promo) && effectivePrice < doc.price;
 
   return {
     id: doc._id?.toString(),
@@ -311,9 +305,9 @@ function buildPublicPayload(doc) {
     effectivePrice,
     hasPromo,
     promotionLabel: hasPromo
-      ? (doc.promotion.type === 'percentage'
-        ? `-${doc.promotion.value}%`
-        : `-${doc.promotion.value.toFixed(2)} €`)
+      ? (promo.discountType === 'percentage'
+        ? `-${promo.discountValue}%`
+        : `-${Number(promo.discountValue).toFixed(2)} €`)
       : null,
     photos: doc.photos || [],
     isBookable: doc.isBookable,
@@ -337,7 +331,7 @@ function buildPublicPayload(doc) {
 export async function listPublicServices(req, res) {
   try {
     const docs = await Service.find({ isActive: true }).sort({ 'boost.order': 1, name: 1 }).lean();
-    return res.json({ ok: true, services: docs.map(buildPublicPayload) });
+    return res.json({ ok: true, services: await Promise.all(docs.map(buildPublicPayload)) });
   } catch (err) {
     console.error('[serviceController] listPublicServices', err);
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
@@ -355,7 +349,7 @@ export async function getPublicServiceBySlug(req, res) {
       isActive: true
     }).select('displayName photo color').lean();
 
-    const payload = buildPublicPayload(doc);
+    const payload = await buildPublicPayload(doc);
     payload.practitioners = practitioners.map(p => ({
       id: p._id?.toString(),
       displayName: p.displayName || '',
@@ -375,7 +369,7 @@ export async function listBoostedServices(req, res) {
     const docs = await Service.find({ isActive: true, 'boost.isActive': true })
       .sort({ 'boost.order': 1 })
       .lean();
-    return res.json({ ok: true, services: docs.map(buildPublicPayload) });
+    return res.json({ ok: true, services: await Promise.all(docs.map(buildPublicPayload)) });
   } catch (err) {
     console.error('[serviceController] listBoostedServices', err);
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });

@@ -3178,3 +3178,28 @@ Pas de paiement Stripe du solde en V1.
 `--include-bookings/--include-event-logs/--include-send-logs`. Whitelist stricte des
 collections transactionnelles ; configuration (User/Service/Formation/Product/GiftCard/
 IntegratedApi/Contract/…) **jamais** supprimée. Jamais au boot.
+
+## Pré-React E1 — Finalisation des promotions (2026-06-27)
+`Promotion` est la **source unique DÉFINITIVE** du pricing. Le fallback legacy
+`Service.promotion` a été **retiré du runtime** : `promotionService.resolveEffectiveServiceUnitPrice`
+lit uniquement `Promotion(targetType:'service')` (sinon prix plein). Tous les chemins
+pricing/billing prestation lisent `Promotion` : `checkoutPricingService.priceService`,
+`processServiceCheckoutStatePurchase`, `serviceBookingController.createBooking`,
+`serviceController.buildPublicPayload` (async). `computeEffectivePrice` (lecture legacy)
+**supprimé**. Le sous-document `Service.promotion` est conservé pour compat DB mais
+**vestigial** (admin CRUD le persiste encore, sans effet runtime) → éditeur `Promotion(service)`
+à venir (React). Migration des données : `scripts/migrateServicePromotionsToPromotionModel.js`
+(`--apply`, idempotent) **à exécuter une fois en prod**. Rapport 121.
+
+## Pré-React E2 — Début refactor backend (SEAM-FIRST, 2026-06-27)
+Extraction des cœurs critiques **sans modification de comportement**. Rapport 122.
+- **Extraction réelle** : `services/checkout/checkoutGiftCardService.js` — `planGiftCardUsage`
+  + `finalizeGiftCardUsage` (+ helpers carte cadeau) déplacés verbatim hors de `clientController`,
+  qui les ré-importe (imports orphelins `argon2`/`GiftCardTransaction`/réservation gift-card
+  supprimés du controller). Aucune duplication.
+- **Seams (re-export, zéro comportement déplacé)** : `services/stripe/stripeInvoiceFacade.js`
+  (`createStripeInvoiceForSale`), `services/stripe/stripeRefundFacade.js` (`triggerRefundExecution`
+  + éligibilités refund), `services/mail/mailDispatcher.js` (30 fonctions `send*`). `clientController`
+  est repointé vers ces façades.
+- **Reporté (tests de caractérisation d'abord)** : `checkoutFinalizationService` (finaliseurs),
+  `stripeCheckoutService`/`stripeWebhookService`, split interne de `mailService`.

@@ -47,22 +47,23 @@ describe('Promotions — application unique', () => {
     expect(p.promotionDiscountAmount).toBe(10);
   });
 
-  it('Service.promotion seule → prix vendu réduit', async () => {
-    await Service.findByIdAndUpdate(fx.service._id, {
-      promotion: { isActive: true, type: 'percentage', value: 25, startDate: new Date(Date.now() - DAY), endDate: null }
+  it('Promotion(service) seule → prix vendu réduit (source officielle)', async () => {
+    await Promotion.create({
+      targetType: 'service', targetId: fx.service._id, discountType: 'percentage', discountValue: 25,
+      createdBy: new mongoose.Types.ObjectId(), startAt: new Date(Date.now() - DAY), endAt: null
     });
     const p = await buildServerCheckoutPricing({ service: { serviceId: String(fx.service._id) } });
     expect(p.catalogAmount).toBe(80);
     expect(p.soldAmount).toBe(60); // 80 - 25%
   });
 
-  it('Promotion ne s\'applique PAS aux services (cibles disjointes → pas de cumul)', async () => {
-    // Une Promotion ciblant "service" n'existe pas (targetType non supporté) → ignorée.
+  it('E1 — Service.promotion legacy IGNORÉE (runtime lit uniquement Promotion)', async () => {
+    // Le sous-document legacy n'a plus d'effet : sans Promotion(service), prix plein.
     await Service.findByIdAndUpdate(fx.service._id, {
       promotion: { isActive: true, type: 'fixed', value: 20, startDate: new Date(Date.now() - DAY), endDate: null }
     });
     const p = await buildServerCheckoutPricing({ service: { serviceId: String(fx.service._id) } });
-    expect(p.soldAmount).toBe(60); // 80 - 20 (Service.promotion uniquement), pas de double
+    expect(p.soldAmount).toBe(80); // legacy ignorée → plein tarif
   });
 
   it('promo expirée → ignorée (prix plein)', async () => {

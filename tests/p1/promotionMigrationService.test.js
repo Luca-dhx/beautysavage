@@ -22,14 +22,15 @@ describe('D1 — migration & unification promotions prestation', () => {
   afterAll(async () => { await stopMemoryDb(); });
   beforeEach(async () => { await clearDatabase(); fx = await seedTestData(); });
 
-  it('Service.promotion legacy seule → prix promo correct (fallback)', async () => {
+  it('E1 — Service.promotion legacy seule N\'EST PLUS appliquée (runtime lit uniquement Promotion)', async () => {
     await Service.findByIdAndUpdate(fx.service._id, {
       promotion: { isActive: true, type: 'percentage', value: 25, startDate: new Date(Date.now() - DAY), endDate: null }
     });
     const svc = await Service.findById(fx.service._id).lean();
     const r = await resolveEffectiveServiceUnitPrice(svc);
-    expect(r.unitPrice).toBe(60); // 80 - 25%
-    expect(r.source).toBe('service.promotion_legacy');
+    // Le fallback legacy a disparu : sans Promotion(service), prix plein.
+    expect(r.unitPrice).toBe(80);
+    expect(r.source).toBeNull();
   });
 
   it('dry-run migration ne crée rien ; --apply crée la Promotion(service)', async () => {

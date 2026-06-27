@@ -19,7 +19,22 @@
     "commissionCorrection": "completed",
     "preReactC1C6": "completed",
     "promotionsGiftCardCommissionBase": "completed",
-    "preReactD1D4": "completed"
+    "preReactD1D4": "completed",
+    "preReactE1E2": "completed"
+  },
+  "preReactE1E2": {
+    "date": "2026-06-27",
+    "branch": "phase-0-security-baseline",
+    "reports": ["120_audit_controller_refactor.md", "121_rapport_promotion_finalization.md", "122_rapport_refactor_backend.md"],
+    "E1": "Promotion = source unique DEFINITIVE. Fallback legacy Service.promotion RETIRE du runtime: promotionService.resolveEffectiveServiceUnitPrice lit uniquement Promotion(targetType:service) (sinon prix plein). Tous chemins pricing/billing prestation lisent Promotion: checkoutPricingService.priceService, processServiceCheckoutStatePurchase, serviceBookingController.createBooking, serviceController.buildPublicPayload (async). computeEffectivePrice (lecture legacy) supprime. Service.promotion conserve pour compat DB mais VESTIGIAL (admin CRUD le persiste sans effet runtime) -> editeur Promotion(service) a venir (React). Migration scripts/migrateServicePromotionsToPromotionModel.js (--apply, idempotent) a executer une fois en prod.",
+    "E2": "Debut refactor backend SEAM-FIRST, zero changement de comportement. Extraction REELLE: services/checkout/checkoutGiftCardService.js (planGiftCardUsage + finalizeGiftCardUsage + helpers carte cadeau) deplaces verbatim hors de clientController qui les re-importe; imports orphelins (argon2/GiftCardTransaction/giftCardReservationService helpers) supprimes du controller; aucune duplication. Seams re-export (zero logique deplacee): services/stripe/stripeInvoiceFacade.js (createStripeInvoiceForSale), services/stripe/stripeRefundFacade.js (triggerRefundExecution + eligibilites refund), services/mail/mailDispatcher.js (30 fonctions send*). clientController repointe vers ces facades.",
+    "tests": "Suite 317 verts (p0=44, p1=267, integration=6), audit business 36, audit commissions 20. promotionSingleApplication + promotionMigrationService mis a jour (legacy ignore, Promotion fait foi).",
+    "detteRestante": [
+      "checkoutFinalizationService: deplacer les finaliseurs (processCheckoutStatePurchase/...Cart.../...Service..., persistSale, runPostSaleSideEffects) -> tests de caracterisation d'abord",
+      "stripeCheckoutService/stripeWebhookService: extraire createCheckoutSession/handleWebhook/handleRefundUpdatedEvent de stripeController",
+      "Split interne mailService: mailTemplateRuntime/mailContextResolver/mailBrevoGateway/mailTrackingService; mailDispatcher deviendra l'orchestrateur",
+      "Retrait du sous-document Service.promotion apres --apply en prod (migration de schema dediee)"
+    ]
   },
   "preReactD1D4": {
     "date": "2026-06",

@@ -186,6 +186,18 @@ const saleSchema = new mongoose.Schema(
       enum: ['manual_pending', 'immediate', null],
       default: null
     },
+    // Pré-React B1 — snapshot fiscal V1 (franchise en base, TVA non applicable).
+    // HT = TTC, vatAmount = 0. Source : constants/tax.js. Tous champs optionnels :
+    // les ventes historiques restent valides.
+    taxSnapshot: {
+      taxMode: { type: String, default: null },
+      vatRate: { type: Number, default: null },
+      vatLegalLabel: { type: String, default: null },
+      totalExcludingTax: { type: Number, default: null },
+      vatAmount: { type: Number, default: null },
+      totalIncludingTax: { type: Number, default: null },
+      version: { type: String, default: null }
+    },
     createdAt: {
       type: Date,
       default: () => new Date()

@@ -33,6 +33,10 @@ import {
 } from '../services/legalConsentService.js';
 import { recordWebhookFailure } from '../services/webhookFailureService.js';
 import { assertCheckoutFormationsPurchasable } from '../services/offerReadinessService.js';
+import {
+  buildServerCheckoutPricing,
+  assertClientPricingMatchesServer
+} from '../services/checkoutPricingService.js';
 
 async function getStripe() {
   // Credential sourced from the IntegratedApi vault (env fallback during migration).
@@ -872,8 +876,27 @@ export async function createCheckoutSession(req, res) {
   const clientIp = extractClientIp(req);
   const stripe = await getStripe();
 
-  // Amount to charge = amountToPay (deposit or full, after gift card deductions)
-  const amountToPay = Number(checkoutState.totals?.amountToPay || checkoutState.totals?.remainingToPay || 0);
+  // Pré-React B2 — Le SERVEUR est l'unique source de vérité du montant. On recalcule
+  // le montant à charger depuis le catalogue (prix + promotions + options − cartes
+  // cadeaux capées au solde réel) et on REFUSE si le client a déclaré un montant
+  // divergent (CHECKOUT_AMOUNT_MISMATCH). Le PaymentIntent est créé avec le montant
+  // SERVEUR, jamais avec `checkoutState.totals` (client).
+  let serverPricing;
+  try {
+    serverPricing = await buildServerCheckoutPricing(checkoutState);
+    assertClientPricingMatchesServer(checkoutState, serverPricing);
+  } catch (pricingErr) {
+    return res.status(Number(pricingErr?.status) || 400).json({
+      ok: false,
+      error: pricingErr?.message || 'Montant checkout invalide.',
+      code: pricingErr?.code || 'CHECKOUT_AMOUNT_MISMATCH'
+    });
+  }
+  // Snapshot serveur persisté avec l'intent → le finaliseur dispose du montant faisant foi.
+  checkoutState.serverPricing = serverPricing;
+
+  // Amount to charge = montant SERVEUR (acompte/plein, après cartes cadeaux serveur).
+  const amountToPay = serverPricing.amountToPay;
   const amountCents = Math.round(amountToPay * 100);
   if (amountCents < 50) {
     return res.status(400).json({

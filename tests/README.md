@@ -330,6 +330,20 @@ tests/
   acompte bloquée (`OFFER_BALANCE_UNSUPPORTED`), distanciel immédiat sans accès bloqué
   (`OFFER_ACCESS_UNAVAILABLE`), distanciel manuel marqué `accessDeliveryStatus='manual_pending'`.
 
+## Sprint pré-React B1-B2 (rapports 97 / 98)
+
+- **B1 — V1 sans TVA** (`p1/v1TaxMode.test.js`) : contrat fiscal central
+  (`constants/tax.js`, franchise 293 B, taux 0), `buildTaxSnapshot` (HT=TTC, vatAmount 0),
+  `Sale.taxSnapshot` porté par chaque vente, label fiscal sourcé d'une seule constante.
+- **B2 — serveur source de vérité du montant** :
+  - `p1/serverCheckoutPricing.test.js` — montant serveur (produit/formation/prestation/
+    panier/carte cadeau, couverture carte cadeau partielle/100 %).
+  - `p1/checkoutAmountTampering.test.js` — sous-paiement client → `CHECKOUT_AMOUNT_MISMATCH`,
+    conforme → OK, carte cadeau sur-déclarée capée, carte inactive ignorée.
+  - `p1/serverPricingGiftCardPromotion.test.js` — promo active/expirée, promo + carte cadeau,
+    solde insuffisant.
+- Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
+
 ## Audit pré-React — matrice de scénarios métier (rapports 89-96)
 
 Harnais **exploratoire et isolé** : `tests/audit/businessScenarioMatrix.test.js`

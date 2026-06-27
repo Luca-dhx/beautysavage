@@ -46,6 +46,8 @@ import {
   assertCheckoutFormationsPurchasable,
   resolveAccessDeliveryStatusForFormation
 } from '../services/offerReadinessService.js';
+import { buildTaxSnapshot } from '../constants/tax.js';
+import { buildServerCheckoutPricing } from '../services/checkoutPricingService.js';
 import { getAppBaseUrl } from '../utils/invoiceUrl.js';
 import { buildModulePayload } from './formationModuleController.js';
 import { buildSessionPayload } from './formationSessionController.js';
@@ -723,6 +725,8 @@ async function persistSale({
   if (accessDeliveryStatus) {
     sale.accessDeliveryStatus = accessDeliveryStatus;
   }
+  // Pré-React B1 — snapshot fiscal V1 (franchise en base, TVA non applicable, HT=TTC).
+  sale.taxSnapshot = buildTaxSnapshot(sale.totalAmount);
   // Phase 1B-1: set the Stripe PaymentIntent id AT INSERT so the unique partial
   // index on stripePaymentIntentId rejects a concurrent/duplicate webhook with an
   // E11000 BEFORE any side effect (gift-card debit, commission) runs — preventing
@@ -2802,7 +2806,9 @@ async function processServiceCheckoutStatePurchase({
     accepted_cgv: true,
     client_ip: normalizedIp || '0.0.0.0',
     giftCardUsage: giftPlan.saleEntries,
-    legalConsentSnapshot: legalConsentSnapshot || undefined
+    legalConsentSnapshot: legalConsentSnapshot || undefined,
+    // B1 — snapshot fiscal V1 (TVA non applicable, HT=TTC).
+    taxSnapshot: buildTaxSnapshot(saleTotal)
   });
   if (normalizedStripeSessionId) sale.stripeSessionId = normalizedStripeSessionId;
   if (normalizedStripePaymentIntentId) sale.stripePaymentIntentId = normalizedStripePaymentIntentId;
@@ -3353,6 +3359,16 @@ export async function finalizeFreeCheckout(req, res) {
       error: offerError?.message || 'Offre indisponible.',
       code: offerError?.code || 'OFFER_NOT_AVAILABLE'
     });
+  }
+
+  // Pré-React B2 — pricing serveur faisant foi (best-effort, observabilité/snapshot).
+  // L'anti-bypass paiement reste `assertZeroRemainingForFreeOrder` dans le finaliseur,
+  // qui recalcule la couverture carte cadeau côté serveur (planGiftCardUsage). On
+  // attache le pricing serveur au checkoutState pour traçabilité sans changer le flux.
+  try {
+    checkoutState.serverPricing = await buildServerCheckoutPricing(checkoutState);
+  } catch (_pricingErr) {
+    // best-effort : ne bloque pas le 0 € (le finaliseur fait foi).
   }
 
   // Deterministic synthetic reference → reuses the Phase 1B-1 unique partial index on

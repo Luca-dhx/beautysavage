@@ -13,7 +13,22 @@
     "phase5a": "completed",
     "sprintPreReactA1A3": "completed",
     "sprintPreReactA4A7": "completed",
-    "deepBusinessAudit": "completed"
+    "deepBusinessAudit": "completed",
+    "sprintPreReactB1B2": "completed"
+  },
+  "sprintPreReactB1B2": {
+    "date": "2026-06",
+    "branch": "phase-0-security-baseline",
+    "reports": ["97_audit_b1_b2_v1_no_tva_server_amount.md", "98_rapport_b1_b2_v1_no_tva_server_amount.md"],
+    "decisionProduit": "V1 strictement sans TVA (franchise en base 293 B) + serveur unique source de verite du montant a payer",
+    "scope": [
+      "B1 V1 sans TVA: constants/tax.js (TAX_MODE=vat_exempt_franchise_base, VAT_RATE=0, VAT_LEGAL_LABEL, buildTaxSnapshot HT=TTC vatAmount=0). Sale.taxSnapshot renseigne dans persistSale + vente prestation. invoiceService + stripeInvoiceService sourcent le label central (plus de chaine en dur). Aucun moteur TVA; chemin futur documente",
+      "B2 serveur source de verite: services/checkoutPricingService.js (buildServerCheckoutPricing recalcule catalogue+promos+options-cartes cadeaux capees au solde reel -> amountToPay+taxSnapshot; assertClientPricingMatchesServer -> CHECKOUT_AMOUNT_MISMATCH si divergence > 0.01). createCheckoutSession cree le PaymentIntent avec le montant SERVEUR (plus checkoutState.totals client) et persiste serverPricing. finalizeFreeCheckout: serverPricing best-effort, anti-bypass conserve (assertZeroRemainingForFreeOrder)",
+      "Mismatch: sous-paiement refuse, carte cadeau sur-declaree capee, promo expiree non appliquee, carte inactive ignoree",
+      "Tests: p1/v1TaxMode, p1/serverCheckoutPricing, p1/checkoutAmountTampering, p1/serverPricingGiftCardPromotion. Suite 249 verts (p0=44, p1=199, integration=6), audit 36 verts",
+      "Commissions EXCLUES volontairement de cette mission"
+    ],
+    "prochaineEtape": "Discussion produit/architecture sur l'unification du systeme de commissions (double mecanisme ledger CommissionTransaction vs computeCommissionsForPeriod, claw-back manuelle, regle commission sur prix catalogue vs prix vendu) avant de figer le contrat d'API commission pour React"
   },
   "deepBusinessAudit": {
     "date": "2026-06",

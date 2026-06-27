@@ -5,6 +5,7 @@ import ServiceBooking from '../models/ServiceBooking.js';
 import User from '../models/user.js';
 import { getVendorConfig } from '../config/invoiceVendorConfig.js';
 import { getCredential } from './integratedApiCredentialService.js';
+import { VAT_LEGAL_LABEL } from '../constants/tax.js';
 
 async function getStripe() {
   const secretKey = await getCredential('stripe-institut', { role: 'secret_key' });
@@ -94,7 +95,7 @@ export async function createStripeInvoiceForSale(sale, user) {
   const vendorEmail = String(vendor.email || '').trim() || 'contact@beautysavage.fr';
   const vendorSiret = String(vendor.siret || '').trim() || 'Non renseigne';
   const vendorVatMention =
-    String(vendor.vatMention || '').trim() || 'TVA non applicable, article 293B du CGI';
+    String(vendor.vatMention || '').trim() || VAT_LEGAL_LABEL;
   const customFields = [
     {
       name: 'Vendeur',

@@ -4,6 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import PDFDocument from 'pdfkit';
 import Invoice from '../models/Invoice.js';
+import { VAT_LEGAL_LABEL } from '../constants/tax.js';
 
 const STORAGE_DIR = path.join(process.cwd(), 'storage', 'invoices');
 const TEMPLATE_PATH = path.join(process.cwd(), 'templates', 'invoice.html');
@@ -13,7 +14,8 @@ const TYPE_LABELS = {
   'gift-card': 'Carte cadeau',
   'formation-option': 'Option de formation'
 };
-const LEGAL_MENTION = 'TVA non applicable, article 293B du CGI';
+// B1 — mention légale sourcée depuis le contrat fiscal central (V1 : franchise 293 B).
+const LEGAL_MENTION = VAT_LEGAL_LABEL;
 const currencyFormatter = new Intl.NumberFormat('fr-FR', {
   style: 'currency',
   currency: 'EUR',

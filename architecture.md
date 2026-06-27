@@ -2902,8 +2902,9 @@ Socle backend du futur Email Template Studio. **Aucune UI, aucune automatisation
 - Diagnostic : `GET /api/gestion/dev/events` (`requireStrictDev`).
 
 ## Tests
-- **229 tests verts** / 53 fichiers : **p0 = 44**, **p1 = 179**, **integration = 6**
-  (inclut les Sprints pré-React A1-A3 et A4-A7 — voir sections dédiées plus bas).
+- **249 tests verts** / 57 fichiers : **p0 = 44**, **p1 = 199**, **integration = 6**
+  (inclut les Sprints pré-React A1-A3, A4-A7 et B1-B2 — voir sections dédiées plus bas).
+- Harnais d'audit séparé : `npm run audit:business-scenarios` (36 probes, exclu de `npm test`).
 - Harnais : Vitest + `mongodb-memory-server` ; `tests/setup/testEnv.js` (env factice,
   clé de coffre factice, fallback activé en test), `testApp.js` (boot app en mémoire),
   `seedTestData.js` (users dev/admin/client + contrat actif).
@@ -3019,3 +3020,33 @@ integration=6).
 Les 7 points P1 du verdict GO conditionnel (rapport 84) sont traités (A1-A7). Contrat
 d'API gelable → **GO React**, sous réserve : collecte du solde d'acompte et remboursement
 distanciel à concevoir (non bloquants), claw-back commission manuelle, allowlist IP Brevo.
+
+## Sprint pré-React B1-B2 (2026-06 — rapports 97 / 98)
+
+Décision produit : **V1 strictement sans TVA** (franchise en base) + **serveur = unique
+source de vérité du montant à payer**. **249 tests verts** / 57 fichiers.
+
+### B1 — V1 sans TVA (franchise 293 B)
+- `constants/tax.js` : `TAX_MODE='vat_exempt_franchise_base'`, `VAT_RATE=0`,
+  `VAT_LEGAL_LABEL`, `buildTaxSnapshot(ttc)` (HT=TTC, vatAmount 0). **Source unique** du
+  contrat fiscal.
+- `Sale.taxSnapshot` (sous-doc) renseigné à la persistance (`persistSale` + vente prestation).
+- `invoiceService` et `stripeInvoiceService` sourcent le label central (plus de chaîne en dur).
+- Aucun moteur TVA ; chemin futur d'assujettissement documenté dans `constants/tax.js`.
+
+### B2 — Serveur source de vérité du montant
+- `services/checkoutPricingService.js` : `buildServerCheckoutPricing(checkoutState)`
+  (recalcul catalogue + promotions + options − cartes cadeaux capées au solde réel →
+  `amountToPay`, `taxSnapshot`) + `assertClientPricingMatchesServer` →
+  `CHECKOUT_AMOUNT_MISMATCH` (400) si divergence > 0,01 €.
+- `stripeController.createCheckoutSession` crée le PaymentIntent avec le **montant serveur**
+  (plus `checkoutState.totals` client) et persiste `serverPricing` avec l'intent.
+- `finalizeFreeCheckout` : `serverPricing` attaché (best-effort) ; anti-bypass conservé
+  (`assertZeroRemainingForFreeOrder`).
+- Mismatch : client sous-paie → refus ; carte cadeau sur-déclarée → capée ; promo expirée →
+  non appliquée ; carte inactive → ignorée.
+
+### Commissions — exclues volontairement
+B1-B2 ne touche pas aux commissions. **Prochaine étape recommandée : discussion
+produit/architecture sur l'unification du système de commissions** (double mécanisme
+ledger/compute + claw-back + règle prix promu) avant de figer le contrat d'API commission.

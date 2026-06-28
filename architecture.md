@@ -3519,3 +3519,26 @@ Boucle paiement React fermée. Backend touché **uniquement** sur les URLs de re
   (`r2cReturnLogin` 9 + ajustements). Aucun import `@stripe/stripe-js`, aucun hex tsx, aucun secret/token front.
 - **Limite** : retour React effectif si `CHECKOUT_RETURN_BASE_URL` défini (sinon Vanilla). Pas
   d'inscription/reset/OAuth. Prochaine mission : **R3** (espace client / manager React).
+
+## Sprint M1 — Fondation des identités de communication (2026-06-28)
+Fondation backend `CommunicationIdentity` (expéditeurs **support** / **commerciale** + vérification
+sender Brevo + domaine DNS + resolver fromRole/toRole). **Brique additive** : mailService / SendLog /
+EventLog / webhook Brevo **non modifiés** ; aucun envoi/template migré ; aucune UI. Rapports 171/172.
+Backend **442** + audits 36/20 ; frontend inchangé (78).
+- `models/CommunicationIdentity.js` : role(support/commerciale)+scope(platform/institute) imposés,
+  status(unverified/verification_pending/verified/disabled), active, provider brevo, champs sender +
+  domaine (domainAuthenticated/dnsRecords), `verification{...Safe}`. **`client` jamais une identité**.
+  Index unique partiel `{role,scope}` où active:true. Aucun secret.
+- `services/communicationIdentityService.js` : create/list/setActive/request+confirmVerification/
+  refresh/getActiveIdentity/assertIdentityReady (strict|warn). `client` rejeté ; active⇔verified ;
+  setActive séquentiel. Erreurs `CommunicationIdentityError`.
+- `services/communicationBrevoSenderAdapter.js` : Brevo Sender/Domain API (`/v3/senders`,
+  `/validate`, `/senders/domains/:d`) **mockable**, clé via `getCredential('brevo',{role:'api_key'})`,
+  jamais d'OTP maison, jamais de secret renvoyé, best-effort.
+- `services/communicationRoleResolver.js` : resolveSender/resolveRecipient/resolveMailEnvelope
+  (client → `context.client.email`). **Non câblé aux envois (M2).**
+- Routes : `/api/gestion/dev/communication-identities` (dev, support) +
+  `/api/gestion/communication-identities` (admin/dev, commerciale). support=dev only,
+  commerciale=admin/dev, client jamais configurable. Payload safe.
+- Tests : +31 (`communicationIdentity{Model,Service,Routes,BrevoVerification}` + `communicationRoleResolver`).
+  Brevo mocké → aucun vrai e-mail. Prochaine mission : **M2** (Mail Event Dispatch Engine).

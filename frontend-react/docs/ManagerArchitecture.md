@@ -105,3 +105,17 @@ changée sans config. Backend : modèle `Theme.scope` (vitrine|manager), 1 actif
 partiel), CRUD dev `/api/gestion/themes` scope-aware (activation par scope), migration
 `scripts/migrateThemesToScopes.js`. Le **Theme Studio Dev** (plan 161) éditera ce scope manager.
 Tests : `features/theme/themeMultiScope.test.tsx` (fallback null/erreur + couleur backend).
+
+## MAJ M1 — Identités de communication (backend prêt pour le Manager)
+Le backend expose désormais des endpoints gestion pour les **expéditeurs de communication** que le
+Manager/Dev React consommera (UI non créée en M1) :
+- **Dev** (`requireStrictDev`) : `/api/gestion/dev/communication-identities` — gère l'identité
+  **support** (scope platform) : `GET /`, `POST /support`, `POST /:id/request-verification|
+  confirm-verification|set-active|refresh`.
+- **Admin/Dev** (`requireAdminOrDev`) : `/api/gestion/communication-identities` — gère l'identité
+  **commerciale** (scope institute) ; un admin **ne peut pas** gérer une identité support (403).
+- Chaque identité : `email`, `displayName`, `status` (unverified/verification_pending/verified/
+  disabled), `active`, vérification sender **Brevo** (Brevo envoie l'OTP), domaine DNS
+  (`domainAuthenticated`/`dnsRecords`). Payload **sans secret**.
+- Une future page Manager « Identités de communication » (dev: support, admin: commerciale) +
+  écran de vérification sender/DNS s'appuiera sur ces endpoints. **client** n'est jamais configurable.

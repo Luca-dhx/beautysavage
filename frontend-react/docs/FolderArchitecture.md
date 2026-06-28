@@ -191,3 +191,17 @@ retour + lecture session-status (aucun pricing/finalizer/consentement).
   `/connexion?redirect=/checkout` (panier conservé). 91 tests frontend / 411 backend verts.
 - **Limite** : retour React effectif si `CHECKOUT_RETURN_BASE_URL` défini (sinon Vanilla). Pas
   d'inscription/reset/OAuth.
+
+## MAJ M1 — Identités de communication (backend, brique additive)
+Fondation backend `CommunicationIdentity` (rapports 171/172) — **aucune UI React encore**, aucun
+envoi migré, mailService/SendLog/webhook **non touchés**.
+- Modèle `CommunicationIdentity` : rôles **support** (scope platform, dev) / **commerciale** (scope
+  institute, admin) ; **client** jamais une identité (résolu depuis le contexte). status/active,
+  vérification sender Brevo, domaine DNS (`domainAuthenticated`/`dnsRecords`). 1 actif par role/scope.
+- Services : `communicationIdentityService` (create/verify/setActive/assertReady),
+  `communicationBrevoSenderAdapter` (mockable), `communicationRoleResolver` (resolveSender/Recipient/
+  MailEnvelope — **non câblé** aux envois, M2).
+- Endpoints gestion : `/api/gestion/dev/communication-identities` (dev, support) +
+  `/api/gestion/communication-identities` (admin/dev, commerciale). Aucun secret exposé.
+- **Côté React (futur)** : le Manager/Dev consommera ces endpoints (UI de gestion des expéditeurs) —
+  pas en M1. Le client React continue d'utiliser l'API existante ; rien ne change pour la vitrine.

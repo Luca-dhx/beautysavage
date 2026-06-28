@@ -37,7 +37,24 @@
     "themeMultiScopeT1": "completed",
     "reactR2ACheckoutPreparation": "completed",
     "reactR2BPaymentFlow": "completed",
-    "reactR2CStripeReturnLogin": "completed"
+    "reactR2CStripeReturnLogin": "completed",
+    "m1CommunicationIdentity": "completed"
+  },
+  "m1CommunicationIdentity": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["171_audit_pre_m1_communication_identity.md", "172_rapport_m1_communication_identity_backend.md"],
+    "summary": "Fondation backend des identites de communication (support/commerciale + verification sender Brevo + domaine DNS + resolver fromRole/toRole), inspiree de LYCARZ. BRIQUE ADDITIVE : mailService/SendLog/EventLog/webhook Brevo NON modifies ; aucun envoi/template migre ; aucune UI React ; aucun vrai e-mail (Brevo mocke). Backend 442 + audits 36/20 ; frontend inchange (78 + build + lint).",
+    "model": "models/CommunicationIdentity.js : role(support/commerciale)+scope(platform/institute) imposes (ROLE_SCOPE support=platform, commerciale=institute), status(unverified/verification_pending/verified/disabled), active, provider brevo, providerSenderId/providerVerificationStatus/...VerifiedAt, domain/domainAuthenticated/domainStatus/dnsRecords[], verification{requestedAt,verifiedAt,lastErrorCode,lastErrorMessageSafe}, metadata/createdBy/updatedBy. CLIENT jamais dans l'enum (non configurable). Index unique partiel {role,scope} ou active:true. AUCUN secret.",
+    "service": "services/communicationIdentityService.js : createCommunicationIdentity, listCommunicationIdentities, setActiveCommunicationIdentity, requestSenderVerification, confirmSenderVerification, refreshIdentityVerificationStatus, getActiveIdentity, assertIdentityReady(role,scope,{mode:strict|warn}). client rejete (client_not_configurable) ; email lowercase ; displayName requis ; active seulement si verified (identity_not_verified) ; setActive sequentiel (sans transaction). domainAuthenticated:false n'empeche pas ready. CommunicationIdentityError {code,status}.",
+    "brevoAdapter": "services/communicationBrevoSenderAdapter.js (MOCKABLE) : requestSenderVerification (POST /v3/senders -> Brevo envoie l'OTP), confirmSenderVerification (PUT /v3/senders/:id/validate), getSenderStatus (GET /v3/senders, source de verite active), getDomainStatus (GET /v3/senders/domains/:d, best-effort). Cle via getCredential('brevo',{role:'api_key'}). JAMAIS d'OTP maison, JAMAIS de secret renvoye. provider_not_connected si cle absente.",
+    "resolver": "services/communicationRoleResolver.js : resolveSender(role) (support/commerciale -> identite active), resolveRecipient(role,ctx) (client -> context.client.email), resolveMailEnvelope({fromRole,toRole,context}) -> {from:{email,name,role}, to:[{email,name?,role}]}. Erreur controlee si identite absente (identity_not_ready). JAMAIS de fallback hardcode. NON CABLE aux envois existants (M2).",
+    "endpoints": "Aucun public. Dev (requireStrictDev) /api/gestion/dev/communication-identities : GET /, POST /support, POST /:id/request-verification|confirm-verification|set-active|refresh. Admin/Dev (requireAdminOrDev) /api/gestion/communication-identities : GET /, POST /commerciale, POST /:id/... . support=dev only, commerciale=admin/dev, client jamais configurable. Controller bloque la gestion d'un support par non-dev (forbidden_support_identity 403). Payload safe (toSafe).",
+    "roles": "support -> adresse plateforme/dev -> support->institut. commerciale -> adresse institut/admin -> institut->client. client -> resolu depuis context.client.email, JAMAIS stocke/configure.",
+    "tests": "+31 backend -> 442. communicationIdentityModel (6), Service (9), RoleResolver (7), Routes (7), BrevoVerification (2). Brevo mocke (vi.mock adapter, ou getCredential+fetch). AUCUN vrai e-mail.",
+    "compat": "mailService/buildSender(MAIL_FROM)/postToBrevo/SendLog/EventLog/webhook Brevo INCHANGES. Le resolver n'est pas branche -> envois actuels identiques. Aucun secret expose.",
+    "limites": "Resolver NON cable aux dispatchers (templates utilisent toujours MAIL_FROM). Pas d'UI React. Domaine DNS best-effort. assertIdentityReady dispo mais pas encore utilise par les envois.",
+    "prochaineMission": "M2 Mail Event Dispatch Engine : cabler les envois sur resolver fromRole/toRole + assertIdentityReady (gate expediteur), remplacer progressivement buildSender() par l'identite active, dispatch evenementiel (event -> template -> fromRole/toRole). Puis UI React Manager/Dev de gestion des identites."
   },
   "reactR2CStripeReturnLogin": {
     "date": "2026-06-28",

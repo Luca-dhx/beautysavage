@@ -47,6 +47,8 @@ import { runNotificationConfigMigration } from './automatisme/notificationConfig
 import { validateCredentialVaultKey } from './utils/credentialVault.js';
 import { seedIntegratedApisFromEnv } from './seeders/seedIntegratedApisFromEnv.js';
 import brevoWebhookRouter from './routers/brevoWebhookRouter.js';
+import communicationIdentityDevRouter from './routers/communicationIdentityDevRouter.js';
+import communicationIdentityRouter from './routers/communicationIdentityRouter.js';
 import devDiagnosticRouter from './routers/devDiagnosticRouter.js';
 import { registerNotificationSubscribers, getSubscriberMode } from './subscribers/notificationEventSubscriber.js';
 import { migrateEmailTemplatesToVersioning } from './scripts/migrateEmailTemplatesToVersioning.js';
@@ -397,6 +399,9 @@ app.get('/api/refund-tracking/:token', getRefundByTrackingToken);
 app.use('/api/webhooks/brevo', brevoWebhookRouter);
 app.use('/api/gestion/pages-gestion', gestionPagesRouter);
 app.use('/api/gestion', requireGestionRole());
+// M1 — Identités de communication (mont AVANT le routeur /dev générique pour la spécificité du chemin).
+app.use('/api/gestion/dev/communication-identities', communicationIdentityDevRouter);
+app.use('/api/gestion/communication-identities', communicationIdentityRouter);
 app.use('/api/gestion/dev', devDiagnosticRouter);
 app.use('/api/gestion/vitrine', vitrineGestionRouter);
 app.use('/api/gestion/business', businessGestionRouter);

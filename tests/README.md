@@ -407,6 +407,16 @@ Frontend (+13 → **91 verts**) :
 - `apps/vitrine/src/pages/r2cReturnLogin.test.tsx` (9) — succès `session_id` → session-status + panier vidé ; pending → panier conservé ; `payment_intent` failed ; `free=1` (panier vidé, aucun réseau) ; login succès → redirect interne ; login erreur → message ; checkout 401 → lien `/connexion?redirect=/checkout` + panier conservé.
 - Garanties : aucun import Stripe.js, aucun hex tsx, aucun token en localStorage (cookie HttpOnly only).
 
+## Sprint M1 — Identités de communication (rapports 171-172)
+
+Backend (+31 → **442**), aucun vrai e-mail (Brevo mocké) :
+- `tests/p1/communicationIdentityModel.test.js` (6) — enums, scope cohérent (support=platform), client refusé, displayName requis, email lowercase, 1 actif/role-scope (index unique partiel).
+- `tests/p1/communicationIdentityService.test.js` (9) — create support/commerciale (scope déduit), client refusé, scope incohérent, displayName, setActive interdit si non vérifié / ok si vérifié, getActiveIdentity, assertIdentityReady (strict|warn).
+- `tests/p1/communicationRoleResolver.test.js` (7) — sender support/commerciale, fromRole invalide, recipient client depuis contexte, client absent, identité absente, resolveMailEnvelope.
+- `tests/p1/communicationIdentityRoutes.test.js` (7) — dev crée support, admin crée commerciale, admin ne gère pas support (403/fall-through), dev request-verification (mock Brevo), liste, non-connecté refusé, payload sans secret.
+- `tests/p1/communicationIdentityBrevoVerification.test.js` (2) — request→confirm→refresh (verified + domainAuthenticated + dnsRecords), échec provider → lastErrorMessageSafe sans secret. Mock `integratedApiCredentialService.getCredential` + `globalThis.fetch`.
+- Brevo Sender API mockée via `vi.mock('../../services/communicationBrevoSenderAdapter.js')` (routes/service) ou getCredential+fetch (adapter). mailService/SendLog/webhook **non touchés**.
+
 ## Sprint U3 — UnifiedCheckout plateforme Stripe Dev (rapports 154-155)
 
 - `platformCheckoutFeatureFlag.test.js` (+2) — `PLATFORM_CHECKOUT_HOSTED` false → clientSecret (Dev) ; true → url hosted (commission).

@@ -129,3 +129,11 @@ consentements → paiement (hébergé ou gratuit) → **retour sur les pages Rea
 checkout après connexion). La bascule du retour Stripe vers React est **opt-in** (variable backend
 `CHECKOUT_RETURN_BASE_URL`) pour ne jamais casser le Vanilla. C'est le premier parcours de bout en
 bout côté React ; l'espace client complet et le manager restent à venir (R3).
+
+## MAJ M1 — Vers une communication structurée par rôle
+Le backend pose les bases d'une communication à **identités d'expéditeur** distinctes : **support**
+(plateforme/dev → vers l'institut) et **commerciale** (institut/admin → vers le client), le **client**
+n'étant jamais une identité configurable mais un destinataire résolu depuis le contexte. Cette
+fondation (vérification sender Brevo, domaine DNS, résolution from/to) prépare une future plateforme
+de communication unifiée et une UI de gestion côté Manager/Dev — sans encore changer les e-mails
+envoyés aujourd'hui (brique additive). Prochaine étape : M2 (moteur d'envoi événementiel) puis l'UI.

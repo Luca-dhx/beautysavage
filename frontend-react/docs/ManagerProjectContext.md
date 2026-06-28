@@ -79,3 +79,11 @@ L'identité du panel Manager/Dev devient **configurable côté backend** (scope 
 la vitrine. Tant qu'aucun thème manager n'est défini, le panel garde son défaut sobre (bleu/ardoise) —
 donc aucune surprise visuelle. Le dev pourra activer/éditer un thème manager dédié (via le futur
 Theme Studio), faisant évoluer l'outil interne indépendamment de la devanture publique.
+
+## MAJ M1 — Qui envoie quoi à qui
+Le Manager/Dev pourra bientôt configurer les **expéditeurs** des communications : le **développeur**
+gère l'adresse **support** (plateforme → institut), la **gérante** (admin) gère l'adresse
+**commerciale** (institut → client). Le **client** n'est jamais une adresse à configurer : c'est un
+destinataire résolu automatiquement depuis le dossier métier. Cette séparation (avec vérification de
+l'expéditeur chez Brevo et authentification du domaine) garantit des e-mails fiables et une frontière
+de responsabilité claire dev/admin. M1 pose le backend ; l'écran de gestion arrive ensuite.

@@ -130,7 +130,7 @@ export function CheckoutPage() {
       {phase === 'login_required' ? (
         <div style={{ marginTop: 'var(--bs-space-3)' }}>
           <ErrorState title="Connexion requise pour payer." detail="Votre panier est conservé." />
-          <Link className="bs-btn" to="/connexion">Se connecter</Link>
+          <Link className="bs-btn" to="/connexion?redirect=/checkout">Se connecter</Link>
         </div>
       ) : null}
 

@@ -13,6 +13,7 @@ import { CartPage } from './pages/CartPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { PaymentSuccessPage } from './pages/PaymentSuccessPage';
 import { PaymentCancelPage } from './pages/PaymentCancelPage';
+import { LoginPage } from './pages/LoginPage';
 
 // Routing vitrine R1 — catalogue public réel. Checkout/paiement = placeholders (R2).
 export function App() {
@@ -37,8 +38,8 @@ export function App() {
         <Route path="paiement/succes" element={<PaymentSuccessPage />} />
         <Route path="paiement/annule" element={<PaymentCancelPage />} />
 
-        {/* Auth (placeholder — module login complet hors périmètre R2B) */}
-        <Route path="connexion" element={<Placeholder title="Connexion" description="Connexion client (module à venir)." />} />
+        {/* Login client léger (R2C) */}
+        <Route path="connexion" element={<LoginPage />} />
 
         <Route path="*" element={<Placeholder title="Page introuvable" description="404." />} />
       </Route>

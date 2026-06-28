@@ -95,3 +95,10 @@ de donnée bancaire sur le site, serveur qui fait foi) et honnêteté du statut 
 tant que le webhook n'a pas validé). En cas d'annulation, le panier est conservé ; sans connexion, on
 invite à se connecter sans perdre le panier. Le retour des paiements hébergés repasse pour l'instant
 par le Vanilla — la boucle 100 % React se ferme en R2C.
+
+## MAJ R2C — Achat de bout en bout dans React
+Le client peut désormais payer **et revenir** dans React (page de confirmation propre), et se
+**connecter** sans perdre son panier ni quitter le tunnel. La page de succès reste honnête (panier
+vidé seulement si le paiement est réellement confirmé ; sinon « confirmation en cours »). En cas
+d'annulation ou de session expirée, le panier est conservé et l'achat peut reprendre. La bascule du
+retour Stripe vers React est activable proprement (variable backend) sans rien casser côté Vanilla.

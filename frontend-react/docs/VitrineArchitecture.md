@@ -180,3 +180,17 @@ dans `main.tsx`. Le payload prépare le `checkoutState.service` + `legal` attend
   panier conservé). Sorties de `RequireAuth`.
 - **Limite** : `success_url`/`cancel_url` hosted = backend (Vanilla) → le retour hosted atterrit sur le
   Vanilla ; les pages React sont prêtes (flow free testé ; hosted dès paramétrage backend = R2C).
+
+## MAJ R2C — Retour Stripe React + login (exécuté)
+- **Retour hosted** : si le backend a `CHECKOUT_RETURN_BASE_URL`, Stripe revient sur
+  `/paiement/succes?session_id=cs_…` & `/paiement/annule` React (sinon Vanilla).
+- **`PaymentSuccessPage`** : `free=1` → confirmé ; `session_id` → `getCheckoutSessionStatus`
+  (backend résout `cs_…`→PI) ; `payment_intent_id` → `getPaymentResult`. **`clearCart()` seulement si
+  confirmé/free** ; jamais si pending/unknown/failed. Wording prudent (« confirmation en cours »).
+- **`PaymentCancelPage`** : panier conservé.
+- **`LoginPage` (`/connexion`)** : email/password → `login()` (`@bs/api-client/auth`, cookie HttpOnly)
+  → `useAuth().refresh()` → redirect interne validé (`?redirect=` sinon `/checkout` si panier sinon
+  `/`). Anti open-redirect (cible interne uniquement). Pas d'inscription/reset/OAuth.
+- **`/checkout` 401** → lien `/connexion?redirect=/checkout` (panier conservé) → reprise du paiement
+  après login.
+- api-client : `getCheckoutSessionStatus`, `login`. Aucun token localStorage ; cookie HttpOnly only.

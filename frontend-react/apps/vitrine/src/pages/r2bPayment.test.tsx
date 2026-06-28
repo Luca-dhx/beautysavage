@@ -113,9 +113,9 @@ describe('CheckoutPage — paiement (R2B)', () => {
 });
 
 describe('PaymentSuccessPage', () => {
-  it('flow gratuit (free=1) → commande confirmée', async () => {
+  it('flow gratuit (free=1) → paiement confirmé', async () => {
     renderWithProviders(<PaymentSuccessPage />, '/paiement/succes?free=1&checkoutId=sale1');
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Commande confirmée.' })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Paiement confirmé.' })).toBeInTheDocument());
     expect(mockResult).not.toHaveBeenCalled();
   });
 

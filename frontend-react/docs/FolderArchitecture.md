@@ -175,3 +175,19 @@ appel Stripe direct ; aucun changement backend.**
   et **`/paiement/annule`** (panier conservé).
 - **Limite** : `success_url`/`cancel_url` hosted = backend (Vanilla) → flow free 100 % React ; hosted
   prêt côté React dès paramétrage backend (R2C). 71 tests frontend verts. Backend = source de vérité.
+
+## MAJ R2C — Retour Stripe React + login client (exécuté)
+La boucle paiement React est fermée (rapports 169/170). Backend touché **uniquement** sur les URLs de
+retour + lecture session-status (aucun pricing/finalizer/consentement).
+- **Backend** : `CHECKOUT_RETURN_BASE_URL` (env, fallback Vanilla, http(s) only → pas d'open redirect)
+  → `success_url={base}/paiement/succes?session_id={CHECKOUT_SESSION_ID}&checkoutId=…`,
+  `cancel_url={base}/paiement/annule`. `session-status` résout désormais les ids `cs_…` (Checkout
+  Session → PaymentIntent).
+- **api-client** : `getCheckoutSessionStatus(sessionId)` (mapping succeeded/pending/failed/unknown),
+  `auth/login(email,password)` (cookie HttpOnly ; getSession/logout existants).
+- **Vitrine** : `/paiement/succes` (free / session_id / payment_intent_id ; **panier vidé seulement si
+  confirmé** ; wording prudent si pending), `/paiement/annule` (panier conservé), `/connexion`
+  (`LoginPage` léger → `refresh()` + redirect interne validé). `/checkout` 401 →
+  `/connexion?redirect=/checkout` (panier conservé). 91 tests frontend / 411 backend verts.
+- **Limite** : retour React effectif si `CHECKOUT_RETURN_BASE_URL` défini (sinon Vanilla). Pas
+  d'inscription/reset/OAuth.

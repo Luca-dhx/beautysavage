@@ -121,3 +121,11 @@ donnée bancaire ne transite par le front, le serveur recalcule tout, et le succ
 affirmé tant que le webhook n'a pas confirmé (wording prudent « confirmation en cours »). Le retour
 des paiements hébergés atterrit encore sur le Vanilla (URL backend) — bascule complète vers les pages
 React en R2C.
+
+## MAJ R2C — Boucle d'achat React complète
+Le parcours d'achat peut désormais se dérouler **entièrement dans React** : sélection → panier →
+consentements → paiement (hébergé ou gratuit) → **retour sur les pages React** → confirmation. Un
+**login client léger** permet de s'authentifier sans quitter le tunnel (panier conservé, reprise du
+checkout après connexion). La bascule du retour Stripe vers React est **opt-in** (variable backend
+`CHECKOUT_RETURN_BASE_URL`) pour ne jamais casser le Vanilla. C'est le premier parcours de bout en
+bout côté React ; l'espace client complet et le manager restent à venir (R3).

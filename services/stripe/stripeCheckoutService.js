@@ -34,6 +34,24 @@ import { isCheckoutHostedEnabled } from '../checkout/unified/unifiedCheckoutConf
 import { createUnifiedCheckoutRecord } from '../checkout/unified/unifiedCheckoutFactory.js';
 import { updateCheckout } from '../checkout/unified/unifiedCheckoutRepository.js';
 
+// R2C — URLs de retour du Checkout hébergé. Si `CHECKOUT_RETURN_BASE_URL` (env, http(s) absolue) est
+// défini → retour vers les pages React /paiement/succes|annule ; sinon → URLs Vanilla (inchangées).
+// La base vient UNIQUEMENT de l'env (jamais du client) → pas de risque d'open redirect.
+function buildHostedReturnUrls(ngrokDomain, checkoutId) {
+  const base = String(process.env.CHECKOUT_RETURN_BASE_URL || '').trim().replace(/\/+$/, '');
+  if (base && /^https?:\/\//i.test(base)) {
+    const cid = checkoutId ? `&checkoutId=${encodeURIComponent(String(checkoutId))}` : '';
+    return {
+      success_url: `${base}/paiement/succes?session_id={CHECKOUT_SESSION_ID}${cid}`,
+      cancel_url: `${base}/paiement/annule`
+    };
+  }
+  return {
+    success_url: `https://${ngrokDomain}/vitrine.html?slug=payment&checkout_session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `https://${ngrokDomain}/vitrine.html?slug=checkout`
+  };
+}
+
 function isLegalStateValid(checkoutState) {
   const legal = checkoutState?.legal || {};
   if (!legal.acceptedCgv) return false;
@@ -757,8 +775,7 @@ async function createHostedCheckoutResult({
         kind: checkout.kind,
         idempotencyKey: intent._id?.toString() || ''
       },
-      success_url: `https://${ngrokDomain}/vitrine.html?slug=payment&checkout_session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `https://${ngrokDomain}/vitrine.html?slug=checkout`
+      ...buildHostedReturnUrls(ngrokDomain, checkout.checkoutId)
     });
     sessionId = String(session?.id || '').trim();
     createdPaymentIntentId = String(session?.payment_intent || '').trim();

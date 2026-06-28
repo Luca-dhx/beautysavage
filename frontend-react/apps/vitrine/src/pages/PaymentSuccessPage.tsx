@@ -1,63 +1,99 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Card, LoadingState } from '@bs/ui';
-import { getPaymentResult, type PaymentResultResponse } from '@bs/api-client';
+import { getPaymentResult, getCheckoutSessionStatus } from '@bs/api-client';
+import { useCart } from '../features/cart/CartProvider';
 
-// Page de retour succès. Wording PRUDENT : ne jamais prétendre une finalisation si le webhook est
-// encore en attente. Lit les query params : free=1 (flow gratuit React) | payment_intent_id (hosted).
+type View = 'loading' | 'confirmed' | 'pending' | 'failed' | 'unknown';
+
+// Retour de paiement. Gère free=1 | session_id=cs_… | payment_intent_id=pi_… | absence de params.
+// Wording PRUDENT : jamais "confirmé" sans confirmation Stripe. Panier vidé UNIQUEMENT si confirmé.
 export function PaymentSuccessPage() {
   const [params] = useSearchParams();
+  const { clearCart } = useCart();
   const isFree = params.get('free') === '1';
+  const sessionId = params.get('session_id') || '';
   const paymentIntentId = params.get('payment_intent_id') || params.get('payment_intent') || '';
-  const [result, setResult] = useState<PaymentResultResponse | null>(null);
-  const [loading, setLoading] = useState(Boolean(paymentIntentId));
-  const [failedLookup, setFailedLookup] = useState(false);
+
+  const [view, setView] = useState<View>(isFree ? 'confirmed' : 'loading');
+  const [detail, setDetail] = useState<string>('');
 
   useEffect(() => {
-    if (!paymentIntentId) return;
     let active = true;
-    setLoading(true);
-    getPaymentResult(paymentIntentId)
-      .then((r) => { if (active) setResult(r); })
-      .catch(() => { if (active) setFailedLookup(true); })
-      .finally(() => { if (active) setLoading(false); });
+    // Flow gratuit déjà finalisé côté React (finalize-free) avant la redirection.
+    if (isFree) {
+      setView('confirmed');
+      setDetail('Votre commande (gratuite) a été finalisée.');
+      clearCart();
+      return;
+    }
+    const resolve = async () => {
+      try {
+        if (paymentIntentId) {
+          const r = await getPaymentResult(paymentIntentId);
+          if (!active) return;
+          if (r.status === 'succeeded') {
+            setView('confirmed');
+            setDetail(r.purchase?.itemTitle ? `Merci pour votre achat : ${r.purchase.itemTitle}.` : 'Merci pour votre achat.');
+            clearCart();
+          } else if (r.status === 'failed') {
+            setView('failed');
+            setDetail(r.errorMessage || 'Aucun montant n’a été débité. Vous pouvez réessayer.');
+          } else {
+            setView('pending');
+          }
+          return;
+        }
+        if (sessionId) {
+          const s = await getCheckoutSessionStatus(sessionId);
+          if (!active) return;
+          if (s.status === 'succeeded') {
+            setView('confirmed');
+            setDetail('Merci pour votre achat.');
+            clearCart();
+          } else if (s.status === 'failed') {
+            setView('failed');
+            setDetail('Aucun montant n’a été débité. Vous pouvez réessayer.');
+          } else {
+            setView('pending');
+          }
+          return;
+        }
+        setView('unknown');
+      } catch {
+        if (active) setView('pending'); // lookup KO → on reste prudent (pas de panier vidé)
+      }
+    };
+    void resolve();
     return () => { active = false; };
-  }, [paymentIntentId]);
+  }, [isFree, sessionId, paymentIntentId, clearCart]);
 
-  let title = 'Paiement reçu, confirmation en cours.';
-  let detail = 'Vous recevrez la confirmation par e-mail dès que votre paiement sera validé.';
+  if (view === 'loading') return <LoadingState label="Vérification du paiement…" />;
 
-  if (isFree) {
-    title = 'Commande confirmée.';
-    detail = 'Votre commande (gratuite) a été finalisée.';
-  } else if (result?.status === 'succeeded') {
-    title = 'Paiement confirmé.';
-    detail = result.purchase?.itemTitle ? `Merci pour votre achat : ${result.purchase.itemTitle}.` : 'Merci pour votre achat.';
-  } else if (result?.status === 'failed') {
-    title = 'Le paiement a échoué.';
-    detail = result.errorMessage || 'Aucun montant n’a été débité. Vous pouvez réessayer.';
-  } else if (result?.status === 'pending') {
-    title = 'Paiement reçu, confirmation en cours.';
-    detail = 'La validation finale est en cours (webhook). Cela peut prendre quelques instants.';
-  } else if (failedLookup) {
-    title = 'Paiement reçu, confirmation en cours.';
-    detail = 'Nous n’avons pas pu vérifier le statut immédiatement ; la confirmation suivra par e-mail.';
-  }
+  const TITLES: Record<Exclude<View, 'loading'>, string> = {
+    confirmed: 'Paiement confirmé.',
+    pending: 'Paiement reçu, confirmation en cours.',
+    failed: 'Le paiement a échoué.',
+    unknown: 'Statut du paiement indisponible.',
+  };
+  const DEFAULT_DETAIL: Record<Exclude<View, 'loading'>, string> = {
+    confirmed: 'Merci pour votre achat.',
+    pending: 'La validation finale est en cours. Vous recevrez la confirmation par e-mail.',
+    failed: 'Aucun montant n’a été débité. Vous pouvez réessayer.',
+    unknown: 'Si un montant a été débité, contactez-nous : la confirmation suivra par e-mail.',
+  };
 
   return (
     <section>
-      {loading ? (
-        <LoadingState label="Vérification du paiement…" />
-      ) : (
-        <Card>
-          <h1>{title}</h1>
-          <p>{detail}</p>
-          <p style={{ display: 'flex', gap: 'var(--bs-space-2)', flexWrap: 'wrap' }}>
-            <Link className="bs-btn" to="/">Retour à l’accueil</Link>
-            <Link className="bs-btn bs-btn--secondary" to="/prestations">Voir les prestations</Link>
-          </p>
-        </Card>
-      )}
+      <Card>
+        <h1>{TITLES[view]}</h1>
+        <p>{detail || DEFAULT_DETAIL[view]}</p>
+        <p style={{ display: 'flex', gap: 'var(--bs-space-2)', flexWrap: 'wrap' }}>
+          <Link className="bs-btn" to="/">Retour à l’accueil</Link>
+          {view === 'failed' ? <Link className="bs-btn bs-btn--secondary" to="/checkout">Réessayer</Link> : null}
+          {view !== 'failed' ? <Link className="bs-btn bs-btn--secondary" to="/prestations">Voir les prestations</Link> : null}
+        </p>
+      </Card>
     </section>
   );
 }

@@ -65,13 +65,28 @@ export async function getSessionStatusFromRequest(req) {
     return { status: 401, json: { ok: false, error: 'Authentification requise.' } };
   }
 
-  const paymentIntentId = String(req.query.payment_intent_id || req.query.session_id || '').trim();
-  if (!paymentIntentId) {
+  const requestedId = String(req.query.payment_intent_id || req.query.session_id || '').trim();
+  if (!requestedId) {
     return { status: 400, json: { ok: false, error: 'payment_intent_id manquant.' } };
   }
 
   try {
     const stripe = await getStripeClient();
+
+    // R2C — le retour Stripe hébergé transporte un id de Checkout Session (`cs_…`) : on le résout
+    // d'abord en PaymentIntent. Le chemin `pi_…` reste inchangé.
+    let paymentIntentId = requestedId;
+    if (requestedId.startsWith('cs_')) {
+      const checkoutSession = await stripe.checkout.sessions.retrieve(requestedId);
+      paymentIntentId = String(checkoutSession?.payment_intent || '').trim();
+      if (!paymentIntentId) {
+        return {
+          status: 200,
+          json: { ok: true, status: 'open', payment_status: 'unpaid', origin: null, item: null }
+        };
+      }
+    }
+
     const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     // Look up our intent for origin + item

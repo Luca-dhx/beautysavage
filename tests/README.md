@@ -396,6 +396,17 @@ Frontend uniquement (`npm run react:test`, total **71 verts**, +17) ; **aucun te
 - `apps/vitrine/src/pages/r2bPayment.test.tsx` (10) — bouton désactivé→activé ; createCheckoutSession reçoit le checkoutState attendu (sans `totals`) ; hosted → `window.location.assign(url)` ; free → finalize-free + navigation succès ; erreur backend → ErrorState ; 401 → connexion requise ; succès free ; succès hosted pending (wording prudent) ; annulation conserve le panier ; **aucune dépendance `stripe` dans les package.json front**.
 - Garanties vérifiées : aucun import `@stripe/stripe-js`, aucun hex dans les `.tsx`. Backend (404 + 36/20) **inchangé**.
 
+## Sprint React R2C — Retour Stripe React + login client (rapports 169-170)
+
+Backend (+7 → **411**) :
+- `tests/p1/hostedCheckoutReactReturnUrls.test.js` (3) — sans `CHECKOUT_RETURN_BASE_URL` → URLs Vanilla ; base http(s) → URLs React (`/paiement/succes?session_id={CHECKOUT_SESSION_ID}&checkoutId=…`, `/paiement/annule`) ; base sans schéma → fallback Vanilla (anti open-redirect).
+- `tests/p1/checkoutSessionStatus.test.js` (4) — `session-status` résout `cs_…` (Checkout Session → PaymentIntent) ; `pi_…` inchangé ; `cs_` sans PI → open/unpaid ; 401 si non authentifié.
+- Stripe mocké via `stripeConfigService.getStripeClient`. Aucun changement pricing/finalizer/consentement.
+
+Frontend (+13 → **91 verts**) :
+- `apps/vitrine/src/pages/r2cReturnLogin.test.tsx` (9) — succès `session_id` → session-status + panier vidé ; pending → panier conservé ; `payment_intent` failed ; `free=1` (panier vidé, aucun réseau) ; login succès → redirect interne ; login erreur → message ; checkout 401 → lien `/connexion?redirect=/checkout` + panier conservé.
+- Garanties : aucun import Stripe.js, aucun hex tsx, aucun token en localStorage (cookie HttpOnly only).
+
 ## Sprint U3 — UnifiedCheckout plateforme Stripe Dev (rapports 154-155)
 
 - `platformCheckoutFeatureFlag.test.js` (+2) — `PLATFORM_CHECKOUT_HOSTED` false → clientSecret (Dev) ; true → url hosted (commission).

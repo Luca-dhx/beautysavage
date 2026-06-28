@@ -3498,3 +3498,24 @@ inchangés ; frontend **71 tests** verts.
 - **Limite** : `success_url`/`cancel_url` hosted = backend (Vanilla) → flow free 100 % React ; retour
   hosted sur Vanilla (pages React prêtes, bascule = R2C). Aucun import `@stripe/stripe-js`, aucun hex tsx.
 - Prochaine mission : **R2C** (success_url React + module login client + reprise checkout).
+
+## Sprint React R2C — Retour Stripe React + login client léger (2026-06-28)
+Boucle paiement React fermée. Backend touché **uniquement** sur les URLs de retour hosted + lecture
+`session-status` (aucun pricing/finalizer/consentement/Vanilla cassé). Rapports 169/170. Backend
+**411** + audits 36/20 ; frontend **91** verts.
+- `stripeCheckoutService.buildHostedReturnUrls(ngrok, checkoutId)` : `CHECKOUT_RETURN_BASE_URL` (env)
+  vide → URLs **Vanilla inchangées** ; http(s) absolue → `success={base}/paiement/succes?session_id=
+  {CHECKOUT_SESSION_ID}&checkoutId=…`, `cancel={base}/paiement/annule`. Base = env only (pas d'open
+  redirect). `.env.example` mis à jour.
+- `stripePaymentQueryService.getSessionStatusFromRequest` : résout les ids `cs_…` (Checkout Session →
+  PaymentIntent) ; chemin `pi_…` inchangé ; `cs_` sans PI → open/unpaid.
+- `@bs/api-client` : `getCheckoutSessionStatus(sessionId)` (mapping succeeded/pending/failed/unknown),
+  `auth/login(email,password)` (cookie HttpOnly ; getSession/logout existants).
+- Vitrine : `PaymentSuccessPage` (free/session_id/payment_intent_id ; **clearCart seulement si
+  confirmé** ; wording prudent), `PaymentCancelPage` (panier conservé), `LoginPage` (`/connexion`
+  léger → `refresh()` + redirect interne validé anti open-redirect). `/checkout` 401 →
+  `/connexion?redirect=/checkout` (panier conservé, reprise après login).
+- Tests : backend +7 (`hostedCheckoutReactReturnUrls` 3, `checkoutSessionStatus` 4) ; frontend +13
+  (`r2cReturnLogin` 9 + ajustements). Aucun import `@stripe/stripe-js`, aucun hex tsx, aucun secret/token front.
+- **Limite** : retour React effectif si `CHECKOUT_RETURN_BASE_URL` défini (sinon Vanilla). Pas
+  d'inscription/reset/OAuth. Prochaine mission : **R3** (espace client / manager React).

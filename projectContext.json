@@ -36,7 +36,22 @@
     "reactThemeFoundation": "completed",
     "themeMultiScopeT1": "completed",
     "reactR2ACheckoutPreparation": "completed",
-    "reactR2BPaymentFlow": "completed"
+    "reactR2BPaymentFlow": "completed",
+    "reactR2CStripeReturnLogin": "completed"
+  },
+  "reactR2CStripeReturnLogin": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["169_audit_react_r2c_stripe_return_login.md", "170_rapport_react_r2c_stripe_return_login.md"],
+    "summary": "Fermeture de la boucle paiement React : URLs de retour React (env, fallback Vanilla), session-status resout les cs_, pages retour React robustes, login client leger + reprise checkout. Backend touche UNIQUEMENT sur URLs retour + lecture session-status (aucun pricing/finalizer/consentement). Backend 411 + audits 36/20 ; frontend 91 tests + build + lint + typecheck verts.",
+    "backendReturnUrls": "stripeCheckoutService.buildHostedReturnUrls(ngrok,checkoutId) : CHECKOUT_RETURN_BASE_URL (.env.example) vide -> URLs Vanilla INCHANGEES ; http(s) absolue -> success={base}/paiement/succes?session_id={CHECKOUT_SESSION_ID}&checkoutId=… , cancel={base}/paiement/annule. Base = env only (jamais client) + validee http(s) -> pas d'open redirect ; base sans schema -> fallback Vanilla.",
+    "backendSessionStatus": "stripePaymentQueryService.getSessionStatusFromRequest : si id commence par cs_ -> stripe.checkout.sessions.retrieve -> payment_intent -> suite inchangee. Chemin pi_ identique. cs_ sans PI -> {status:'open',payment_status:'unpaid'}. Reponse inchangee.",
+    "apiClient": "@bs/api-client/checkout : getCheckoutSessionStatus(sessionId) GET /api/stripe/session-status?session_id= -> {status:succeeded|pending|failed|unknown, paymentStatus} (mapping prudent). @bs/api-client/auth : login(email,password) POST /auth/login (cookie HttpOnly). getSession/logout existants. AUCUN token localStorage.",
+    "pages": "PaymentSuccessPage (/paiement/succes : free=1 confirme ; session_id=cs_ -> getCheckoutSessionStatus ; payment_intent_id=pi_ -> getPaymentResult ; clearCart UNIQUEMENT si confirme/free, jamais si pending/unknown/failed ; wording prudent 'confirmation en cours'). PaymentCancelPage (panier conserve). LoginPage (/connexion : login -> useAuth().refresh() -> redirect interne VALIDE (?redirect= commence par / mais pas // ; sinon /checkout si panier sinon /), anti open-redirect ; erreurs inline ; pas d'inscription/reset/OAuth).",
+    "checkoutAuth": "/checkout 401 -> etat 'Connexion requise' + lien /connexion?redirect=/checkout ; panier conserve (local) ; reprise du paiement apres login. Pas de RequireAuth autour de /checkout (backend = autorite).",
+    "tests": "Backend +7 (hostedCheckoutReactReturnUrls 3, checkoutSessionStatus 4) -> 411. Frontend +13 (r2cReturnLogin 9 + ajustements) -> 91. Aucun import @stripe/stripe-js, aucun hex tsx, aucun token front.",
+    "limites": "Retour React effectif si CHECKOUT_RETURN_BASE_URL defini (sinon Vanilla, defaut). Pas d'inscription/reset/OAuth (login minimal). Checkout centre prestation. Espace client/manager/dev hors perimetre.",
+    "prochaineMission": "React R3 : espace client React (mes formations/reservations/commandes) ou demarrage manager React (onboarding contrat + commissions hebergees U3). Etendre checkout React aux produits/formations/cartes cadeaux."
   },
   "reactR2BPaymentFlow": {
     "date": "2026-06-28",

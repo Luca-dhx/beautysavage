@@ -51,3 +51,11 @@ export interface PaymentResultResponse {
   errorMessage?: string;
   origin?: { slug: string; query?: Record<string, unknown> } | null;
 }
+
+/** Réponse brute de session-status (backend) + statut paiement dérivé pour l'UI. */
+export interface CheckoutSessionStatus {
+  /** Statut normalisé pour l'UI (dérivé de payment_status). */
+  status: PaymentResultStatus | 'unknown';
+  /** Statut Stripe PaymentIntent brut (succeeded/processing/canceled/...). */
+  paymentStatus: string;
+}

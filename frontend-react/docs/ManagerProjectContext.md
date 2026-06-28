@@ -57,3 +57,11 @@ L'onboarding (frais de lancement + souscription mensuelle) et le règlement mens
 pourront s'effectuer sur des pages Stripe hébergées (flag `PLATFORM_CHECKOUT_HOSTED`), offrant à la
 gérante une expérience de paiement sécurisée et cohérente avec la vitrine. Le modèle économique
 plateforme (frais + abonnement + commissions) est unifié derrière UnifiedCheckout. Fallback Elements conservé.
+
+## MAJ R0 — Espaces Manager & Dev esquissés
+Les deux audiences internes (gérante = Manager, plateforme = Développeur) ont désormais leur
+coquille navigable, avec la séparation des droits matérialisée : un admin voit le manager mais pas
+la section Dev, un dev voit les deux. Le relabel UI (`admin→Manager`, `dev→Développeur`) est en
+place sans toucher aux rôles backend. Aucun module réel n'est branché — R0 valide l'architecture des
+espaces et des guards. L'onboarding contrat, le dashboard et les outils Dev décrits ci-dessus seront
+implémentés en **R3**, en consommant les endpoints et le paiement plateforme hébergé déjà prêts (U3).

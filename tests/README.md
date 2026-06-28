@@ -344,6 +344,17 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Sprint React R0 — Infrastructure frontend-react (rapports 156-157)
+
+Tests **frontend** (séparés du backend, dans `frontend-react/`, lancés par `npm run react:test`
+ou `cd frontend-react && npm run test` — Vitest + Testing Library/jsdom). N'affectent ni n'utilisent
+la suite backend ; le `npm test` backend reste à 394.
+- `packages/api-client/src/apiFetch.test.ts` (3) — succès JSON, `ApiError{status,code}` sur non-ok, erreur sans JSON propre.
+- `packages/auth/src/guards.test.tsx` (4) — `RequireAuth` bloque l'anonyme / laisse passer l'authentifié ; `RequireRole` refuse un rôle insuffisant / accepte un rôle autorisé.
+- `apps/vitrine/src/App.test.tsx` (1) — rendu de la page d'accueil.
+- `apps/manager/src/App.test.tsx` (4) — anonyme→/login, admin→dashboard, dev→/dev, admin bloqué sur /dev.
+- Total : **12 tests frontend verts**. `loader` injectable dans `AuthProvider` (pas d'appel réseau en test). Aucun secret.
+
 ## Sprint U3 — UnifiedCheckout plateforme Stripe Dev (rapports 154-155)
 
 - `platformCheckoutFeatureFlag.test.js` (+2) — `PLATFORM_CHECKOUT_HOSTED` false → clientSecret (Dev) ; true → url hosted (commission).

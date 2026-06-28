@@ -1,0 +1,90 @@
+/* Design tokens R0 — base simple, PAS de design final.
+   Cohérent avec le thème dynamique Vanilla (`/api/vitrine/theme`) qui surchargera ces vars en R1+. */
+:root {
+  --bs-color-primary: #5f4ff7;
+  --bs-color-secondary: #f24692;
+  --bs-color-success: #1f7a3a;
+  --bs-color-danger: #dc2626;
+  --bs-color-text: #0f172a;
+  --bs-color-muted: rgba(15, 23, 42, 0.6);
+  --bs-color-surface: #ffffff;
+  --bs-color-background: #f5f4ef;
+  --bs-color-border: rgba(15, 23, 42, 0.12);
+
+  --bs-radius: 6px;
+  --bs-space-1: 4px;
+  --bs-space-2: 8px;
+  --bs-space-3: 16px;
+  --bs-space-4: 24px;
+  --bs-font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--bs-font-sans);
+  color: var(--bs-color-text);
+  background: var(--bs-color-background);
+}
+
+.bs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bs-space-2);
+  padding: var(--bs-space-2) var(--bs-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--bs-radius);
+  font: inherit;
+  cursor: pointer;
+  background: var(--bs-color-primary);
+  color: #fff;
+}
+.bs-btn--secondary {
+  background: transparent;
+  color: var(--bs-color-primary);
+  border-color: var(--bs-color-border);
+}
+.bs-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.bs-card {
+  background: var(--bs-color-surface);
+  border: 1px solid var(--bs-color-border);
+  border-radius: var(--bs-radius);
+  padding: var(--bs-space-4);
+}
+
+.bs-state {
+  padding: var(--bs-space-4);
+  color: var(--bs-color-muted);
+}
+.bs-state--error {
+  color: var(--bs-color-danger);
+}
+
+.bs-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.bs-shell__header,
+.bs-shell__footer {
+  padding: var(--bs-space-3) var(--bs-space-4);
+  border-bottom: 1px solid var(--bs-color-border);
+}
+.bs-shell__footer {
+  border-bottom: none;
+  border-top: 1px solid var(--bs-color-border);
+  color: var(--bs-color-muted);
+  margin-top: auto;
+}
+.bs-shell__main {
+  flex: 1;
+  padding: var(--bs-space-4);
+}

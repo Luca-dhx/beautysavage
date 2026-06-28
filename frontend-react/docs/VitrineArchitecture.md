@@ -66,3 +66,13 @@ pricing serveur fait toujours foi ; la carte cadeau reste un moyen de paiement c
 url, checkoutId }` → l'app vitrine redirige vers `url` (Stripe Checkout) ; retour via `success_url`.
 0 € → `{ mode:'free' }` → `finalize-free`. Le client API (R2) doit gérer ces deux modes + la
 redirection. Tant que R2 n'est pas livré, le front Vanilla utilise Elements (flag false).
+
+## MAJ R0 — Squelette app vitrine (exécuté)
+L'app `apps/vitrine` est créée (Vite + React Router + TanStack Query + `AuthProvider`). **Routing
+placeholder** sous `PublicLayout` (header catalogue/panier/connexion + footer légal) :
+`/`, `/prestations`, `/formations`, `/formation/:id`, `/produits`, `/cartes-cadeaux`, `/connexion`,
+`/paiement/succes`, `/paiement/annule`, et — sous `RequireAuth(loginPath="/connexion")` —
+`/panier`, `/checkout`. Chaque page = composant `Placeholder` (titre + description + lien doc),
+**aucun appel métier** (seul `/auth/me` au boot via `AuthProvider`). Les routes/écrans/API réels
+décrits ci-dessus seront branchés à partir de **R1** (catalogue) puis **R2** (checkout hébergé).
+Test : `apps/vitrine/src/App.test.tsx` (rendu de l'accueil).

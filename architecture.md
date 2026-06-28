@@ -3382,3 +3382,26 @@ métier / payload existant / statut HTTP. Anciens flows Dev en fallback. Stripe 
 - `createPlatformUnifiedCheckoutRecord` (factory, kind explicite). `stripeDevHostedCheckoutService`
   (Sessions Dev payment/setup). Flags indépendants (CHECKOUT_HOSTED vs PLATFORM_CHECKOUT_HOSTED).
 - **Limite** : pas de bascule UI (Manager R3). Prochaine mission : React R0 (setup monorepo).
+
+## Sprint React R0 — Infrastructure frontend-react (2026-06-28)
+Monorepo React **parallèle** dans `backend/frontend-react/` (npm workspaces), **sans aucune page
+métier** (placeholders) et **zéro changement backend** (seuls des scripts `react:*` ajoutés au
+`package.json` racine). Rapports 156 (audit) / 157 (rapport). Le Vanilla (`public/`) reste l'UI de
+production. Cf. `frontend-react/docs/*` (sections « MAJ R0 »).
+- **Stack** : Vite 5 + React 18 + TypeScript strict + React Router 6 + TanStack Query 5 ;
+  tests Vitest + Testing Library (jsdom) ; lint ESLint 9 (flat). CSS = tokens CSS variables
+  (`@bs/ui`), pas de Tailwind.
+- **Apps** : `apps/vitrine` (routes publiques + `/panier`,`/checkout` sous `RequireAuth`),
+  `apps/manager` (`/login` public ; manager sous `RequireRole(['admin','dev'])` ; `/dev/*` sous
+  `RequireRole(['dev'])`).
+- **Packages** : `@bs/config` (env non-secret + dictionnaire codes erreur), `@bs/api-client`
+  (`apiFetch`/`ApiError`/types + `getSession`/`logout`), `@bs/auth` (`AuthProvider`/`useAuth`/
+  guards, relabel UI admin→Manager / dev→Développeur), `@bs/ui` (Button/Card/LoadingState/
+  ErrorState/AppShell + tokens).
+- **Proxy dev** : Vite proxifie `/api`, `/auth` (auth hors `/api`, montée sur `/auth`) et
+  `/uploads` → `VITE_PROXY_TARGET` (défaut `http://localhost:3000`). Same-origin, pas de CORS,
+  cookie via `credentials:'include'`. **Aucun secret** côté front.
+- **Validation** : `react:build` (2 apps) + `react:test` (12 tests) + `react:lint` + `typecheck`
+  verts ; suite backend inchangée (394).
+- **Limite** : placeholders uniquement (seul `/auth/me` appelé au boot). Prochaine mission : **R1**
+  (première vraie page vitrine).

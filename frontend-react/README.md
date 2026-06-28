@@ -17,13 +17,35 @@ packages/
 docs/           # documentation OBLIGATOIRE (Folder*, Vitrine*, Manager*)
 ```
 
-## Stack (recommandée — à exécuter en sprint R0)
-Vite + React + TypeScript + React Router + TanStack Query (+ Zod). CSS : CSS Modules vs Tailwind à
-trancher en R0. Playwright (E2E) plus tard.
+## Stack (installée en R0)
+Vite + React 18 + TypeScript (strict) + React Router 6 + TanStack Query 5. Tests : Vitest + Testing
+Library (jsdom). Lint : ESLint 9 (flat config). CSS : **CSS variables / tokens** dans `packages/ui`
+(cohérent avec le thème dynamique `/api/vitrine/theme`) — pas de Tailwind, pas de design final.
+Playwright (E2E) plus tard.
 
 ## Statut
-**Plan & documentation uniquement** (rapports 143-149). Le setup exécutable (package.json, vite,
-dépendances) sera réalisé au sprint **R0** (cf. `docs/` + rapport 146).
+**R0 effectué.** Monorepo buildable, routing placeholder (vitrine + manager/dev), guards
+auth/rôles, 4 packages, proxy `/api`+`/auth`. Aucune vraie page métier (placeholders). Cf. rapport
+157.
+
+## Commandes (depuis `frontend-react/`)
+| Commande | Effet |
+|---|---|
+| `npm install` | installe les workspaces. |
+| `npm run dev:vitrine` / `dev:manager` | dev server (proxy `/api`,`/auth`,`/uploads` → backend). |
+| `npm run build` | build des 2 apps (`dist/`). |
+| `npm run test` | Vitest (jsdom + Testing Library). |
+| `npm run lint` | ESLint. |
+| `npm run typecheck` | `tsc --noEmit`. |
+
+Depuis la racine backend : `react:dev:vitrine`, `react:dev:manager`, `react:build`, `react:test`,
+`react:lint` (délèguent ici via `npm --prefix frontend-react`).
+
+## Proxy & sécurité
+Dev same-origin : Vite proxifie `/api`, `/auth`, `/uploads` vers `VITE_PROXY_TARGET`
+(défaut `http://localhost:3000`). Pas de CORS. Cookie `beautysavage_session` (HttpOnly) via
+`credentials:'include'`. **Aucun secret** côté front (clé Stripe publique via `/api/stripe/config`,
+R2).
 
 ## Règle de documentation
 Chaque sprint met à jour la doc du scope touché (`docs/Vitrine*` ou `docs/Manager*`) **et**

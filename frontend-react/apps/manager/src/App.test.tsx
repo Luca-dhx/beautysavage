@@ -1,0 +1,50 @@
+import { describe, it, expect } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { AuthProvider } from '@bs/auth';
+import type { AuthUser } from '@bs/api-client';
+import { App } from './App';
+
+function renderAt(path: string, user: AuthUser | null) {
+  return render(
+    <AuthProvider loader={async () => user}>
+      <MemoryRouter initialEntries={[path]}>
+        <App />
+      </MemoryRouter>
+    </AuthProvider>,
+  );
+}
+
+const dev: AuthUser = { id: '1', email: 'dev@b.c', role: 'dev' };
+const admin: AuthUser = { id: '2', email: 'admin@b.c', role: 'admin' };
+
+describe('Manager App', () => {
+  it('redirige un visiteur anonyme vers /login', async () => {
+    renderAt('/', null);
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Connexion manager' })).toBeInTheDocument(),
+    );
+  });
+
+  it('affiche le tableau de bord pour un admin', async () => {
+    renderAt('/', admin);
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Tableau de bord' })).toBeInTheDocument(),
+    );
+  });
+
+  it('autorise /dev pour un dev', async () => {
+    renderAt('/dev', dev);
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Espace développeur' })).toBeInTheDocument(),
+    );
+  });
+
+  it('bloque /dev pour un admin (redirige vers le tableau de bord)', async () => {
+    renderAt('/dev', admin);
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Tableau de bord' })).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole('heading', { name: 'Espace développeur' })).not.toBeInTheDocument();
+  });
+});

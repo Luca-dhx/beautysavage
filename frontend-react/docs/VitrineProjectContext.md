@@ -50,3 +50,10 @@ L'expérience cible : redirection vers une page de paiement Stripe hébergée (c
 SCA, mobile natif) pour tout montant > 0, finalisation 0 € transparente sinon. Le backend est prêt
 (flag `CHECKOUT_HOSTED`) ; l'activation visible côté client arrive avec R2 (consommation de la
 redirection). Carte cadeau toujours capée au solde, jamais une remise Stripe.
+
+## MAJ R0 — Coquille navigable
+Le squelette de la vitrine existe (placeholders) : un visiteur peut naviguer entre accueil,
+catalogues et pages de paiement, et les routes client (panier/checkout) sont protégées par
+`RequireAuth`. Aucune donnée réelle n'est encore affichée — l'objectif R0 est de valider la
+structure et les guards, pas l'expérience. Le parcours d'achat décrit ci-dessus se construit à
+partir de **R1** (catalogue) et **R2** (checkout hébergé).

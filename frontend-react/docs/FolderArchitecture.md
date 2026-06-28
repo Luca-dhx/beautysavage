@@ -82,3 +82,23 @@ Kinds plateforme ajoutés : `commission`, `launch_fee`, `subscription` (provider
 launch, mode setup abonnement) ; finalisation par les webhooks Dev EXISTANTS. Indépendant du flag
 institut `CHECKOUT_HOSTED`. Côté React : le Manager (R3) consomme `create-intent`/`create-launch-intent`/
 `create-monthly-setup` → `{ mode:'hosted', url }` (redirection) ou ancien `clientSecret` (flag off).
+
+## MAJ R0 — Infrastructure React posée (exécutée)
+Le monorepo `frontend-react/` est **opérationnel** (npm workspaces) : apps `vitrine` + `manager`,
+packages `config`/`api-client`/`auth`/`ui`. Stack figée : **Vite 5 + React 18 + TS strict + React
+Router 6 + TanStack Query 5** ; tests **Vitest + Testing Library (jsdom)** ; lint **ESLint 9** (flat).
+CSS = **tokens CSS variables** dans `@bs/ui` (pas de Tailwind). Alias `@bs/*` → `packages/*/src`
+(pas d'étape de build des packages : source TS importée directement).
+- **Proxy dev** : Vite proxifie `/api`, `/auth` (⚠️ l'auth est hors `/api`, montée sur `/auth` dans
+  `app.js`) et `/uploads` vers `VITE_PROXY_TARGET` (défaut `http://localhost:3000`) → same-origin,
+  pas de CORS, cookie `beautysavage_session` via `credentials:'include'`.
+- **api-client** : `apiFetch`/`apiGet`/`apiPost`, `ApiError`, types (`Role`, `AuthUser`,
+  `MoneyAmount`, `DateIso`, `ApiResult`), `getSession()` (GET `/auth/me`) + `logout()`.
+- **auth** : `AuthProvider` (boot `/auth/me`, `loader` injectable pour tests), `useAuth`,
+  `RequireAuth`, `RequireRole` ; relabel UI `admin→Manager`, `dev→Développeur` (rôles backend
+  inchangés).
+- **Validation** : `react:build` (2 apps), `react:test` (12 tests verts), `react:lint`,
+  `typecheck` — tous verts. Suite backend inchangée (aucun fichier backend métier touché ; seuls des
+  scripts `react:*` ajoutés au `package.json` racine).
+- **Limite R0** : aucune vraie page métier (placeholders) ; seul `/auth/me` est appelé (boot).
+  Prochaine phase **R1** = première vraie page vitrine. Cf. rapport 157.

@@ -72,3 +72,12 @@ Les encaissements de la plateforme (commission mensuelle, frais de lancement, ab
 désormais passer par Stripe Checkout hébergé (flag `PLATFORM_CHECKOUT_HOSTED`), comme les achats
 client. Le modèle SaaS (frais + abonnement + commissions) est ainsi entièrement routable par le
 moteur UnifiedCheckout, base d'une facturation plateforme cohérente. Anciens flows conservés (fallback).
+
+## MAJ R0 — Fondations React livrées
+La décision produit « React en parallèle, bascule progressive » est désormais **amorcée
+techniquement** : le squelette des deux espaces (Vitrine public/client, Manager + section Dev)
+existe, navigable, avec guards de rôle (relabel UI `admin→Manager`, `dev→Développeur`). Aucune
+fonctionnalité métier n'est encore migrée — le Vanilla reste la seule UI de production. R0 valide la
+faisabilité (build, tests, proxy same-origin) sans aucun risque sur l'existant. Les vraies pages
+arrivent à partir de **R1** (vitrine) puis **R3** (manager), en consommant l'API et le paiement
+hébergé déjà prêts côté backend (U2/U3).

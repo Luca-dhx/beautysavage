@@ -30,7 +30,22 @@
     "unifiedCheckoutAndReactPlan": "completed",
     "unifiedCheckoutU1Foundations": "completed",
     "unifiedCheckoutU2HostedCheckout": "completed",
-    "unifiedCheckoutU3PlatformCheckout": "completed"
+    "unifiedCheckoutU3PlatformCheckout": "completed",
+    "reactR0Infrastructure": "completed"
+  },
+  "reactR0Infrastructure": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["156_audit_pre_react_r0_setup.md", "157_rapport_react_r0_setup.md"],
+    "summary": "Infrastructure React parallele creee dans backend/frontend-react (npm workspaces) : apps vitrine+manager, packages config/api-client/auth/ui, routing placeholder, guards role, proxy /api+/auth. AUCUNE vraie page metier. ZERO changement backend metier (seuls des scripts react:* ajoutes au package.json racine). Vanilla intact. Suite backend 394 verte ; frontend 12 tests verts + build + lint + typecheck.",
+    "stack": "Vite 5 + React 18 + TypeScript strict + React Router 6 + TanStack Query 5. Tests Vitest + Testing Library (jsdom). Lint ESLint 9 (flat). CSS = tokens CSS variables (@bs/ui), pas de Tailwind. Alias @bs/* -> packages/*/src (source TS importee, pas de build des packages).",
+    "apps": "apps/vitrine (routes publiques + /panier,/checkout sous RequireAuth, loginPath=/connexion ; PublicLayout). apps/manager (/login public ; tout sous RequireRole(['admin','dev']) + ManagerLayout ; /dev/* sous RequireRole(['dev'], deniedPath=/) + DevLayout).",
+    "packages": "@bs/config (API_BASE_URL, APP_KIND, ERROR_CODE_UX, aucun secret). @bs/api-client (apiFetch/apiGet/apiPost, ApiError, types Role/AuthUser/MoneyAmount/DateIso/ApiResult, getSession=GET /auth/me, logout). @bs/auth (AuthProvider loader-injectable, useAuth, RequireAuth, RequireRole, roleLabel admin->Manager/dev->Developpeur). @bs/ui (Button/Card/LoadingState/ErrorState/AppShell + tokens.css).",
+    "proxy": "Vite dev proxifie /api, /auth (auth montee sur /auth dans app.js, hors /api), /uploads -> VITE_PROXY_TARGET (defaut http://localhost:3000). Same-origin, pas de CORS, cookie beautysavage_session via credentials:'include'. Aucun secret cote front.",
+    "scriptsRacine": "react:dev:vitrine, react:dev:manager, react:build, react:test, react:lint (delegent a npm --prefix frontend-react). Scripts backend existants inchanges.",
+    "tests": "12 frontend verts : apiFetch.test (3), guards.test (4), vitrine App.test (1), manager App.test (4). loader injectable -> pas d'appel reseau en test.",
+    "limitesR0": "Placeholders uniquement (aucun appel metier sauf /auth/me au boot). Pas de checkout React, pas de dashboard reel, pas de migration Vanilla. node_modules/dist gitignores (frontend-react/.gitignore).",
+    "prochaineMission": "React R1 : premiere vraie page vitrine (catalogue) consommant l'API existante. Puis R2 (checkout hosted), R3 (manager : onboarding contrat + commissions hosted)."
   },
   "unifiedCheckoutU3PlatformCheckout": {
     "date": "2026-06-28",

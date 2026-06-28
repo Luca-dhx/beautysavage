@@ -68,3 +68,20 @@ Avec `PLATFORM_CHECKOUT_HOSTED=true` : `POST /api/contract/create-launch-intent`
 - launch fee / commission : mode payment ; abonnement : mode setup (collecte du moyen de paiement).
 - Finalisation : webhooks Dev existants (`payment_intent.succeeded`, `setup_intent.succeeded`) ;
   `checkout.session.completed` réconcilie l'UnifiedCheckout. Flag off → Elements (fallback) inchangé.
+
+## MAJ R0 — Squelette app manager (exécuté)
+L'app `apps/manager` est créée. **Guards de rôle** (cf. rapport 147) :
+- `/login` public (placeholder login manager).
+- Tout le reste sous `RequireRole(['admin','dev'], loginPath="/login")` + `ManagerLayout` (nav
+  latérale filtrée par rôle ; le lien « Développeur » n'apparaît que pour `dev`) :
+  `/` (dashboard), `/onboarding/contrat`, `/planning`, `/reservations`, `/prestations`,
+  `/formations`, `/produits`, `/cartes-cadeaux`, `/ventes`, `/remboursements`, `/commissions`,
+  `/parametres`.
+- Section **`/dev/*`** sous un second guard `RequireRole(['dev'], deniedPath="/")` + `DevLayout` :
+  `/dev`, `/dev/contrats`, `/dev/commissions`, `/dev/integrated-api`, `/dev/email-templates`,
+  `/dev/send-logs`, `/dev/event-logs`, `/dev/webhook-failures`. Un admin qui tente `/dev` est
+  renvoyé au dashboard.
+Chaque page = `Placeholder`, **aucun appel métier** (boot `/auth/me` seul). Tests :
+`apps/manager/src/App.test.tsx` (anonyme→login, admin→dashboard, dev→`/dev`, admin bloqué sur
+`/dev`). L'autorité reste le backend (401/403) ; les guards React sont UX. Les vraies pages arrivent
+en **R3**.

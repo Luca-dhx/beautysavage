@@ -3,7 +3,6 @@ import { screen, waitFor, fireEvent } from '@testing-library/react';
 import type { PublicService } from '@bs/api-client';
 import { renderWithProviders, stubFetch, jsonResponse } from '../test/utils';
 import { CartPage } from './CartPage';
-import { CheckoutPage } from './CheckoutPage';
 import { ServiceBookingPanel } from '../features/booking/ServiceBookingPanel';
 import { useCart } from '../features/cart/CartProvider';
 import type { ServiceCartItem } from '../features/cart/cartTypes';
@@ -39,36 +38,6 @@ describe('CartPage', () => {
     expect(screen.getByText(/01\/07\/2026 à 14:00/)).toBeInTheDocument();
     fireEvent.click(screen.getByText('Retirer'));
     expect(screen.getByText('Votre panier est vide.')).toBeInTheDocument();
-  });
-});
-
-describe('CheckoutPage', () => {
-  it('bouton désactivé si consentements manquants ; payload préparé contient slot + consentements', async () => {
-    renderWithProviders(<CheckoutPage />, '/checkout', [serviceItem]);
-    const prepareBtn = screen.getByRole('button', { name: 'Préparer le paiement' });
-    expect(prepareBtn).toBeDisabled();
-
-    // Cocher CGV + ack prestation datée.
-    fireEvent.click(screen.getByLabelText(/conditions générales/i));
-    fireEvent.click(screen.getByLabelText(/exécutée à la date/i));
-    expect(prepareBtn).toBeEnabled();
-
-    fireEvent.click(prepareBtn);
-    await waitFor(() => expect(screen.getByText('Payload préparé (debug)')).toBeInTheDocument());
-    const pre = screen.getByText(/"serviceId": "s1"/);
-    expect(pre.textContent).toContain('"slotStart": "2026-07-01T14:00"');
-    expect(pre.textContent).toContain('"acceptedCgv": true');
-  });
-
-  it('aucun appel réseau Stripe / create-checkout-session lors de la préparation', async () => {
-    const fetchSpy = vi.fn(async () => jsonResponse({ ok: true }));
-    vi.stubGlobal('fetch', fetchSpy);
-    renderWithProviders(<CheckoutPage />, '/checkout', [serviceItem]);
-    fireEvent.click(screen.getByLabelText(/conditions générales/i));
-    fireEvent.click(screen.getByLabelText(/exécutée à la date/i));
-    fireEvent.click(screen.getByRole('button', { name: 'Préparer le paiement' }));
-    await waitFor(() => expect(screen.getByText('Payload préparé (debug)')).toBeInTheDocument());
-    expect(fetchSpy).not.toHaveBeenCalled(); // R2A ne déclenche aucun appel
   });
 });
 

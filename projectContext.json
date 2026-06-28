@@ -35,7 +35,23 @@
     "reactR1VitrineCatalogue": "completed",
     "reactThemeFoundation": "completed",
     "themeMultiScopeT1": "completed",
-    "reactR2ACheckoutPreparation": "completed"
+    "reactR2ACheckoutPreparation": "completed",
+    "reactR2BPaymentFlow": "completed"
+  },
+  "reactR2BPaymentFlow": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["167_audit_react_r2b_payment_flow.md", "168_rapport_react_r2b_payment_flow.md"],
+    "summary": "Checkout React branche au paiement via le backend : Stripe Checkout HEBERGE (redirection) + finalize-free (0 EUR). AUCUN Stripe.js / AUCUN appel Stripe direct cote React. ZERO changement backend. Backend 404 + audits 36/20 inchanges ; frontend 71 tests + build + lint + typecheck verts.",
+    "apiClient": "@bs/api-client/checkout : createCheckoutSession({checkoutState}) POST /api/stripe/create-checkout-session (body DIRECT, pas de token) -> hosted|free|elements ; finalizeFreeCheckout({checkoutState,idempotencyKey}) POST /api/client/checkout/finalize-free -> {saleId} ; getPaymentResult(pi) GET /api/stripe/payment-result ; buildServiceCheckoutState(line,legal) (SANS montant, serveur recalcule) ; buildIdempotencyKey (alphanum 8-128). credentials:include ; erreurs ApiError + mapping @bs/config resolveErrorUx.",
+    "payload": "checkoutState = {item:{type:'service',id,name}, service:{serviceId,practitionerId,slotStart,slotEnd,selectedOptions}, legal:{acceptedCgv,waiverAccepted}, origin:{slug:'checkout'}}. JAMAIS de totals/amountToPay. waiverText non envoye (re-derive serveur).",
+    "checkoutPage": "Bouton 'Payer / Confirmer' desactive si panier vide / consentements incomplets / pas de prestation+creneau / soumission. hosted -> window.location.assign(url) ; free -> finalizeFreeCheckout -> navigate('/paiement/succes?free=1&checkoutId=<saleId>') ; elements (flag off) -> message paiement hebergé non active ; ApiError 401 -> 'Connexion requise' + lien /connexion (panier conserve) ; autre ApiError -> ErrorState (resolveErrorUx). AUCUN import @stripe/stripe-js.",
+    "pages": "PaymentSuccessPage (/paiement/succes : free=1 -> 'Commande confirmee' ; payment_intent_id -> getPaymentResult succeeded/pending/failed ; wording PRUDENT 'confirmation en cours' si pending/webhook ; fallback prudent). PaymentCancelPage (/paiement/annule : panier CONSERVE, jamais vide). Sorties de RequireAuth.",
+    "auth": "Pas de module login complet (hors scope). requireAuth backend -> 401 intercepte (ApiError) -> etat connexion requise + lien /connexion ; panier conserve. S'appuie sur AuthProvider existant. /connexion reste placeholder.",
+    "limiteHosted": "success_url/cancel_url hosted = backend (Vanilla : vitrine.html?slug=payment|checkout), NON modifiable sans changement backend (interdit). Flow free 100% React (teste). Flow hosted redirige vers Stripe mais retour atterrit sur Vanilla ; pages React /paiement/succes & /annule pretes (servies par free ; par hosted des paramétrage backend = R2C).",
+    "tests": "71 frontend verts (+17) : checkout.test (10), r2bPayment.test (10 : bouton, payload sans totals, hosted assign, free+nav, erreur, 401, succes free, succes pending prudent, annule conserve panier, AUCUNE dep stripe). Aucun import @stripe/stripe-js, aucun hex tsx (verifie). Backend inchange (404 + 36/20).",
+    "limites": "Hosted retour sur Vanilla (R2C). Pas de Stripe.js/Elements React (volontaire). Checkout centre prestation (produits/formations/cartes cadeaux non payables via React). Pas de module login complet.",
+    "prochaineMission": "React R2C : parametrer success_url/cancel_url backend (ou flag/route) vers le domaine React -> retour hosted dans /paiement/succes React (session-status/payment-result). Puis module login client React (/connexion) + reprise checkout apres login. Ensuite R3 (manager)."
   },
   "reactR2ACheckoutPreparation": {
     "date": "2026-06-28",

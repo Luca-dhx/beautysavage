@@ -112,3 +112,12 @@ conversion : on valide l'expérience d'achat (panier indicatif, calendrier, tran
 gardant le backend comme seule autorité (prix, disponibilité, verrou de créneau). Le paiement réel
 (Stripe Checkout hébergé) est volontairement reporté à **R2B** pour livrer la préparation de façon
 sûre et testée d'abord.
+
+## MAJ R2B — La conversion est ouverte (paiement)
+React peut désormais déclencher un **paiement réel** : redirection vers la page Stripe hébergée
+(montant > 0) ou finalisation directe (0 €), toujours **via le backend** (jamais Stripe.js côté
+client). C'est la première fois qu'un achat peut aboutir depuis React. La sécurité prime : aucune
+donnée bancaire ne transite par le front, le serveur recalcule tout, et le succès n'est jamais
+affirmé tant que le webhook n'a pas confirmé (wording prudent « confirmation en cours »). Le retour
+des paiements hébergés atterrit encore sur le Vanilla (URL backend) — bascule complète vers les pages
+React en R2C.

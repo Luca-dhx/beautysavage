@@ -389,6 +389,13 @@ Frontend uniquement (`npm run react:test`, total **54 verts**, +13) ; **aucun te
 - `apps/vitrine/src/pages/r2aFlow.test.tsx` (6) — panier vide ; panier prestation+créneau+retrait ; checkout bouton désactivé→payload préparé (slot+CGV) ; **aucun appel réseau lors de la préparation** ; sélection jour→créneau→ajout panier ; jour sans créneau → empty state.
 - Backend (`npm test` 404, audits 36/20) **inchangé** : R2A ne touche pas le backend.
 
+## Sprint React R2B — Paiement hébergé + finalize-free (rapports 167-168)
+
+Frontend uniquement (`npm run react:test`, total **71 verts**, +17) ; **aucun test backend** (zéro changement backend) :
+- `packages/api-client/src/checkout/checkout.test.ts` (10) — `buildServiceCheckoutState` (sans montant / null hors service), `buildIdempotencyKey` (alphanum 8-128), `createCheckoutSession` (hosted/free/elements/ApiError 400), `finalizeFreeCheckout` (saleId / 401).
+- `apps/vitrine/src/pages/r2bPayment.test.tsx` (10) — bouton désactivé→activé ; createCheckoutSession reçoit le checkoutState attendu (sans `totals`) ; hosted → `window.location.assign(url)` ; free → finalize-free + navigation succès ; erreur backend → ErrorState ; 401 → connexion requise ; succès free ; succès hosted pending (wording prudent) ; annulation conserve le panier ; **aucune dépendance `stripe` dans les package.json front**.
+- Garanties vérifiées : aucun import `@stripe/stripe-js`, aucun hex dans les `.tsx`. Backend (404 + 36/20) **inchangé**.
+
 ## Sprint U3 — UnifiedCheckout plateforme Stripe Dev (rapports 154-155)
 
 - `platformCheckoutFeatureFlag.test.js` (+2) — `PLATFORM_CHECKOUT_HOSTED` false → clientSecret (Dev) ; true → url hosted (commission).

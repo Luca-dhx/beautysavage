@@ -11,6 +11,8 @@ import { ProductDetailPage } from './pages/ProductDetailPage';
 import { GiftCardsPage } from './pages/GiftCardsPage';
 import { CartPage } from './pages/CartPage';
 import { CheckoutPage } from './pages/CheckoutPage';
+import { PaymentSuccessPage } from './pages/PaymentSuccessPage';
+import { PaymentCancelPage } from './pages/PaymentCancelPage';
 
 // Routing vitrine R1 — catalogue public réel. Checkout/paiement = placeholders (R2).
 export function App() {
@@ -31,10 +33,12 @@ export function App() {
         <Route path="panier" element={<CartPage />} />
         <Route path="checkout" element={<CheckoutPage />} />
 
-        {/* Auth / paiement (placeholders — R2B) */}
-        <Route path="connexion" element={<Placeholder title="Connexion" description="Connexion client (R2B+)." />} />
-        <Route path="paiement/succes" element={<Placeholder title="Paiement réussi" description="Retour Stripe (R2B)." />} />
-        <Route path="paiement/annule" element={<Placeholder title="Paiement annulé" description="Retour Stripe (R2B)." />} />
+        {/* Retour paiement (R2B) */}
+        <Route path="paiement/succes" element={<PaymentSuccessPage />} />
+        <Route path="paiement/annule" element={<PaymentCancelPage />} />
+
+        {/* Auth (placeholder — module login complet hors périmètre R2B) */}
+        <Route path="connexion" element={<Placeholder title="Connexion" description="Connexion client (module à venir)." />} />
 
         <Route path="*" element={<Placeholder title="Page introuvable" description="404." />} />
       </Route>

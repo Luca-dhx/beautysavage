@@ -164,3 +164,19 @@ consentements + bouton « Préparer le paiement » **désactivé** tant que cons
 `buildCheckoutPreparationPayload` affiché en `<details>` debug). **Aucun appel Stripe / create-checkout-session**
 en R2A. `/panier` et `/checkout` ne sont plus sous `RequireAuth` (panier local). `CartProvider` monté
 dans `main.tsx`. Le payload prépare le `checkoutState.service` + `legal` attendu par le backend (R2B).
+
+## MAJ R2B — Paiement hébergé + finalize-free (exécuté)
+`/checkout` est branché au paiement via **`@bs/api-client/checkout`** :
+- `buildServiceCheckoutState(line, legal)` → `{item, service{serviceId,practitionerId,slotStart,
+  slotEnd}, legal{acceptedCgv,waiverAccepted}, origin}` — **aucun montant** (serveur recalcule).
+- `createCheckoutSession({checkoutState})` (`POST /api/stripe/create-checkout-session`, body direct) :
+  `hosted` → `window.location.assign(url)` ; `free` → `finalizeFreeCheckout` (idempotencyKey) →
+  `navigate('/paiement/succes?free=1&checkoutId=…')` ; `elements` (flag off) → message ; `401` →
+  « Connexion requise » + `/connexion` (panier conservé) ; erreur → `ErrorState` (mapping `@bs/config`).
+- **Aucun `@stripe/stripe-js`, aucun appel Stripe direct.** Bouton « Payer / Confirmer » désactivé si
+  panier vide / consentements incomplets / pas de prestation+créneau / soumission.
+- Pages `PaymentSuccessPage` (`/paiement/succes` : `free=1` / `payment_intent_id` →
+  `getPaymentResult` ; wording **prudent** si `pending`) et `PaymentCancelPage` (`/paiement/annule` :
+  panier conservé). Sorties de `RequireAuth`.
+- **Limite** : `success_url`/`cancel_url` hosted = backend (Vanilla) → le retour hosted atterrit sur le
+  Vanilla ; les pages React sont prêtes (flow free testé ; hosted dès paramétrage backend = R2C).

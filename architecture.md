@@ -3481,3 +3481,20 @@ frontend **54 tests** verts.
   sortis de `RequireAuth` (panier local). Composants 100 % tokens `--bs-*` (aucun hex).
 - **Le backend reste source de vérité** (prix/dispo/lock). Prochaine mission : **R2B** (paiement
   Stripe Checkout hébergé : `{mode:'hosted',url}` / finalize-free).
+
+## Sprint React R2B — Paiement Stripe Checkout hébergé + finalize-free (2026-06-28)
+Le checkout React déclenche le **paiement via le backend**. **Aucun Stripe.js / aucun appel Stripe
+direct ; aucun changement backend.** Rapports 167 (audit) / 168 (rapport). Backend 404 + audits 36/20
+inchangés ; frontend **71 tests** verts.
+- `@bs/api-client/checkout/` : `createCheckoutSession({checkoutState})` (`POST /api/stripe/create-checkout-session`,
+  body **direct**, pas de token), `finalizeFreeCheckout({checkoutState,idempotencyKey})`
+  (`/api/client/checkout/finalize-free`), `getPaymentResult(pi)` (`/api/stripe/payment-result`),
+  `buildServiceCheckoutState` (**sans montant** — serveur recalcule), `buildIdempotencyKey`.
+- `/checkout` « Payer / Confirmer » : `hosted` → `window.location.assign(url)` ; `free` →
+  finalize-free → `/paiement/succes?free=1` ; `elements` (flag off) → message ; `401` → connexion
+  requise (panier conservé) ; erreur → `ErrorState` (mapping `@bs/config`).
+- Pages `/paiement/succes` (free / `payment_intent_id`→payment-result ; **wording prudent** si pending)
+  et `/paiement/annule` (panier conservé).
+- **Limite** : `success_url`/`cancel_url` hosted = backend (Vanilla) → flow free 100 % React ; retour
+  hosted sur Vanilla (pages React prêtes, bascule = R2C). Aucun import `@stripe/stripe-js`, aucun hex tsx.
+- Prochaine mission : **R2C** (success_url React + module login client + reprise checkout).

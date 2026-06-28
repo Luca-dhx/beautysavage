@@ -161,3 +161,17 @@ create-checkout-session ; aucun changement backend.
 - **Règle confirmée** : le backend fait foi (prix/dispo/lock) ; le front prépare seulement. Pas de
   lock de créneau côté front. Composants 100 % tokens `--bs-*` (aucun hex). 54 tests frontend verts.
 - Prochaine : **R2B** (paiement Stripe Checkout hébergé).
+
+## MAJ R2B — Paiement Stripe Checkout hébergé + finalize-free
+Le checkout React appelle le **backend** pour payer (rapports 167/168). **Aucun Stripe.js / aucun
+appel Stripe direct ; aucun changement backend.**
+- **`@bs/api-client/checkout/`** : `createCheckoutSession({checkoutState})` (`/api/stripe/create-checkout-session`,
+  body direct), `finalizeFreeCheckout` (`/api/client/checkout/finalize-free`), `getPaymentResult`
+  (`/api/stripe/payment-result`), `buildServiceCheckoutState` (sans montant), `buildIdempotencyKey`.
+- **`/checkout`** : bouton « Payer / Confirmer » → `hosted` (`window.location.assign(url)`) / `free`
+  (finalize-free → `/paiement/succes`) / `elements` (flag off → message) / `401` (connexion requise,
+  panier conservé) / erreur (ErrorState + mapping `@bs/config`).
+- **`/paiement/succes`** (free / payment_intent_id → payment-result ; wording **prudent** si pending)
+  et **`/paiement/annule`** (panier conservé).
+- **Limite** : `success_url`/`cancel_url` hosted = backend (Vanilla) → flow free 100 % React ; hosted
+  prêt côté React dès paramétrage backend (R2C). 71 tests frontend verts. Backend = source de vérité.

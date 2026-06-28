@@ -87,3 +87,11 @@ Message clé pour l'utilisateur : le créneau n'est pas réservé tant que le pa
 eu lieu (le backend verrouille au moment du checkout). Le panier est indicatif (le montant final est
 calculé par le serveur). Cette étape « préparation » sécurise l'expérience avant d'ouvrir le paiement
 Stripe en R2B.
+
+## MAJ R2B — Payer pour de vrai
+Le client peut maintenant **payer** : page Stripe hébergée (montant > 0) ou finalisation immédiate
+(0 €), toujours via le backend. Promesse tenue : sécurité maximale (pas de Stripe.js côté front, pas
+de donnée bancaire sur le site, serveur qui fait foi) et honnêteté du statut (« confirmation en cours »
+tant que le webhook n'a pas validé). En cas d'annulation, le panier est conservé ; sans connexion, on
+invite à se connecter sans perdre le panier. Le retour des paiements hébergés repasse pour l'instant
+par le Vanilla — la boucle 100 % React se ferme en R2C.

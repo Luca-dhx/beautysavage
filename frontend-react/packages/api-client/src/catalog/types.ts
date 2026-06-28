@@ -105,6 +105,27 @@ export interface PublicGiftCardConfig {
   image?: string;
 }
 
+/**
+ * Thème vitrine public — `GET /api/vitrine/theme`. Forme NEUTRE (pas de dépendance à @bs/ui) :
+ * l'app vitrine mappe ces couleurs vers ses tokens. Tout optionnel (fallback côté UI).
+ */
+export interface PublicVitrineTheme {
+  colors: {
+    primary?: string;
+    secondary?: string;
+    background?: string;
+    surface?: string;
+    text?: string;
+  };
+  derivedTokens: {
+    surfaceHeader?: string;
+    accent?: string;
+    accentStrong?: string;
+  };
+  slogan?: string;
+  logoUrl?: string;
+}
+
 export type PublicSiteStatusValue = 'active' | 'suspended' | 'maintenance';
 
 /** Statut site — `GET /api/site-status`. */

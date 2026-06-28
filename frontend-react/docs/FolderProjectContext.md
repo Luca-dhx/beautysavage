@@ -88,3 +88,11 @@ cadeaux) en réutilisant l'API publique existante — preuve que la migration pr
 sur du contenu réel, sans toucher au backend ni au Vanilla. L'achat reste fermé (R2) : R1 est une
 étape « consultation » qui dérisque la suite (typage des payloads, formats prix/médias centralisés,
 états de chargement, responsive) avant d'ouvrir la conversion et le paiement hébergé.
+
+## MAJ Theme Foundation — Deux identités visuelles
+Décision produit actée techniquement : la **vitrine** (devanture premium, violet/rose, thème piloté
+par le backend) et le **panel** Manager/Dev (outil interne sobre, bleu/ardoise) ont des identités
+**distinctes**. Les couleurs ne sont plus codées en dur dans les composants : un système de tokens
+(`@bs/ui/theme`) centralise tout et permettra au rôle **dev** de configurer chaque thème depuis un
+futur « Theme Studio » (plan 161), sans toucher au code. La vitrine reprend le thème backend existant
+(`/api/vitrine/theme`) avec fallback ; le panel a son défaut en attendant son endpoint dédié.

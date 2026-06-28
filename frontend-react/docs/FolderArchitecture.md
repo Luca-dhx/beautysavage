@@ -117,3 +117,20 @@ Première consommation réelle de l'API publique (rapports 158/159). **Zéro cha
   hooks TanStack Query (cache `/shop` partagé), états loading/error/empty, `SiteStatusBanner`.
 - **Limite** : pas de checkout/paiement (R2) ; carte cadeau = config seule ; manager/dev intacts.
   26 tests frontend verts ; backend inchangé.
+
+## MAJ Theme Foundation — Système de thème React (exécuté)
+Fondation de thème **deux scopes** (`vitrine` / `panel`), couleurs **jamais en dur** dans les
+composants (rapports 160/161/162). **Zéro changement backend** ; Vanilla intact.
+- **`@bs/ui/theme`** : `ThemeTokens` (colors étendus + radius/shadow/font/spacing), `defaultVitrineTheme`
+  (violet/rose, aligné Vanilla), `defaultPanelTheme` (bleu/ardoise, **distinct**), `themeToCssVars`
+  (tokens → `--bs-*`), `applyThemeVars`, `mergeTheme`, `normalizeHex`, `ThemeProvider scope`,
+  `useThemeTokens`.
+- **CSS variables** : les composants `@bs/ui` lisent EXCLUSIVEMENT `--bs-color-*` / `--bs-radius` /
+  `--bs-shadow` / `--bs-font-sans` / `--bs-space-*`. `tokens.css :root` = fallback ; le `ThemeProvider`
+  réécrit ces vars sur `<html>` selon le scope.
+- **Vitrine** : `VitrineThemeProvider` charge `/api/vitrine/theme` (best-effort, TanStack Query) →
+  mappe vers une surcharge partielle (hex normalisés) → `ThemeProvider scope="vitrine"` ; fallback
+  défaut si l'API échoue (jamais bloquant).
+- **Manager** : `ThemeProvider scope="panel"` + `defaultPanelTheme` (pas d'endpoint → Theme Studio Dev
+  futur, plan 161 : `/api/gestion/dev/themes/:scope`, dev-only).
+- **Règle** : tout sprint React qui touche l'UI lit les tokens (`--bs-*`), jamais de hex en dur.

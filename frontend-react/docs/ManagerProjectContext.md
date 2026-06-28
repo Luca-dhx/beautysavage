@@ -65,3 +65,11 @@ la section Dev, un dev voit les deux. Le relabel UI (`admin→Manager`, `dev→D
 place sans toucher aux rôles backend. Aucun module réel n'est branché — R0 valide l'architecture des
 espaces et des guards. L'onboarding contrat, le dashboard et les outils Dev décrits ci-dessus seront
 implémentés en **R3**, en consommant les endpoints et le paiement plateforme hébergé déjà prêts (U3).
+
+## MAJ Theme Foundation — Un panel à l'identité propre
+Le panel Manager/Dev adopte une **identité visuelle distincte** de la vitrine (palette bleu/ardoise
+sobre, orientée outil de travail), conformément à la décision produit. Les couleurs sont centralisées
+en tokens (aucun hex en dur), et le rôle **dev** pourra à terme configurer ce thème panel (et celui
+de la vitrine) depuis un Theme Studio dédié — pour l'instant un thème par défaut s'applique, sans
+dépendance backend. Cela prépare une cohérence visuelle maîtrisée avant l'arrivée des vrais modules
+manager (R3).

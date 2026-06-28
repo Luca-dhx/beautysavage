@@ -67,3 +67,9 @@ car checkout/paiement/réservation sont le périmètre R2. Un bandeau informe si
 maintenance/suspendu, sans jamais empêcher la consultation du catalogue. Objectif R1 : valider la
 chaîne API publique → React (proxy, typage, états loading/error/empty, responsive) sur du vrai
 contenu, avant d'ouvrir la conversion en R2.
+
+## MAJ Theme Foundation — Identité vitrine pilotable
+La vitrine reprend le **thème configuré côté backend** (couleurs violet/rose par défaut) : la gérante
+(via le dev) garde la main sur l'identité visuelle publique, comme dans le Vanilla. Le thème est
+appliqué de façon non bloquante (fallback si indisponible) pour ne jamais dégrader l'expérience. À
+terme, le Theme Studio Dev permettra d'éditer/prévisualiser ce thème vitrine.

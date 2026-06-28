@@ -6,3 +6,4 @@ export * from './trainings';
 export * from './products';
 export * from './giftCards';
 export * from './site';
+export * from './theme';

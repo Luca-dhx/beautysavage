@@ -32,7 +32,25 @@
     "unifiedCheckoutU2HostedCheckout": "completed",
     "unifiedCheckoutU3PlatformCheckout": "completed",
     "reactR0Infrastructure": "completed",
-    "reactR1VitrineCatalogue": "completed"
+    "reactR1VitrineCatalogue": "completed",
+    "reactThemeFoundation": "completed"
+  },
+  "reactThemeFoundation": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["160_audit_theme_vanilla_react.md", "161_plan_theme_studio_dev.md", "162_rapport_theme_foundation_react.md"],
+    "summary": "Fondation de theme React deux scopes (vitrine/panel), couleurs JAMAIS en dur dans les composants (lecture CSS vars --bs-*). ZERO changement backend. Vanilla intact. PAS de R2 checkout. Backend 394 + audits 36/20 inchanges ; frontend 38 tests + build + lint + typecheck verts.",
+    "audit": "Theme model (colors{primary,secondary,background,surface,text}+derivedTokens, dev-only CRUD /api/gestion/themes requireStrictDev) + /api/vitrine/theme public. Vanilla PARTAGE un seul theme vitrine+gestion (--color-*/--theme-*). React @bs/ui utilise prefixe --bs-*.",
+    "model": "@bs/ui/theme : ThemeTokens (colors etendus background/surface/surfaceElevated/text/textMuted/primary/primaryHover/secondary/accent/border/success/warning/danger + radius/shadow/font/spacing). defaultVitrineTheme (violet/rose, aligne Vanilla). defaultPanelTheme (bleu/ardoise, DISTINCT). themeToCssVars (tokens->--bs-*), applyThemeVars, mergeTheme, normalizeHex, ThemeProvider scope, useThemeTokens.",
+    "vitrineTheme": "VitrineThemeProvider (main.tsx) charge /api/vitrine/theme (getVitrineTheme -> PublicVitrineTheme neutre) -> mapVitrineThemeToTokens (hex normalises, primaryHover/accent en color-mix) -> ThemeProvider scope=vitrine. Fallback defaultVitrineTheme si API KO (best-effort, jamais bloquant).",
+    "panelTheme": "ThemeProvider scope=panel + defaultPanelTheme (manager main.tsx). PAS d'endpoint backend -> defaut fait foi. Theme Studio Dev futur (plan 161 : GET/PUT /api/gestion/dev/themes/:scope, dev-only, preview/validation/versioning).",
+    "cssVars": "Composants @bs/ui lisent EXCLUSIVEMENT --bs-color-* / --bs-radius / --bs-shadow / --bs-font-sans / --bs-space-*. tokens.css :root = fallback ; ThemeProvider reecrit sur <html>. Decoratifs (.bs-hero/.bs-banner/.bs-media__placeholder) tokenises via color-mix. Aucun hex dans les .tsx.",
+    "filesCreated": "@bs/ui/src/theme/{themeTypes,defaultVitrineTheme,defaultPanelTheme,themeCssVariables,ThemeProvider,useThemeTokens,index,theme.test}.ts(x) ; @bs/api-client/src/catalog/theme.ts (+PublicVitrineTheme) ; apps/vitrine/src/features/theme/{vitrineThemeAdapter,VitrineThemeProvider,theme.test} ; apps/manager/src/theme.test.tsx.",
+    "filesModified": "@bs/ui/src/{index.ts,tokens.css} (nouveaux tokens fallback + tokenisation decoratifs + hover) ; api-client catalog/{index,types} ; vitrine main.tsx (VitrineThemeProvider) ; manager main.tsx (ThemeProvider panel).",
+    "tests": "38 frontend verts : theme.test ui (7), vitrine features/theme (4), manager theme (1), + R1 (proxy 3, mappers 5, catalogPages 5, vitrine App 2) + R0 (apiFetch 3, guards 4, manager App 4).",
+    "limites": "Panel sans backend (defaut). Theme Studio Dev NON implemente (plan 161 seul, aucun endpoint/modele/UI cree). Vitrine theme = mapping partiel du Theme existant (5 couleurs).",
+    "regle": "Tout sprint React touchant l'UI lit les tokens (--bs-*), jamais de hex en dur dans les composants.",
+    "prochaineMission": "React R2A : panier + checkout + paiement Stripe Checkout heberge (consommer {mode:'hosted',url} de create-checkout-session, flag CHECKOUT_HOSTED ; finalize-free 0 EUR)."
   },
   "reactR1VitrineCatalogue": {
     "date": "2026-06-28",

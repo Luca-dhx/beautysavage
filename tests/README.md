@@ -363,6 +363,13 @@ Tests frontend ajoutés (`npm run react:test`, total **26 verts**) :
 - `apps/vitrine/src/App.test.tsx` (2, mis à jour) — accueil (hero) + bandeau maintenance via `/api/site-status`.
 - Helper `apps/vitrine/src/test/utils.tsx` : `stubFetch`/`jsonResponse`/`renderWithProviders` (QueryClient retry off + AuthProvider anonyme + MemoryRouter). Aucun appel réseau réel.
 
+### MAJ Theme Foundation — Thème vitrine/panel (rapports 160-162)
+Tests frontend ajoutés (`npm run react:test`, total **38 verts**) :
+- `packages/ui/src/theme/theme.test.tsx` (7) — `themeToCssVars` expose toutes les vars ; `mergeTheme` ; `normalizeHex` ; `ThemeProvider` applique scope vitrine/panel + surcharge.
+- `apps/vitrine/src/features/theme/theme.test.tsx` (4) — `mapVitrineThemeToTokens` ({} si vide, hex invalides ignorés) ; `VitrineThemeProvider` fallback `defaultVitrineTheme` si API KO ; applique la couleur backend.
+- `apps/manager/src/theme.test.tsx` (1) — manager rend le dashboard + applique `defaultPanelTheme` (distinct vitrine).
+- Règle vérifiée : aucun hex en dur dans les `.tsx` (composants lisent les CSS vars `--bs-*`).
+
 ## Sprint U3 — UnifiedCheckout plateforme Stripe Dev (rapports 154-155)
 
 - `platformCheckoutFeatureFlag.test.js` (+2) — `PLATFORM_CHECKOUT_HOSTED` false → clientSecret (Dev) ; true → url hosted (commission).

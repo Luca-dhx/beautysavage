@@ -3425,3 +3425,20 @@ backend 394 + audits 36/20 inchangés.
   `SiteStatusBanner`. Boutons d'achat inactifs (« bientôt disponible »).
 - **Limites** : pas de carte cadeau détail (config seule) ; pas de catégories publiques ; pas de
   réservation/checkout. Prochaine mission : **R2** (checkout + paiement Stripe Checkout hébergé).
+
+## Sprint React Theme Foundation — Thème vitrine/panel configurable (2026-06-28)
+Fondation de thème React **deux scopes** (`vitrine` / `panel`), couleurs **jamais en dur** dans les
+composants. **Zéro changement backend** ; Vanilla intact. Rapports 160 (audit) / 161 (plan Theme
+Studio Dev) / 162 (rapport). Backend 394 + audits 36/20 inchangés ; frontend **38 tests** verts.
+- **Audit** : `Theme` (colors+derivedTokens, dev-only CRUD `/api/gestion/themes`) + `/api/vitrine/theme`
+  public ; le Vanilla **partage un seul thème** vitrine+gestion (`--color-*`/`--theme-*`).
+- **`@bs/ui/theme`** : `ThemeTokens` (colors étendus : surfaceElevated/primaryHover/accent/textMuted/
+  warning + radius/shadow/font/spacing), `defaultVitrineTheme` (violet/rose), `defaultPanelTheme`
+  (bleu/ardoise, **distinct**), `themeToCssVars`/`applyThemeVars`/`mergeTheme`/`normalizeHex`,
+  `ThemeProvider scope`, `useThemeTokens`. Composants lisent EXCLUSIVEMENT `--bs-*` (fallback `:root`).
+- **Vitrine** : `VitrineThemeProvider` charge `/api/vitrine/theme` (best-effort) → `mapVitrineThemeToTokens`
+  (hex normalisés) → `ThemeProvider scope=vitrine` ; fallback défaut si API KO (jamais bloquant).
+- **Manager** : `ThemeProvider scope=panel` + `defaultPanelTheme` (pas d'endpoint → Theme Studio Dev
+  futur : `/api/gestion/dev/themes/:scope`, dev-only, preview/validation/versioning).
+- **Limites** : panel sans backend (défaut) ; Theme Studio non implémenté (plan 161 seul). Prochaine
+  mission : **R2A** (panier + checkout + paiement Stripe Checkout hébergé).

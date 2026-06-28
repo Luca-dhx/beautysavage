@@ -85,3 +85,12 @@ Chaque page = `Placeholder`, **aucun appel métier** (boot `/auth/me` seul). Tes
 `apps/manager/src/App.test.tsx` (anonyme→login, admin→dashboard, dev→`/dev`, admin bloqué sur
 `/dev`). L'autorité reste le backend (401/403) ; les guards React sont UX. Les vraies pages arrivent
 en **R3**.
+
+## MAJ Theme Foundation — Thème panel (exécuté)
+Le manager applique le **thème scope=panel** via `ThemeProvider scope="panel"` (dans `main.tsx`),
+utilisant `defaultPanelTheme` (`@bs/ui`) — palette **bleu/ardoise distincte** de la vitrine
+(violet/rose). Les CSS vars `--bs-*` sont appliquées sur `<html>` ; les composants lisent ces tokens
+(aucun hex en dur). **Aucun endpoint backend** de thème panel pour l'instant → le défaut fait foi ;
+le **Theme Studio Dev** (plan rapport 161 : `GET/PUT /api/gestion/dev/themes/:scope`, **dev only**,
+preview live + validation + versioning) permettra de le configurer. Test :
+`apps/manager/src/theme.test.tsx` (dashboard rendu + thème panel appliqué, distinct vitrine).

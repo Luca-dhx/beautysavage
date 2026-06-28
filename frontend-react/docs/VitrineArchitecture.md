@@ -124,3 +124,15 @@ Pas de détail carte cadeau (endpoint config seul) ; pas de catégories publique
 défini mais non peuplé) ; pas de calendrier/réservation prestation (R2) ; pas de checkout/paiement.
 Tests : `catalogPages.test.tsx` (loading→cards, empty, error, sections accueil, route détail) +
 `App.test.tsx` (hero + bandeau maintenance) + `mappers.test.ts` + `proxy.test.ts`.
+
+## MAJ Theme Foundation — Thème vitrine (exécuté)
+La vitrine applique le **thème scope=vitrine** via `VitrineThemeProvider` (dans `main.tsx`, sous
+`QueryClientProvider`/`AuthProvider`) :
+- `getVitrineTheme()` (`@bs/api-client`, `GET /api/vitrine/theme`) → `PublicVitrineTheme` (neutre).
+- `mapVitrineThemeToTokens()` (vitrine) : normalise les hex (`normalizeHex`), dérive `primaryHover`/
+  `accent` en `color-mix`, renvoie une surcharge partielle. Couleurs invalides ignorées.
+- `ThemeProvider scope="vitrine" theme={…}` applique les CSS vars `--bs-*` sur `<html>`. **Fallback**
+  `defaultVitrineTheme` tant que l'API n'a pas répondu / en erreur (best-effort, jamais bloquant).
+- Tous les composants catalogue lisent les tokens (`--bs-color-*`, etc.) ; décoratifs (`.bs-hero`,
+  `.bs-banner`, `.bs-media__placeholder`) tokenisés via `color-mix`. Aucun hex dans les `.tsx`.
+- Tests : `features/theme/theme.test.tsx` (adapter + fallback défaut + couleur backend).

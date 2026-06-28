@@ -3304,3 +3304,19 @@ SendLog / API.** Caractérisation écrite avant (`mailServiceCharacterization`, 
   uniquement dans le runtime ; SendLog via `mailTrackingService`. DAG acyclique.
 - **Verdict pré-React : GO** — tous les monolithes du rapport 120 résorbés (checkout/stripe/
   stripe-dev/contrat/mail extraits), contrôleurs minces, domaines isolés et testés, API inchangée.
+
+## Audit React & architecture cible (2026-06-28) — rapports 133-142
+Audit complet du site Vanilla + plan d'architecture React parallèle (documentation, aucun code modifié).
+- **Front actuel** : 2 SPA séparées (`vitrine.html`/`gestion.html`), 72 modules, routing query-param,
+  pas de toggle runtime (`currentMode`/`modeGuard` vestigial).
+- **Rôles** : `client/admin/dev` **inchangés** backend ; relabel UI `admin→Manager`, `dev→Développeur`.
+- **Architecture cible** : `beautysavage.fr` = Vitrine React (public+client) ; `manager.beautysavage.fr`
+  = Manager React (admin) + section `/dev` (role dev, Option B) ; backend Express **inchangé**, proxy `/api`.
+- **React parallèle** : `frontend-react/apps/{vitrine,manager}` (Vite+React+TS), Vanilla reste actif,
+  bascule progressive (chemin → sous-domaine manager → apex), rollback DNS/proxy/flag, zéro changement d'endpoint.
+- **Blocages** (135) : codes stables (MAINTENANCE/CONTRACT_INACTIVE/SITE_SUSPENDED/BOOKING_SUSPENDED/
+  LEGAL_CONSENT_REQUIRED/CHECKOUT_AMOUNT_MISMATCH/SESSION_FULL/ALREADY_PURCHASED/SLOT_*/PAYMENT_REQUIRED/
+  OFFER_*) → React = dictionnaire code→UX + écrans d'état.
+- **Seule correction requise avant setup React** : cookie `Domain=.beautysavage.fr` (partage session
+  sous-domaines). Reste incrémental (pagination listes admin/dev, enveloppe d'erreur homogène, flags
+  catalogue purchasable/bookable). **Verdict : GO React parallèle.**

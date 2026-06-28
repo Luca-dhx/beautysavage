@@ -25,7 +25,22 @@
     "preReactF2StripeExtraction": "completed",
     "preReactF2bStripeDevExtraction": "completed",
     "preReactF3aContractBillingExtraction": "completed",
-    "preReactF3bMailServiceSplit": "completed"
+    "preReactF3bMailServiceSplit": "completed",
+    "reactTargetArchitectureAudit": "completed"
+  },
+  "reactTargetArchitectureAudit": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "type": "documentation-only (aucun code modifie, aucun setup React)",
+    "reports": ["133_audit_site_vanilla_actuel.md", "134_audit_roles_espaces_react.md", "135_audit_blocages_site_achats.md", "136_architecture_cible_react_domaines.md", "137_plan_react_parallel_migration.md", "138_roadmap_react_ecran_par_ecran.md", "139_api_contract_react_ready.md", "140_tests_e2e_critiques_react.md", "141_corrections_pre_setup_react.md", "142_rapport_audit_react_target_architecture.md"],
+    "frontActuel": "2 SPA separees (vitrine.html/gestion.html), 72 modules JS, routing query-param (?slug=/?module=), PAS de toggle runtime (currentMode/modeGuard vestigial).",
+    "roles": "client/admin/dev inchanges backend. Relabel UI seulement : admin->Manager, dev->Developpeur. 4 espaces : Public/Client, Manager, Developer.",
+    "architectureCible": "beautysavage.fr = Vitrine React (public+client) ; manager.beautysavage.fr = Manager React (admin) + section /dev (role dev, Option B) ; backend Express inchange, proxy /api par app.",
+    "reactParallele": "frontend-react/apps/{vitrine,manager} + packages/{api-client,ui,auth}, Vite+React+TS. Vanilla reste actif, bascule progressive (chemin -> sous-domaine manager -> apex), rollback DNS/proxy/flag, zero changement endpoint.",
+    "roadmap": "R0 setup, R1 vitrine, R2 checkout (Stripe/0e/carte cadeau), R5 acces formation client (apex) ; en parallele R3 manager (login/onboarding contrat/dashboard/planning/CRUD/ventes/commissions a payer), R4 dev (contrats/commissions recues/IntegratedAPI/Template Studio/logs). Bascule manager d'abord.",
+    "blocages": "codes stables : MAINTENANCE/CONTRACT_INACTIVE/SITE_SUSPENDED/SUSPENDED_ADMIN_LOGOUT/BOOKING_SUSPENDED/LEGAL_CONSENT_REQUIRED/CHECKOUT_AMOUNT_MISMATCH/AMOUNT_TOO_LOW/PAYMENT_REQUIRED/SESSION_FULL/ALREADY_PURCHASED/SLOT_*/OFFER_ACCESS_UNAVAILABLE/OFFER_BALANCE_UNSUPPORTED. React = dictionnaire code->UX + ecrans d'etat.",
+    "correctionRequiseAvantReact": "Cookie Domain=.beautysavage.fr (partage session sous-domaines). CORS uniquement si API sur origine dediee (evitable par proxy /api). Reste incremental : pagination listes admin/dev, enveloppe d'erreur homogene, flags catalogue purchasable/bookable, neutraliser mode/currentMode.",
+    "verdict": "GO React parallele. Backend post-refactor (F1-F3B) stable, modulaire, React-ready. Aucune reecriture backend necessaire."
   },
   "preReactF3bMailServiceSplit": {
     "date": "2026-06-28",

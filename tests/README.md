@@ -344,6 +344,14 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Audit React & architecture cible (rapports 133-142)
+
+Documentation uniquement (aucun test ajouté/modifié). Plan E2E **Playwright** (non installé)
+défini au rapport 140 : 16 scénarios critiques (login manager, onboarding contrat, checkout
+Stripe/0€/carte cadeau, distanciel, remboursement, paiement commission, blocages site/suspension/
+maintenance, accès dev). Le gate principal reste les **353 tests Vitest backend** ; l'E2E
+validera l'intégration front↔API avant chaque bascule de domaine React.
+
 ## Sprint F3B — Split interne de mailService (rapports 131-132)
 
 - `mailServiceCharacterization.test.js` (+4) — **caractérisation avant split** (verte avant/après) :

@@ -136,3 +136,10 @@ La vitrine applique le **thème scope=vitrine** via `VitrineThemeProvider` (dans
 - Tous les composants catalogue lisent les tokens (`--bs-color-*`, etc.) ; décoratifs (`.bs-hero`,
   `.bs-banner`, `.bs-media__placeholder`) tokenisés via `color-mix`. Aucun hex dans les `.tsx`.
 - Tests : `features/theme/theme.test.tsx` (adapter + fallback défaut + couleur backend).
+
+## MAJ T1 — Thème vitrine = scope vitrine
+La vitrine reste sur `GET /api/vitrine/theme` (rétro-compat), qui renvoie désormais le thème **scope
+vitrine** (les anciens documents sans scope sont traités comme vitrine). Aucun changement côté
+vitrine React : même `VitrineThemeProvider`, même fallback. L'adapter `mapVitrineThemeToTokens`
+délègue au mapping centralisé `mapBackendThemeToTokens` de `@bs/ui` (partagé avec le manager). Un
+endpoint générique `GET /api/theme/vitrine` existe aussi (équivalent).

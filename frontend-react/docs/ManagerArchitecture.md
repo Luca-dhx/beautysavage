@@ -94,3 +94,14 @@ utilisant `defaultPanelTheme` (`@bs/ui`) — palette **bleu/ardoise distincte** 
 le **Theme Studio Dev** (plan rapport 161 : `GET/PUT /api/gestion/dev/themes/:scope`, **dev only**,
 preview live + validation + versioning) permettra de le configurer. Test :
 `apps/manager/src/theme.test.tsx` (dashboard rendu + thème panel appliqué, distinct vitrine).
+
+## MAJ T1 — Thème panel branché au backend (scope manager)
+Le manager ne dépend plus uniquement du défaut local : `PanelThemeProvider`
+(`apps/manager/src/features/theme/`) charge **`GET /api/theme/manager`** via
+`getThemeByScope('manager')` (`@bs/api-client`), mappe par `mapBackendThemeToTokens` (`@bs/ui`), et
+applique `ThemeProvider scope="panel"`. **Fallback systématique** sur `defaultPanelTheme` si
+`theme:null` (aucune config manager) ou erreur réseau — jamais bloquant, aucune couleur visible
+changée sans config. Backend : modèle `Theme.scope` (vitrine|manager), 1 actif/scope (index unique
+partiel), CRUD dev `/api/gestion/themes` scope-aware (activation par scope), migration
+`scripts/migrateThemesToScopes.js`. Le **Theme Studio Dev** (plan 161) éditera ce scope manager.
+Tests : `features/theme/themeMultiScope.test.tsx` (fallback null/erreur + couleur backend).

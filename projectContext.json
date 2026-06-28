@@ -33,7 +33,22 @@
     "unifiedCheckoutU3PlatformCheckout": "completed",
     "reactR0Infrastructure": "completed",
     "reactR1VitrineCatalogue": "completed",
-    "reactThemeFoundation": "completed"
+    "reactThemeFoundation": "completed",
+    "themeMultiScopeT1": "completed"
+  },
+  "themeMultiScopeT1": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["163_audit_pre_t1_theme_multiscope.md", "164_rapport_t1_theme_multiscope.md"],
+    "summary": "Theme backend multi-scope (vitrine/manager). React Manager branche sur /api/theme/manager (fallback defaultPanelTheme). ZERO regression Vanilla/React Vitrine/endpoints/couleurs sans config. Backend 404 + audits 36/20 ; frontend 41 tests + build + lint + typecheck verts.",
+    "model": "models/Theme.js : +scope enum['vitrine','manager'] default vitrine (legacy sans scope = vitrine). Champs additifs optionnels typography/radius/shadow/spacing/metadata (vides -> aucun impact, exposes si presents). colors/derivedTokens/logoUrl/slogan conserves. Index theme_scope_idx + theme_active_per_scope ({scope:1} unique partiel isActive:true -> 1 actif/scope).",
+    "endpoints": "GET /api/vitrine/theme CONSERVE (vitrine, inclut legacy, payload + champ additif scope). Nouveau GET /api/theme/:scope (vitrine|manager, public, {ok,scope,theme}, theme:null si aucun actif, scope invalide 400) -> routers/themePublicRouter.js monte sur /api/theme. CRUD dev /api/gestion/themes : createTheme/updateTheme acceptent scope ; activateTheme PAR SCOPE (sequentiel, sans transaction) ; listThemes?scope=.",
+    "migration": "scripts/migrateThemesToScopes.js : dry-run defaut, --apply. Fonction migrateThemesToScopes({apply,logger}) exportee (testable) + CLI guarde. legacy->vitrine ; max 1 actif/scope (garde recent, desactive doublons AVANT scopes) ; cree theme manager actif (couleurs defaultPanelTheme) si absent, nom anti-collision ; ne desactive jamais le vitrine actif. Idempotent.",
+    "react": "Vitrine inchangee (/api/vitrine/theme). Manager : apps/manager/src/features/theme/PanelThemeProvider charge /api/theme/manager (getThemeByScope('manager')) -> mapBackendThemeToTokens (@bs/ui, mapping neutre partage) -> ThemeProvider scope=panel ; fallback defaultPanelTheme si theme:null/erreur. @bs/api-client getThemeByScope(scope). vitrineThemeAdapter delegue a mapBackendThemeToTokens.",
+    "tests": "Backend +10 (themeMultiScopeBackend 6, themeScopeMigration 4) -> total 404. Frontend +3 (manager themeMultiScope) -> 41. mongodb-memory-server standalone => activation sequentielle (pas de transaction) ; Theme.syncIndexes() dans les tests.",
+    "compat": "Vanilla endpoints/payload inchanges ; theme global existant lu comme vitrine ; themeManagerModule (Vanilla) edite vitrine par defaut (pas scope-aware). React Vitrine inchangee. React Manager : defaut local -> backend optionnel, aucune couleur visible changee sans config manager.",
+    "limites": "Vanilla theme manager non scope-aware (Theme Studio Dev couvrira manager). Migration prod a lancer manuellement (node scripts/migrateThemesToScopes.js --apply). Activation sans transaction (sequentiel, sur pour admin mono-utilisateur).",
+    "prochaineMission": "React R2A : panier + checkout + paiement Stripe Checkout heberge (consommer {mode:'hosted',url} de create-checkout-session, flag CHECKOUT_HOSTED ; finalize-free 0 EUR)."
   },
   "reactThemeFoundation": {
     "date": "2026-06-28",

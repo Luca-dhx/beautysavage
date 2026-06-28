@@ -96,3 +96,11 @@ par le backend) et le **panel** Manager/Dev (outil interne sobre, bleu/ardoise) 
 (`@bs/ui/theme`) centralise tout et permettra au rôle **dev** de configurer chaque thème depuis un
 futur « Theme Studio » (plan 161), sans toucher au code. La vitrine reprend le thème backend existant
 (`/api/vitrine/theme`) avec fallback ; le panel a son défaut en attendant son endpoint dédié.
+
+## MAJ T1 — Deux thèmes pilotés côté backend
+Le backend sait maintenant stocker et servir **deux thèmes distincts** (vitrine et manager). Le panel
+Manager n'est plus figé sur un défaut codé en dur : il charge son thème depuis `/api/theme/manager`
+(avec repli sur le défaut si rien n'est configuré). Cela rend les deux identités visuelles
+**configurables** (le dev pourra les éditer via le futur Theme Studio) tout en garantissant zéro
+changement visible tant qu'aucune config manager n'existe. Étape clé avant un Theme Studio Dev
+réellement multi-scope.

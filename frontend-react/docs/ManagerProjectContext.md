@@ -73,3 +73,9 @@ en tokens (aucun hex en dur), et le rôle **dev** pourra à terme configurer ce 
 de la vitrine) depuis un Theme Studio dédié — pour l'instant un thème par défaut s'applique, sans
 dépendance backend. Cela prépare une cohérence visuelle maîtrisée avant l'arrivée des vrais modules
 manager (R3).
+
+## MAJ T1 — Le panel a son propre thème (configurable)
+L'identité du panel Manager/Dev devient **configurable côté backend** (scope `manager`), séparée de
+la vitrine. Tant qu'aucun thème manager n'est défini, le panel garde son défaut sobre (bleu/ardoise) —
+donc aucune surprise visuelle. Le dev pourra activer/éditer un thème manager dédié (via le futur
+Theme Studio), faisant évoluer l'outil interne indépendamment de la devanture publique.

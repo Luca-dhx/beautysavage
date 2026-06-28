@@ -29,3 +29,20 @@ export async function getVitrineTheme(signal?: AbortSignal): Promise<PublicVitri
   const res = await apiFetch<{ ok: boolean; theme?: unknown }>('/api/vitrine/theme', { signal });
   return mapVitrineTheme(res.theme);
 }
+
+export type ThemeScopeName = 'vitrine' | 'manager';
+
+/**
+ * Thème actif d'un scope — `GET /api/theme/:scope` (lecture publique, multi-scope T1).
+ * Renvoie null si aucun thème actif pour ce scope (l'appelant retombe sur son défaut).
+ */
+export async function getThemeByScope(
+  scope: ThemeScopeName,
+  signal?: AbortSignal,
+): Promise<PublicVitrineTheme | null> {
+  const res = await apiFetch<{ ok: boolean; scope?: string; theme?: unknown }>(
+    `/api/theme/${encodeURIComponent(scope)}`,
+    { signal },
+  );
+  return res.theme ? mapVitrineTheme(res.theme) : null;
+}

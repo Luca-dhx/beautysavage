@@ -370,6 +370,17 @@ Tests frontend ajoutés (`npm run react:test`, total **38 verts**) :
 - `apps/manager/src/theme.test.tsx` (1) — manager rend le dashboard + applique `defaultPanelTheme` (distinct vitrine).
 - Règle vérifiée : aucun hex en dur dans les `.tsx` (composants lisent les CSS vars `--bs-*`).
 
+## Sprint T1 — Thème backend multi-scope (rapports 163-164)
+
+Backend (+10) :
+- `tests/p1/themeMultiScopeBackend.test.js` (6) — legacy sans scope = vitrine ; createTheme scope (défaut vitrine / manager / invalide→400) ; 1 actif par scope + activer un scope n'affecte pas l'autre ; `/api/vitrine/theme` & `/api/theme/manager` renvoient le bon scope ; `theme:null` si aucun manager ; CRUD refusé hors dev.
+- `tests/p1/themeScopeMigration.test.js` (4) — dry-run sans écriture ; `--apply` (legacy→vitrine + manager créé + vitrine actif conservé) ; idempotence ; dédoublonnage des actifs.
+- ⚠️ `mongodb-memory-server` est standalone → activation rendue **séquentielle** (pas de transaction). Index unique partiel `theme_active_per_scope` garantit l'unicité ; les tests appellent `Theme.syncIndexes()`.
+
+Frontend (+3 → 41 verts) :
+- `apps/manager/src/features/theme/themeMultiScope.test.tsx` — `PanelThemeProvider` : fallback `defaultPanelTheme` si `theme:null` / si endpoint échoue ; applique la couleur backend manager.
+- Total backend après T1 : **404** tests (96+ fichiers).
+
 ## Sprint U3 — UnifiedCheckout plateforme Stripe Dev (rapports 154-155)
 
 - `platformCheckoutFeatureFlag.test.js` (+2) — `PLATFORM_CHECKOUT_HOSTED` false → clientSecret (Dev) ; true → url hosted (commission).

@@ -3442,3 +3442,25 @@ Studio Dev) / 162 (rapport). Backend 394 + audits 36/20 inchangés ; frontend **
   futur : `/api/gestion/dev/themes/:scope`, dev-only, preview/validation/versioning).
 - **Limites** : panel sans backend (défaut) ; Theme Studio non implémenté (plan 161 seul). Prochaine
   mission : **R2A** (panier + checkout + paiement Stripe Checkout hébergé).
+
+## Sprint T1 — Thème backend multi-scope vitrine/manager (2026-06-28)
+Le modèle `Theme` devient **multi-scope** (`vitrine`/`manager`). Rapports 163 (audit) / 164 (rapport).
+**Aucune régression** (endpoints/payload/couleurs inchangés sans config). Backend **404** + audits
+36/20 ; frontend **41** verts.
+- `models/Theme.js` : `+scope enum['vitrine','manager'] default 'vitrine'` (legacy sans scope =
+  vitrine) ; champs additifs optionnels `typography/radius/shadow/spacing/metadata` (vides → aucun
+  impact, exposés si présents) ; index `theme_scope_idx` + **`theme_active_per_scope`** (`{scope:1}`
+  unique partiel `isActive:true` → 1 actif/scope). `colors/derivedTokens/logoUrl/slogan` conservés.
+- `themeController` : `getActiveTheme` (vitrine, inclut legacy) ; `getActiveThemeByScope`
+  (`GET /api/theme/:scope`, public, `theme:null` si aucun) ; `createTheme`/`updateTheme` acceptent
+  `scope` ; `activateTheme` **par scope** (séquentiel, sans transaction — compatible standalone) ;
+  `listThemes?scope=`. Router public `routers/themePublicRouter.js` monté sur `/api/theme`.
+- `scripts/migrateThemesToScopes.js` : dry-run/`--apply`, idempotent (legacy→vitrine, 1 actif/scope,
+  crée un thème manager actif si absent, ne désactive jamais le vitrine actif). Fonction exportée +
+  CLI guardé.
+- React : `@bs/api-client getThemeByScope(scope)` ; `@bs/ui mapBackendThemeToTokens` (mapping neutre
+  partagé) ; manager `PanelThemeProvider` charge `/api/theme/manager` (fallback `defaultPanelTheme`).
+  Vitrine inchangée (`/api/vitrine/theme`).
+- **Compat** : Vanilla (endpoints/payload inchangés, theme global = vitrine, themeManagerModule édite
+  vitrine), React Vitrine inchangée, React Manager défaut→backend optionnel (couleurs inchangées sans
+  config). Prochaine mission : **R2A** (panier + checkout hébergé).

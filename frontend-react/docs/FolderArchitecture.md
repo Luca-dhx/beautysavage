@@ -134,3 +134,17 @@ composants (rapports 160/161/162). **Zéro changement backend** ; Vanilla intact
 - **Manager** : `ThemeProvider scope="panel"` + `defaultPanelTheme` (pas d'endpoint → Theme Studio Dev
   futur, plan 161 : `/api/gestion/dev/themes/:scope`, dev-only).
 - **Règle** : tout sprint React qui touche l'UI lit les tokens (`--bs-*`), jamais de hex en dur.
+
+## MAJ T1 — Thème backend multi-scope (exécuté)
+Le backend gère désormais deux scopes de thème (`vitrine` / `manager`) — rapports 163/164. **Aucune
+régression** (endpoints/payload/couleurs inchangés sans config). 
+- `models/Theme.js` : `+scope enum['vitrine','manager'] default vitrine` (legacy sans scope = vitrine)
+  + champs additifs optionnels (typography/radius/shadow/spacing/metadata) + index unique partiel
+  `theme_active_per_scope` (1 actif/scope).
+- Endpoints : `GET /api/vitrine/theme` **conservé** (vitrine) ; **`GET /api/theme/:scope`** public
+  (vitrine|manager, `theme:null` si aucun actif) ; CRUD dev `/api/gestion/themes` accepte `scope`,
+  activation **par scope**.
+- Migration `scripts/migrateThemesToScopes.js` (dry-run/`--apply`, idempotente).
+- React : `@bs/api-client` `getThemeByScope(scope)` ; `@bs/ui` `mapBackendThemeToTokens` (mapping
+  neutre réutilisé vitrine + manager). Manager : `PanelThemeProvider` charge `/api/theme/manager`
+  (fallback `defaultPanelTheme`). Vitrine inchangée.

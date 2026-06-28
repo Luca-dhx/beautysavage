@@ -73,3 +73,9 @@ La vitrine reprend le **thème configuré côté backend** (couleurs violet/rose
 (via le dev) garde la main sur l'identité visuelle publique, comme dans le Vanilla. Le thème est
 appliqué de façon non bloquante (fallback si indisponible) pour ne jamais dégrader l'expérience. À
 terme, le Theme Studio Dev permettra d'éditer/prévisualiser ce thème vitrine.
+
+## MAJ T1 — Identité vitrine = scope dédié
+Le thème de la vitrine est désormais un **scope dédié** côté backend, distinct du thème du panel. La
+gérante (via le dev) peut faire évoluer l'identité publique sans impacter l'outil interne, et
+inversement. Côté expérience, rien ne change pour le visiteur : la vitrine charge toujours son thème
+de la même façon, avec repli si indisponible.

@@ -344,6 +344,18 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Sprint U1 — Fondations UnifiedCheckout (rapports 150-151)
+
+- `unifiedCheckoutModel.test.js` (+6) — modèle : requis/enums/défauts, `checkoutId` unique,
+  `idempotencyKey` unique **partiel**, aucun password stocké.
+- `unifiedCheckoutFactory.test.js` (+4) — factory : snapshots pricing/tax/legal présents,
+  sanitisation (pas de password carte cadeau).
+- `unifiedCheckoutInstituteKinds.test.js` (+5) — product/formation/gift_card/cart/service → bon kind.
+- `unifiedCheckoutIdempotence.test.js` (+3) — même idempotencyKey → même checkout (concurrence incluse).
+- `unifiedCheckoutParity.test.js` (+3) — endpoints publics inchangés (finalize-free 401/400,
+  create-checkout-session 401, config) + finaliseur unifié réutilise `processCheckoutStatePurchase`
+  (même Sale). Moteur **non câblé** aux endpoints live en U1.
+
 ## Plan UnifiedCheckout + React parallèle (rapports 143-149)
 
 Documentation + scaffold uniquement (aucun test ajouté/modifié, aucun code backend). Le futur

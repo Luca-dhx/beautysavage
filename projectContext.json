@@ -27,7 +27,21 @@
     "preReactF3aContractBillingExtraction": "completed",
     "preReactF3bMailServiceSplit": "completed",
     "reactTargetArchitectureAudit": "completed",
-    "unifiedCheckoutAndReactPlan": "completed"
+    "unifiedCheckoutAndReactPlan": "completed",
+    "unifiedCheckoutU1Foundations": "completed"
+  },
+  "unifiedCheckoutU1Foundations": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["150_audit_pre_sprint_u1_unified_checkout.md", "151_rapport_sprint_u1_unified_checkout_foundations.md"],
+    "summary": "Moteur UnifiedCheckout cree EN PARALLELE des flux existants (kinds institut: service/formation/product/gift_card/cart). ZERO finaliseur metier modifie, ZERO endpoint public/payload change, Stripe Elements/finalize-free intacts, commissions/contrat non touches. Suite 374 verte.",
+    "model": "models/UnifiedCheckout.js : checkoutId(unique)/kind/status(draft|pricing_ready|payment_pending|free_ready|finalized|cancelled|failed|expired)/userId/source/origin/snapshots(inputSnapshot sanitise+pricingSnapshot+taxSnapshot+legalConsentSnapshot)/payment(mode stripe|free|mixed|gift_card_only)/finalization(saleId/bookingId/...)/idempotencyKey/expiresAt/metadata. Index: checkoutId unique, idempotencyKey unique PARTIEL (chaines), {status,expiresAt}. AUCUN secret stocke (password carte cadeau retire).",
+    "services": "services/checkout/unified/ : unifiedCheckoutTypes (classifyUnifiedKind desambiguise single->product/formation via item.type ; resolvePaymentMode), unifiedCheckoutRepository (findOrCreateByIdempotencyKey), unifiedCheckoutPricingService (wrapper buildServerCheckoutPricing), unifiedCheckoutValidationService (legal A1 + offre A7 + creneau via services existants), unifiedCheckoutFactory (cree depuis checkoutState ACTUEL inchange), unifiedCheckoutFinalizer (DELEGUE a processCheckoutStatePurchase), unifiedCheckoutResponseMapper (vue safe).",
+    "devEndpoint": "GET /api/gestion/dev/unified-checkouts (requireStrictDev, lecture seule, vue safe sans secret).",
+    "compatibilite": "Endpoints publics inchanges (createCheckoutSession Elements, finalize-free, panier, prestation, produit, formation, carte cadeau). Finaliseur unifie reutilise processCheckoutStatePurchase (meme Sale, prouve par unifiedCheckoutParity). Pricing/legal/offre delegues (pas de logique dupliquee).",
+    "tests": "+21 (unifiedCheckoutModel 6, Factory 4, InstituteKinds 5, Idempotence 3, Parity 3). Total 374 verts (p0=44, p1=324, integration=6) + audit business 36 + audit commissions 20.",
+    "limitesU1": "Moteur NON cable aux endpoints live (decision zero-changement) ; cree uniquement via appel explicite du factory (tests + futur U2). Pas de Stripe Checkout heberge (Elements conserve). Pas de kinds plateforme (commission/contrat).",
+    "prochaineMissionU2": "Brancher le moteur sur le checkout client reel + Stripe Checkout heberge (create-checkout-session -> UnifiedCheckout -> Checkout Session url ; webhook checkout.session.completed -> finalizeUnifiedCheckout ; feature flag CHECKOUT_HOSTED + parite). Puis kinds plateforme (U3)."
   },
   "unifiedCheckoutAndReactPlan": {
     "date": "2026-06-28",

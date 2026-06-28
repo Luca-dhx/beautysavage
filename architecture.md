@@ -3334,3 +3334,18 @@ Planification (documentation + scaffold ; aucun code backend modifié).
 - Roadmap sprints R0→R5 (149) : setup → vitrine → checkout → manager → dev → bascule (manager d'abord).
 - **Prochaine mission recommandée** : implémenter UnifiedCheckout (kinds Institut) + bascule hosted
   Checkout (tests de parité), puis R0 setup du monorepo React.
+
+## Sprint U1 — Fondations UnifiedCheckout (achats institut, 2026-06-28)
+Moteur **UnifiedCheckout** créé EN PARALLÈLE (rapports 143/144/151). **Aucun finaliseur métier
+modifié, aucun endpoint public/payload changé, Stripe Elements/finalize-free intacts, commissions/
+contrat non touchés.** Suite 374 verte.
+- `models/UnifiedCheckout.js` : checkoutId/kind/status/snapshots(input sanitisé/pricing/tax/legal)/
+  payment/finalization/idempotencyKey. Index : checkoutId unique, idempotencyKey unique **partiel**
+  (chaînes seulement), {status,expiresAt}. **Aucun secret stocké**.
+- `services/checkout/unified/` : types (`classifyUnifiedKind` désambiguïse single→product/formation),
+  repository (idempotence findOrCreate), pricingService (wrapper `buildServerCheckoutPricing`),
+  validationService (legal A1 + offre A7 + créneau, services existants), factory (crée depuis le
+  checkoutState ACTUEL), finalizer (**délègue** à `processCheckoutStatePurchase`), responseMapper (vue safe).
+- Endpoint dev lecture seule `GET /api/gestion/dev/unified-checkouts` (`requireStrictDev`, vue safe).
+- Kinds U1 : service/formation/product/gift_card/cart. **Non câblé** aux endpoints live (décision
+  zéro-changement) ; câblage + Stripe Checkout hébergé = U2.

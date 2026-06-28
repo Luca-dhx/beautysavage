@@ -53,3 +53,10 @@
 
 ## Responsive
 - Mobile-first ; Stripe Checkout hébergé = paiement mobile natif. Catalogue en grille adaptative ; calendrier prestation tactile.
+
+## MAJ U1 — Checkout via UnifiedCheckout (câblage U2)
+Le checkout vitrine consommera le moteur UnifiedCheckout : un appel `createCheckout` côté client →
+réponse `{ mode:"hosted", url }` (redirection Stripe Checkout hébergé, remplace Elements) ou
+`{ mode:"free", saleId }` (finalize-free, 0 €). Retour via `success_url` → `/api/stripe/payment-result`.
+En U1 le moteur est posé côté backend (non câblé) ; le front garde le flux actuel jusqu'à U2. Le
+pricing serveur fait toujours foi ; la carte cadeau reste un moyen de paiement capé au solde.

@@ -37,3 +37,10 @@ l'expertise (prestations, formations) et convertir sans friction. C'est l'unique
 - **0 €** : 100 % carte cadeau ou offre gratuite → finalize-free (pas de Stripe), parcours identique côté UX.
 
 → Détails techniques : [VitrineArchitecture](./VitrineArchitecture.md).
+
+## MAJ U1 — Paiement sécurisé unifié
+L'expérience de paiement client cible un parcours unique quel que soit l'achat (prestation/
+formation/produit/carte cadeau/panier) : redirection vers Stripe Checkout hébergé (confiance, SCA,
+mobile) ou finalisation 0 € transparente. Les fondations backend (UnifiedCheckout, U1) garantissent
+pricing serveur, consentements et carte cadeau capée — base d'un paiement sûr et cohérent. Cf.
+VitrineArchitecture (section Checkout via UnifiedCheckout).

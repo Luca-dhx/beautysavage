@@ -59,3 +59,11 @@ frontend-react/
 ## Règle de documentation
 Chaque sprint React met à jour la doc du scope touché (Vitrine* ou Manager*) **et** ce fichier +
 [FolderProjectContext](./FolderProjectContext.md) si l'architecture globale change.
+
+## MAJ U1 — Fondations UnifiedCheckout (backend)
+Le moteur backend `UnifiedCheckout` (kinds institut: service/formation/product/gift_card/cart) est
+livré en parallèle (rapport 151) : `models/UnifiedCheckout.js` + `services/checkout/unified/*`,
+snapshots serveur (pricing/tax/legal), idempotence par clé, finaliseur qui DÉLÈGUE aux finaliseurs
+existants. NON câblé aux endpoints live en U1. U2 = câblage + Stripe Checkout hébergé (redirection
+`url`, webhook `checkout.session.completed`). Le client React (`packages/api-client`) consommera un
+point d'entrée unique de paiement.

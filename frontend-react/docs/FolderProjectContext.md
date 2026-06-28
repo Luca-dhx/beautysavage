@@ -54,3 +54,9 @@ public ne voit jamais l'administration ; le manager ne voit jamais la supervisio
 6. Documentation obligatoire par scope (cette structure de docs).
 
 → Détails techniques : [FolderArchitecture](./FolderArchitecture.md).
+
+## MAJ U1 — Stratégie de paiement unifiée
+Décision produit confirmée : tous les paiements passeront par un moteur unique (UnifiedCheckout),
+Stripe Checkout hébergé pour montant > 0 (sécurité/SCA délégués, mobile-friendly), finalize-free
+pour 0 €. U1 pose les fondations backend sans changer les flux existants ; U2 branchera le checkout
+client réel. Cf. FolderArchitecture (section UnifiedCheckout) et rapports 143/144/151.

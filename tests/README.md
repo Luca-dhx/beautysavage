@@ -344,6 +344,16 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Sprint F3B — Split interne de mailService (rapports 131-132)
+
+- `mailServiceCharacterization.test.js` (+4) — **caractérisation avant split** (verte avant/après) :
+  `postToBrevo` (endpoint Brevo + header `api-key` + SendLog sent/failed, **aucun email/clé en clair**),
+  `loadTemplate` fallback défaut, `sendPasswordResetEmail` bout-en-bout (rendu → payload Brevo).
+- `mailService.js` 3845 → 49 lignes (**façade**) ; scindé en `services/mail/` : `mailRenderer`,
+  `mailTemplateRuntime`, `mailBrevoGateway`, `mailDomainDispatchers`, `mailTrackingService`,
+  `mailContextResolver`. Isolation : `fetch`/`api-key` → gateway, `EmailTemplate` → runtime,
+  SendLog → tracking. Les tests qui mockent `mailService` restent valides (façade re-exporte l'API).
+
 ## Sprint F3A — Extraction facturation contrat (rapports 129-130)
 
 - `contractBillingCharacterization.test.js` (+11) — **caractérisation écrite AVANT extraction**

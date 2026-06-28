@@ -3286,3 +3286,21 @@ HTTP / payload / commission / Stripe Institut.** Caractérisation écrite AVANT 
 - Gate : `git grep paymentIntents.create|retrieve|stripeDev|STRIPE_DEV controllers/contractController.js`
   → aucune occurrence. Imports orphelins (`mongoose`/`getStripeDevClient`/`getCredential`) retirés.
 - Reste (F3B) : split interne de `mailService` (dernier monolithe, rapport 120/122).
+
+## Sprint F3B — Split interne de mailService (2026-06-28)
+`mailService.js` (3845 → **49 lignes**, façade de compatibilité) scindé sous `services/mail/`.
+Rapports 131 + 132. **Zéro changement fonctionnel / template / contenu email / payload Brevo /
+SendLog / API.** Caractérisation écrite avant (`mailServiceCharacterization`, verte avant/après).
+- `mailRenderer.js` : thème/couleurs, builders premium HTML, `createMailTemplateDefinition`,
+  sanitization, `replaceTemplateVariables`, `formatAmount`, `normalize*`, `VARIABLE_KEYS`, theme vars.
+- `mailTemplateRuntime.js` : `TEMPLATE_FUNCTIONS` + `AVAILABLE_FUNCTIONS`, `loadTemplate`/`saveTemplate`/
+  `ensureTemplate`/fallbacks (interaction `EmailTemplate` versionné, published-only).
+- `mailBrevoGateway.js` : `postToBrevo` (credentials Brevo + `fetch` + SendLog via tracking).
+- `mailDomainDispatchers.js` : 34 dispatchers `send*`/`simulate*` + helpers (aucune logique Brevo/
+  template/SendLog brute ; `User`/`PractitionerProfile` en import dynamique `../../models/`).
+- `mailTrackingService.js` (ré-export `sendLogService` trio) + `mailContextResolver.js` (ré-export
+  `hashRecipient`). `mailService.js` = façade re-exportant l'API publique (importeurs/mocks inchangés).
+- Isolation vérifiée : `fetch` Brevo + `api-key` uniquement dans le gateway ; `EmailTemplate`
+  uniquement dans le runtime ; SendLog via `mailTrackingService`. DAG acyclique.
+- **Verdict pré-React : GO** — tous les monolithes du rapport 120 résorbés (checkout/stripe/
+  stripe-dev/contrat/mail extraits), contrôleurs minces, domaines isolés et testés, API inchangée.

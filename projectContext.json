@@ -24,7 +24,30 @@
     "preReactF1CheckoutExtraction": "completed",
     "preReactF2StripeExtraction": "completed",
     "preReactF2bStripeDevExtraction": "completed",
-    "preReactF3aContractBillingExtraction": "completed"
+    "preReactF3aContractBillingExtraction": "completed",
+    "preReactF3bMailServiceSplit": "completed"
+  },
+  "preReactF3bMailServiceSplit": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["131_audit_pre_sprint_f3b_mail_service.md", "132_rapport_sprint_f3b_mail_service_split.md"],
+    "summary": "Split de mailService.js (3845->49 lignes, facade de compatibilite) en modules sous services/mail/. ZERO changement fonctionnel / template / contenu email / payload Brevo / SendLog / API. Caracterisation ecrite avant (mailServiceCharacterization, verte avant/apres).",
+    "modulesCreated": {
+      "services/mail/mailRenderer.js": "theme/couleurs, builders premium HTML, createMailTemplateDefinition, sanitization, replaceTemplateVariables, formatAmount, normalize*, VARIABLE_KEYS, getActiveMailThemeVars/withMailThemeVars.",
+      "services/mail/mailTemplateRuntime.js": "TEMPLATE_FUNCTIONS + AVAILABLE_FUNCTIONS + loadTemplate/saveTemplate/ensureTemplate/fallbacks (EmailTemplate versionne, published-only).",
+      "services/mail/mailBrevoGateway.js": "postToBrevo (credentials Brevo + fetch + SendLog via mailTrackingService).",
+      "services/mail/mailDomainDispatchers.js": "34 dispatchers send*/simulate* + helpers (buildSender, sendStatusMail, sendSingleTemplateMail, buildCommonMailVars, ...). Imports dynamiques User/PractitionerProfile en ../../models/.",
+      "services/mail/mailTrackingService.js": "re-export createQueuedSendLog/markSendLogSent/markSendLogFailed (sendLogService).",
+      "services/mail/mailContextResolver.js": "re-export hashRecipient (contextType derive dans sendLogService)."
+    },
+    "facade": "mailService.js (49 lignes) re-exporte loadTemplate/saveTemplate (runtime), postToBrevo (gateway), 34 send*/simulate (dispatchers), mailTemplateDefaults=TEMPLATE_FUNCTIONS, mailFunctions=Array.from(AVAILABLE_FUNCTIONS). Importeurs et mocks de test inchanges.",
+    "isolation": "fetch Brevo + api-key uniquement dans mailBrevoGateway. EmailTemplate uniquement dans mailTemplateRuntime. SendLog via mailTrackingService. Aucune logique Brevo/template/SendLog brute dans les dispatchers. DAG acyclique (charge verifie).",
+    "tests": "353 verts (p0=44, p1=303, integration=6) dont mailServiceCharacterization (+4). audit business 36, audit commissions 20.",
+    "detteRestante": [
+      "mailDomainDispatchers.js (~2155 lignes) reste volumineux : sous-decoupage par domaine possible (faible priorite, aucun couplage Brevo/template residuel)",
+      "mailContextResolver/mailTrackingService = seams fins (logique dans sendLogService)"
+    ],
+    "verdictPreReact": "GO React. Tous les monolithes backend du rapport 120 resorbes (clientController/checkout, stripeController/stripe, stripe-dev, facturation contrat, mailService). Controleurs = orchestrateurs HTTP minces, domaines isoles derriere frontieres testees (caracterisation + parite), API/payloads inchanges."
   },
   "preReactF3aContractBillingExtraction": {
     "date": "2026-06-28",

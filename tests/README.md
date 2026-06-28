@@ -344,6 +344,14 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Plan UnifiedCheckout + React parallèle (rapports 143-149)
+
+Documentation + scaffold uniquement (aucun test ajouté/modifié, aucun code backend). Le futur
+moteur **UnifiedCheckout** (143/144) réutilisera les **finalizers existants** déjà couverts par les
+353 tests (processCheckoutStatePurchase, finalizeCommissionPaymentById, handlers contrat) → la
+parité Sale/booking/commission/contrat sera validée par des **tests de caractérisation** au moment
+de l'implémentation (mission dédiée). E2E React : Playwright (rapport 140), non installé.
+
 ## Audit React & architecture cible (rapports 133-142)
 
 Documentation uniquement (aucun test ajouté/modifié). Plan E2E **Playwright** (non installé)

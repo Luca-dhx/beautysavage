@@ -26,7 +26,21 @@
     "preReactF2bStripeDevExtraction": "completed",
     "preReactF3aContractBillingExtraction": "completed",
     "preReactF3bMailServiceSplit": "completed",
-    "reactTargetArchitectureAudit": "completed"
+    "reactTargetArchitectureAudit": "completed",
+    "unifiedCheckoutAndReactPlan": "completed"
+  },
+  "unifiedCheckoutAndReactPlan": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "type": "documentation + scaffold (aucun code backend modifie, aucun setup React executable)",
+    "reports": ["143_audit_unified_checkout_current_flows.md", "144_roadmap_unified_checkout_engine.md", "145_react_documentation_structure.md", "146_react_parallel_setup_plan.md", "147_react_routes_and_apps_plan.md", "148_react_api_client_contract.md", "149_react_migration_sprint_roadmap.md"],
+    "unifiedCheckout": "Moteur de checkout unique pour TOUS les paiements (prestation/formation/produit/carte cadeau/panier/acompte/commission/frais de lancement/abonnement). Pipeline: pricing serveur -> consentements -> moyens de paiement -> Stripe Checkout heberge (montant>0) ou finalize-free (0 EUR) -> webhook -> finalizers EXISTANTS reutilises (processCheckoutStatePurchase, finalizeCommissionPaymentById, handlers contrat). Zero reecriture metier. Architecture cible services/checkout/unified/ + modele UnifiedCheckout. Migration Stripe Elements -> Checkout heberge (feature flag, parite, rollback). NON implemente (plan only).",
+    "currentFlows": "Institut = PaymentIntent + Stripe Elements (create-checkout-session) ; 0 EUR = finalize-free ; commission/launch = PaymentIntent Dev ; abonnement = SetupIntent+Subscription Dev. Tous distincts -> a unifier.",
+    "frontendReactScaffold": "frontend-react/ cree (structure + docs uniquement) : apps/{vitrine,manager}, packages/{api-client,ui,auth,config}, docs/{Folder,Vitrine,Manager}{Architecture,ProjectContext}.md + READMEs. Stack cible Vite+React+TS+React Router+TanStack Query+Zod. Pas de package.json/build (setup execute au sprint R0).",
+    "docRule": "Chaque sprint React met a jour la doc du scope touche (Vitrine*/Manager*) + FolderArchitecture/FolderProjectContext si l'archi globale change.",
+    "roadmap": "R0 setup monorepo, R1 vitrine, R2 checkout (Stripe heberge/finalize-free/carte cadeau), R3 manager (login/onboarding contrat/dashboard/planning/CRUD/ventes/commissions a payer), R4 dev (contrats/commissions recues/IntegratedAPI/Template Studio/logs), R5 bascule (manager d'abord, vitrine ensuite, Vanilla en rollback DNS/proxy).",
+    "stripeHosted": "Stripe Checkout heberge remplace Stripe Elements pour montant>0 (redirection, SCA/3DS delegues, mobile-friendly) ; finalisation via webhook checkout.session.completed/payment_intent.succeeded -> memes finalizers. 0 EUR via finalize-free inchange.",
+    "prochaineMission": "Implementer UnifiedCheckout (kinds Institut) + bascule Stripe Checkout heberge avec tests de caracterisation/parite, puis R0 setup du monorepo React."
   },
   "reactTargetArchitectureAudit": {
     "date": "2026-06-28",

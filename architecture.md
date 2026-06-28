@@ -3320,3 +3320,17 @@ Audit complet du site Vanilla + plan d'architecture React parallèle (documentat
 - **Seule correction requise avant setup React** : cookie `Domain=.beautysavage.fr` (partage session
   sous-domaines). Reste incrémental (pagination listes admin/dev, enveloppe d'erreur homogène, flags
   catalogue purchasable/bookable). **Verdict : GO React parallèle.**
+
+## Plan UnifiedCheckout + React parallèle (2026-06-28) — rapports 143-149
+Planification (documentation + scaffold ; aucun code backend modifié).
+- **UnifiedCheckout** (143/144) : moteur de checkout unique pour TOUS les paiements (prestation/
+  formation/produit/carte cadeau/panier/acompte/commission/frais de lancement/abonnement). Pipeline :
+  pricing serveur → consentements → moyens de paiement → **Stripe Checkout hébergé** (montant > 0)
+  ou **finalize-free** (0 €) → webhook → finalizers EXISTANTS réutilisés (zéro réécriture métier).
+  Migration **Stripe Elements → Checkout hébergé** documentée (feature flag, parité, rollback).
+- **frontend-react/** créé (structure + docs, pas de setup exécutable) : `apps/{vitrine,manager}`,
+  `packages/{api-client,ui,auth,config}`, `docs/{Folder,Vitrine,Manager}{Architecture,ProjectContext}.md`.
+  Stack cible Vite+React+TS+React Router+TanStack Query. Doc obligatoire par scope (rapport 145).
+- Roadmap sprints R0→R5 (149) : setup → vitrine → checkout → manager → dev → bascule (manager d'abord).
+- **Prochaine mission recommandée** : implémenter UnifiedCheckout (kinds Institut) + bascule hosted
+  Checkout (tests de parité), puis R0 setup du monorepo React.

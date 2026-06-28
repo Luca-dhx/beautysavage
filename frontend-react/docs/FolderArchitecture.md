@@ -1,0 +1,61 @@
+# FolderArchitecture — Beauty Savage React (global)
+
+> Architecture globale du frontend React **parallèle** au Vanilla existant. Source de vérité
+> technique inter-apps. Mise à jour OBLIGATOIRE à chaque sprint qui touche l'architecture globale.
+> Liens : [Vitrine](./VitrineArchitecture.md) · [Manager](./ManagerArchitecture.md) ·
+> [Contexte produit global](./FolderProjectContext.md).
+
+## Vue d'ensemble
+```
+beautysavage.fr          → app React "vitrine" (public + client)
+manager.beautysavage.fr  → app React "manager" (role admin) + section /dev (role dev)
+backend Express (Node)   → API JSON + webhooks Stripe/Brevo (INCHANGÉ), /api proxifié par app
+Vanilla (backend/public) → reste actif jusqu'à bascule (rollback)
+```
+
+## Monorepo `frontend-react/`
+```
+frontend-react/
+  apps/
+    vitrine/      # SPA publique + client (beautysavage.fr)
+    manager/      # SPA manager + /dev (manager.beautysavage.fr)
+  packages/
+    api-client/   # client HTTP typé (fetch credentials:'include'), mapping codes erreur, hooks TanStack Query
+    ui/           # design system (tokens depuis /api/vitrine/theme), composants partagés
+    auth/         # session (/auth/me), guards RequireAuth / RequireRole, login
+    config/       # env, constantes, dictionnaire codes erreur → UX
+  docs/           # cette documentation (Folder*, Vitrine*, Manager*)
+```
+
+## Stack
+- **Vite + React + TypeScript** (typage des payloads/erreurs/montants/statuts).
+- **React Router** (routes réelles ; fin du routing `?slug=`/`?module=`).
+- **TanStack Query** (cache/refetch/états serveur ; pas de Redux).
+- **Zod** (validation des payloads API aux frontières — optionnel mais recommandé).
+- CSS : **à décider** (CSS Modules vs Tailwind) — voir `packages/ui`. Le thème vient de `/api/vitrine/theme` (CSS custom properties), à conserver dynamique.
+- **Playwright** (E2E) — plus tard (cf. rapport 140).
+
+## Backend / API
+- API JSON existante, **inchangée** (cf. rapport 139). Enveloppe `{ ok, ...data }` / `{ ok:false, error, code }`.
+- Auth : cookie `beautysavage_session` (HttpOnly, signé, SameSite=Lax, Secure prod). `credentials:'include'` obligatoire.
+- **Prérequis backend** : cookie élargi à `Domain=.beautysavage.fr` (partage session vitrine ↔ manager). CORS uniquement si API sur origine dédiée (évité par proxy `/api`).
+- Paiement : **Stripe Checkout hébergé** (montant > 0) via le moteur **UnifiedCheckout** (rapports 143/144) ; **finalize-free** (0 €).
+
+## Auth & routing
+- Boot : `GET /auth/me` → `{ role, mustChangePassword }`. Guards React = UX ; le backend (401/403) reste l'autorité.
+- `vitrine` : routes publiques + routes client (auth). `manager` : routes admin (RequireRole admin/dev) + `/dev` (RequireRole dev).
+- Le toggle vitrine/gestion est **supprimé** (séparation par domaine, pas par mode).
+
+## Conventions
+- TypeScript strict ; payloads API typés dans `packages/api-client`.
+- Erreurs : ne jamais se fier au texte `error` ; mapper le `code` via le dictionnaire (`packages/config`).
+- Montants : formatage front (Intl `fr-FR`) ; le **serveur fait foi** (ne jamais recalculer un total à charger).
+- Dates : ISO en transport, affichage `fr-FR`.
+- Pas de secret côté front (clé Stripe publique via `/api/stripe/config`).
+
+## Stratégie de migration (résumé)
+- React construit en parallèle ; Vanilla conservé. Bascule **manager d'abord** (audience interne) puis **apex** (public). Rollback DNS/proxy/feature-flag. **Zéro changement d'endpoint.** Détails : rapports 137, 146, 149.
+
+## Règle de documentation
+Chaque sprint React met à jour la doc du scope touché (Vitrine* ou Manager*) **et** ce fichier +
+[FolderProjectContext](./FolderProjectContext.md) si l'architecture globale change.

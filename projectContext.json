@@ -22,7 +22,32 @@
     "preReactD1D4": "completed",
     "preReactE1E2": "completed",
     "preReactF1CheckoutExtraction": "completed",
-    "preReactF2StripeExtraction": "completed"
+    "preReactF2StripeExtraction": "completed",
+    "preReactF2bStripeDevExtraction": "completed"
+  },
+  "preReactF2bStripeDevExtraction": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["127_audit_pre_sprint_f2b_stripe_dev_extraction.md", "128_rapport_sprint_f2b_stripe_dev_extraction.md"],
+    "summary": "Extraction du domaine Stripe Dev / plateforme (platform_billing) vers services/stripe/dev/. devWebhookController 271->13 lignes (delegateur), commissionPaymentController 581->463, utils/stripeDevClient -> shim (7). ZERO changement fonctionnel / contrat API / statut HTTP / payload / commission / contrat / paiement client institut.",
+    "servicesCreated": {
+      "stripeDevConfigService": "getStripeDevClient (impl) + getStripeDevPublishableKey + getStripeDevWebhookSecret + getStripeDevAccountPurpose. Source unique compte Dev.",
+      "stripeDevInvoiceService": "generateCommissionInvoice (facture Stripe Dev officielle des commissions).",
+      "stripeDevPaymentService": "createCommissionPaymentIntent (PI commission + metadata + idempotencyKey).",
+      "stripeDevWebhookHandlers": "6 handlers (payment_intent.succeeded, setup_intent.succeeded, invoice.payment_succeeded/failed, customer.subscription.updated/deleted).",
+      "stripeDevWebhookService": "handleDevWebhookFromRequest (secret + constructEvent + routing).",
+      "stripeDevResponseMapper": "send(res, {status, json})."
+    },
+    "shim": "utils/stripeDevClient.js re-exporte getStripeDevClient du config service. Les services accedant au client Dev l'importent du shim -> mocks de test existants interceptent sans modification.",
+    "accountPurpose": "IntegratedApi.accountPurpose (customer_payments/platform_billing/messaging) deja assigne par le seed (backfill idempotent). getStripeDevAccountPurpose() lecture seule (validation, non bloquant). stripe-dev->platform_billing, stripe-institut->customer_payments, brevo->messaging.",
+    "tests": "338 verts (p0=44, p1=288, integration=6) dont stripeDevExtractionParity + stripeDevWebhookExtractionParity (+9). audit business 36, audit commissions 20.",
+    "envReads": "STRIPE_DEV_* lus uniquement dans integratedApiCredentialService (map fallback controlee) + seed + tests. Aucun dans les controleurs.",
+    "detteRestante": [
+      "Facturation contrat (contractController, 1098 lignes) : machine a etats intriquee avec le client Dev (via shim), extraction complete reportee F3 (tests de caracterisation contrat d'abord)",
+      "createCommissionIntent/checkCommissionStatus : orchestration conservee ; paymentIntents.retrieve/cancel restent des appels directs via shim",
+      "Split interne mailService (rapport 122)"
+    ],
+    "recommandationF3": "Tests de caracterisation contrat (launch/monthly/cancel/sync) PUIS extraction stripeDevContractBillingService hors de contractController. Puis split mailService derriere mailDispatcher (seam E2)."
   },
   "preReactF2StripeExtraction": {
     "date": "2026-06-28",

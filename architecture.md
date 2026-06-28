@@ -3247,3 +3247,25 @@ payload / pricing / commission / refund / invoice / booking.**
 - Handlers délégateurs : `handleWebhook`/`getConfig` gardent `(req,res)` (appels directs en test).
   Parité prouvée par `stripeControllerExtractionParity` + `stripeWebhookExtractionParity`.
 - Reste (F2B) : Stripe **Dev** (`devWebhookController`, facturation contrat/commission) non touché.
+
+## Sprint F2B — Extraction Stripe Dev / plateforme (2026-06-28)
+Domaine Stripe **Dev / plateforme** (`platform_billing` : l'institut paie la plateforme —
+commissions, frais de lancement, abonnement) extrait vers `services/stripe/dev/`. Rapports
+127 + 128. **Zéro changement fonctionnel / contrat API / statut HTTP / payload / commission /
+contrat / paiement client institut.**
+- `devWebhookController` : 271 → **13 lignes** (délégateur ; webhook entièrement extrait).
+- `commissionPaymentController` : 581 → **463** (facture + création PI commission extraites).
+- `utils/stripeDevClient.js` : **shim** (7 l) re-exportant `getStripeDevClient` du config service.
+- Services : `stripeDevConfigService` (client + publishable/webhook secret + `getStripeDevAccountPurpose`),
+  `stripeDevInvoiceService` (`generateCommissionInvoice`), `stripeDevPaymentService`
+  (`createCommissionPaymentIntent`), `stripeDevWebhookHandlers` (6 events contrat/abonnement/
+  commission), `stripeDevWebhookService` (`handleDevWebhookFromRequest`), `stripeDevResponseMapper`.
+- **Compatibilité mocks** : les services accédant au client Dev l'importent du shim
+  `utils/stripeDevClient` → les mocks de test existants interceptent sans modification.
+- **accountPurpose** : `IntegratedApi.accountPurpose` (`customer_payments`/`platform_billing`/
+  `messaging`) déjà assigné par le seed (backfill idempotent) ; `getStripeDevAccountPurpose()`
+  ajouté en lecture seule (validation, non bloquant). `stripe-dev→platform_billing`,
+  `stripe-institut→customer_payments`, `brevo→messaging`.
+- Parité prouvée par `stripeDevExtractionParity` + `stripeDevWebhookExtractionParity`.
+- Reporté (F3) : facturation **contrat** (`contractController`, machine à états, client via shim)
+  + split interne de `mailService`.

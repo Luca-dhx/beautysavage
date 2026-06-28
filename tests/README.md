@@ -344,6 +344,17 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Sprint F2B — Extraction Stripe Dev / plateforme (rapports 127-128)
+
+- `stripeDevExtractionParity.test.js` (+5) — extraction structurelle du domaine Dev/plateforme :
+  identité référentielle (`utils/stripeDevClient` shim === `stripeDevConfigService`), contrôleur
+  webhook délégateur, publishable key Dev inchangée, et **accountPurpose** (`stripe-dev→platform_billing`,
+  `stripe-institut→customer_payments`, `brevo→messaging`, legacy→null).
+- `stripeDevWebhookExtractionParity.test.js` (+4) — routing webhook Dev inchangé : client absent → 500,
+  signature invalide → 400, event non géré → 200 `{received:true}`, résultat structuré du service.
+- `commissionDevWebhookFinalization` / `commissionPaymentIdempotence` / `commissionPaymentRefresh`
+  (inchangés) : mockent `utils/stripeDevClient` (le shim reste l'accesseur mockable) — aucun secret réel.
+
 ## Sprint F2 — Extraction Stripe (rapports 125-126)
 
 - `stripeControllerExtractionParity.test.js` (+4) — le contrôleur `stripeController` (1727 → 135

@@ -163,4 +163,39 @@ export async function createUnifiedCheckoutRecord({
   });
 }
 
+/**
+ * Sprint U3 — Persiste un UnifiedCheckout pour un paiement PLATEFORME (compte Stripe Dev :
+ * commission / launch_fee / subscription). Kind explicite (pas de pricing catalogue). Aucun
+ * checkoutState client ; inputSnapshot = références business safe (commissionPaymentId/contractId).
+ * Idempotent par idempotencyKey.
+ */
+export async function createPlatformUnifiedCheckoutRecord({
+  kind,
+  amountToPay = 0,
+  userId = null,
+  source = 'platform_checkout',
+  idempotencyKey = null,
+  inputSnapshot = null,
+  metadata = null,
+  status = null
+} = {}) {
+  return findOrCreateByIdempotencyKey(idempotencyKey, async () => ({
+    checkoutId: buildCheckoutId(),
+    kind,
+    status: status || (Number(amountToPay) > 0 ? 'payment_pending' : 'free_ready'),
+    userId: userId || null,
+    clientId: userId || null,
+    source,
+    inputSnapshot: inputSnapshot || null,
+    payment: {
+      mode: Number(amountToPay) > 0 ? 'stripe' : 'free',
+      amountToPay: Number(amountToPay) || 0,
+      giftCardPaymentAmount: 0,
+      provider: 'stripe_dev',
+      status: 'pending'
+    },
+    metadata: metadata || null
+  }));
+}
+
 export { sanitizeCheckoutStateForSnapshot };

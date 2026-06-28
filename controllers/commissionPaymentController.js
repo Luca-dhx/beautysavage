@@ -19,6 +19,11 @@ import { getStripeDevClient } from '../utils/stripeDevClient.js';
 // Sprint F2B — domaine Stripe Dev extrait vers services/stripe/dev/*.
 import { generateCommissionInvoice } from '../services/stripe/dev/stripeDevInvoiceService.js';
 import { createCommissionPaymentIntent } from '../services/stripe/dev/stripeDevPaymentService.js';
+// Sprint U3 — UnifiedCheckout plateforme (Stripe Dev) + Checkout hébergé derrière flag.
+import { isPlatformCheckoutHostedEnabled } from '../services/checkout/unified/unifiedCheckoutConfig.js';
+import { createPlatformUnifiedCheckoutRecord } from '../services/checkout/unified/unifiedCheckoutFactory.js';
+import { updateCheckout } from '../services/checkout/unified/unifiedCheckoutRepository.js';
+import { createDevPaymentCheckoutSession } from '../services/stripe/dev/stripeDevHostedCheckoutService.js';
 import { emitCommissionEvent } from '../services/businessEventService.js';
 import {
   getOrComputeCommissionPayment,
@@ -137,6 +142,48 @@ export async function createCommissionIntent(req, res) {
     // netAmountDue === 0 → mois soldé sans paiement (settled_zero), aucun PaymentIntent.
     if (amountCents <= 0) {
       return res.json({ ok: true, settledZero: true, status: payment.status, netAmountDue: payment.netAmountDue || 0 });
+    }
+
+    // Sprint U3 — Stripe Checkout HÉBERGÉ plateforme (flag). Le PaymentIntent hérite de
+    // metadata.commissionPaymentId → le webhook Dev payment_intent.succeeded EXISTANT finalise
+    // (finalizeCommissionPaymentById). Le polling check-status reste fonctionnel.
+    if (isPlatformCheckoutHostedEnabled()) {
+      const productName = `Commissions Beauty Savage ${payment.year}-${String(Number(payment.month) + 1).padStart(2, '0')}`;
+      const { checkout } = await createPlatformUnifiedCheckoutRecord({
+        kind: 'commission',
+        amountToPay: payment.netAmountDue || 0,
+        userId: req.sessionUser?._id || null,
+        source: 'platform_commission',
+        idempotencyKey: buildCommissionIdempotencyKey(payment, amountCents),
+        inputSnapshot: { commissionPaymentId: String(payment._id), month: payment.month, year: payment.year }
+      });
+      const session = await createDevPaymentCheckoutSession({
+        amountCents,
+        productName,
+        paymentIntentMetadata: {
+          type: 'commission',
+          commissionPaymentId: String(payment._id),
+          month: String(payment.month),
+          year: String(payment.year),
+          label: productName
+        },
+        sessionMetadata: {
+          unifiedCheckoutId: checkout.checkoutId,
+          commissionPaymentId: String(payment._id),
+          kind: 'commission',
+          year: String(payment.year),
+          month: String(payment.month)
+        }
+      });
+      if (session?.payment_intent) {
+        payment.stripePaymentIntentId = session.payment_intent;
+        await payment.save();
+      }
+      await updateCheckout(checkout.checkoutId, {
+        'payment.stripeCheckoutSessionId': session.id,
+        'payment.stripePaymentIntentId': session.payment_intent || null
+      }).catch(() => {});
+      return res.json({ ok: true, mode: 'hosted', url: session.url, checkoutId: checkout.checkoutId, amountCents });
     }
 
     // Idempotence — réutiliser un intent existant si cohérent en montant.

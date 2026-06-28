@@ -25,7 +25,7 @@ describe('UnifiedCheckout model', () => {
   });
 
   it('refuse un kind hors enum', async () => {
-    await expect(UnifiedCheckout.create({ checkoutId: 'UC-bad', kind: 'subscription' }))
+    await expect(UnifiedCheckout.create({ checkoutId: 'UC-bad', kind: 'not_a_real_kind' }))
       .rejects.toThrow();
   });
 

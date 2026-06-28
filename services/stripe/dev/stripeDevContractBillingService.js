@@ -12,6 +12,11 @@ import ContractCheckoutIntent from '../../../models/ContractCheckoutIntent.js';
 import { getStripeDevClient } from '../../../utils/stripeDevClient.js';
 import { invalidateContractCache } from '../../../middlewares/contractGuard.js';
 import { contractAmountTtcCents } from '../../contract/contractStateService.js';
+// Sprint U3 — UnifiedCheckout plateforme + Checkout hébergé (flag).
+import { isPlatformCheckoutHostedEnabled } from '../../checkout/unified/unifiedCheckoutConfig.js';
+import { createPlatformUnifiedCheckoutRecord } from '../../checkout/unified/unifiedCheckoutFactory.js';
+import { updateCheckout } from '../../checkout/unified/unifiedCheckoutRepository.js';
+import { createDevPaymentCheckoutSession, createDevSetupCheckoutSession } from './stripeDevHostedCheckoutService.js';
 
 // Reproduit exactement respondError du contrôleur (statut + payload { ok, code, error } + log).
 function errorResult(error, context) {
@@ -49,6 +54,38 @@ export async function createLaunchIntent({ adminId } = {}) {
     );
     if (amountCents <= 0) {
       return { status: 400, json: { ok: false, error: 'Montant des frais de lancement invalide.' } };
+    }
+
+    // Sprint U3 — Checkout HÉBERGÉ plateforme (flag). Un ContractCheckoutIntent est créé avec le
+    // PaymentIntent de la Session → le webhook Dev payment_intent.succeeded EXISTANT finalise
+    // (launchFee.paid). Aucune logique métier dupliquée.
+    if (isPlatformCheckoutHostedEnabled()) {
+      await ContractCheckoutIntent.deleteMany({ contractId: contract._id, type: 'launch' });
+      const { checkout } = await createPlatformUnifiedCheckoutRecord({
+        kind: 'launch_fee',
+        amountToPay: amountCents / 100,
+        userId: adminId,
+        source: 'platform_launch_fee',
+        inputSnapshot: { contractId: String(contract._id) }
+      });
+      const session = await createDevPaymentCheckoutSession({
+        amountCents,
+        productName: 'Frais de lancement Beauty Savage',
+        paymentIntentMetadata: { contractId: String(contract._id), type: 'launch_fee' },
+        sessionMetadata: { unifiedCheckoutId: checkout.checkoutId, contractId: String(contract._id), kind: 'launch_fee' }
+      });
+      await ContractCheckoutIntent.create({
+        stripePaymentIntentId: session.payment_intent,
+        contractId: contract._id,
+        adminId,
+        type: 'launch',
+        processed: false
+      });
+      await updateCheckout(checkout.checkoutId, {
+        'payment.stripeCheckoutSessionId': session.id,
+        'payment.stripePaymentIntentId': session.payment_intent || null
+      }).catch(() => {});
+      return { status: 200, json: { ok: true, mode: 'hosted', url: session.url, checkoutId: checkout.checkoutId, amountCents } };
     }
 
     // Idempotence — check existing unprocessed intent and verify its Stripe status
@@ -152,6 +189,36 @@ export async function createMonthlySetup({ adminId } = {}) {
       customerId = customer.id;
       contract.monthlyFee.stripeCustomerId = customerId;
       await contract.save();
+    }
+
+    // Sprint U3 — Abonnement via Stripe Checkout HÉBERGÉ mode='setup' (flag). Collecte le moyen de
+    // paiement ; le SetupIntent de la Session → webhook Dev setup_intent.succeeded EXISTANT crée la
+    // Subscription (handleSetupIntentSucceeded). Aucune refonte de l'abonnement.
+    if (isPlatformCheckoutHostedEnabled()) {
+      await ContractCheckoutIntent.deleteMany({ contractId: contract._id, type: 'monthly' });
+      const { checkout } = await createPlatformUnifiedCheckoutRecord({
+        kind: 'subscription',
+        amountToPay: 0,
+        userId: adminId,
+        source: 'platform_subscription',
+        status: 'payment_pending',
+        inputSnapshot: { contractId: String(contract._id) }
+      });
+      const session = await createDevSetupCheckoutSession({
+        customerId,
+        sessionMetadata: { unifiedCheckoutId: checkout.checkoutId, contractId: String(contract._id), kind: 'subscription' }
+      });
+      await ContractCheckoutIntent.create({
+        stripeSetupIntentId: session.setup_intent,
+        contractId: contract._id,
+        adminId,
+        type: 'monthly',
+        processed: false
+      });
+      await updateCheckout(checkout.checkoutId, {
+        'payment.stripeCheckoutSessionId': session.id
+      }).catch(() => {});
+      return { status: 200, json: { ok: true, mode: 'hosted', url: session.url, checkoutId: checkout.checkoutId, customerId } };
     }
 
     // Idempotence — check existing unprocessed intent and verify its Stripe status

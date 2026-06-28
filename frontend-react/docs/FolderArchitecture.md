@@ -75,3 +75,10 @@ Feature flag backend `CHECKOUT_HOSTED` (défaut false). `false` → Stripe Eleme
 `checkout.session.completed` → finalisation idempotente (délègue à `processCheckoutStatePurchase`).
 Côté React : `packages/api-client` gère la réponse `mode:'hosted'` (redirection vers `url`) /
 `mode:'free'` ; la bascule UI (consommer `url`) est le chantier R2.
+
+## MAJ U3 — UnifiedCheckout plateforme (Stripe Dev)
+Kinds plateforme ajoutés : `commission`, `launch_fee`, `subscription` (provider `stripe_dev`), flag
+`PLATFORM_CHECKOUT_HOSTED` (défaut false). true → Stripe Checkout hébergé (mode payment commission/
+launch, mode setup abonnement) ; finalisation par les webhooks Dev EXISTANTS. Indépendant du flag
+institut `CHECKOUT_HOSTED`. Côté React : le Manager (R3) consomme `create-intent`/`create-launch-intent`/
+`create-monthly-setup` → `{ mode:'hosted', url }` (redirection) ou ancien `clientSecret` (flag off).

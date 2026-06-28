@@ -3365,3 +3365,20 @@ changement prix/finalisation/remboursement/booking.** Suite 385 verte.
 - `createUnifiedCheckoutRecord` (factory) persiste depuis un pricing déjà calculé (pas de re-validation).
 - **Limite** : pas de bascule UI (front consomme encore Elements ; consommer la redirection `url` = React/R2).
   Flag `false` par défaut → prod inchangée. Kinds plateforme (commission/contrat) = U3.
+
+## Sprint U3 — UnifiedCheckout plateforme Stripe Dev (2026-06-28)
+Kinds **commission / launch_fee / subscription** + `payment.provider:'stripe_dev'`. Feature flag
+**`PLATFORM_CHECKOUT_HOSTED`** (`.env.example`, défaut false). Rapports 154/155. **Zéro changement
+métier / payload existant / statut HTTP. Anciens flows Dev en fallback. Stripe Institut intact.** 394 verte.
+- `false` → anciens flows Dev inchangés (clientSecret). `true` → Stripe Checkout hébergé.
+- **Commission** : Session Dev (mode payment, `payment_intent_data.metadata.commissionPaymentId`) →
+  webhook Dev `payment_intent.succeeded` EXISTANT finalise (`finalizeCommissionPaymentById`). 0 € → settled_zero.
+- **Launch fee** : Session Dev (mode payment) + `ContractCheckoutIntent{stripePaymentIntentId, type:launch}` →
+  webhook PI existant → `launchFee.paid`.
+- **Abonnement** : Stripe Checkout `mode:'setup'` + `ContractCheckoutIntent{stripeSetupIntentId, type:monthly}` →
+  webhook `setup_intent.succeeded` EXISTANT crée la Subscription (aucune refonte).
+- Webhook Dev : `checkout.session.completed` → `handleDevCheckoutSessionCompleted` (réconciliation UC
+  best-effort) ; finalisation métier via les handlers existants ; idempotent.
+- `createPlatformUnifiedCheckoutRecord` (factory, kind explicite). `stripeDevHostedCheckoutService`
+  (Sessions Dev payment/setup). Flags indépendants (CHECKOUT_HOSTED vs PLATFORM_CHECKOUT_HOSTED).
+- **Limite** : pas de bascule UI (Manager R3). Prochaine mission : React R0 (setup monorepo).

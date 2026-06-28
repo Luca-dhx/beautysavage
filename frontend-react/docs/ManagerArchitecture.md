@@ -60,3 +60,11 @@
 ## API utilisées (résumé)
 `/auth/*`, `/api/gestion/**` (sauf dev-only pour admin), `/api/contract/*`, `/api/commissions/*`,
 `/api/gestion/dev/*` (dev), `/api/gestion/mails/*` (dev), `/api/gestion/site-status/*` (dev).
+
+## MAJ U3 — Onboarding contrat & commissions via Checkout hébergé (backend prêt)
+Avec `PLATFORM_CHECKOUT_HOSTED=true` : `POST /api/contract/create-launch-intent` et
+`/create-monthly-setup`, et `POST /api/commissions/payments/:id/create-intent` renvoient
+`{ mode:'hosted', url }` → l'app Manager (R3) redirige vers Stripe Checkout (Dev) au lieu d'Elements.
+- launch fee / commission : mode payment ; abonnement : mode setup (collecte du moyen de paiement).
+- Finalisation : webhooks Dev existants (`payment_intent.succeeded`, `setup_intent.succeeded`) ;
+  `checkout.session.completed` réconcilie l'UnifiedCheckout. Flag off → Elements (fallback) inchangé.

@@ -51,3 +51,9 @@ contrat/maintenance/suspension).
   code → exploitation autonome de la plateforme. Les secrets restent dans le coffre (jamais en clair).
 
 → Détails techniques : [ManagerArchitecture](./ManagerArchitecture.md).
+
+## MAJ U3 — Activation contrat & paiement commissions hébergés
+L'onboarding (frais de lancement + souscription mensuelle) et le règlement mensuel des commissions
+pourront s'effectuer sur des pages Stripe hébergées (flag `PLATFORM_CHECKOUT_HOSTED`), offrant à la
+gérante une expérience de paiement sécurisée et cohérente avec la vitrine. Le modèle économique
+plateforme (frais + abonnement + commissions) est unifié derrière UnifiedCheckout. Fallback Elements conservé.

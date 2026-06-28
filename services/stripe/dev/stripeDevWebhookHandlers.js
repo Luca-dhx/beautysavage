@@ -11,6 +11,8 @@ import ContractCheckoutIntent from '../../../models/ContractCheckoutIntent.js';
 import { getStripeDevClient } from '../../../utils/stripeDevClient.js';
 import { invalidateContractCache } from '../../../middlewares/contractGuard.js';
 import { finalizeCommissionPaymentById } from '../../../controllers/commissionPaymentController.js';
+// Sprint U3 — réconciliation UnifiedCheckout (plateforme) sur checkout.session.completed.
+import { updateCheckout } from '../../checkout/unified/unifiedCheckoutRepository.js';
 
 export async function handlePaymentIntentSucceeded(paymentIntent) {
   const piId = paymentIntent.id;
@@ -206,4 +208,19 @@ export async function handleSubscriptionDeleted(subscription) {
 
   invalidateContractCache();
   console.log(`[DevWebhook] Contrat ${contract._id} annulé via customer.subscription.deleted.`);
+}
+
+// Sprint U3 — Réconciliation UnifiedCheckout (plateforme) sur checkout.session.completed. La
+// finalisation métier reste assurée par les handlers EXISTANTS (payment_intent.succeeded pour
+// commission/launch ; setup_intent.succeeded pour l'abonnement). Ici : bookkeeping best-effort.
+export async function handleDevCheckoutSessionCompleted(session) {
+  const unifiedCheckoutId = String(session?.metadata?.unifiedCheckoutId || session?.metadata?.checkoutId || '').trim();
+  if (!unifiedCheckoutId) return;
+  const pi = typeof session?.payment_intent === 'string' ? session.payment_intent : session?.payment_intent?.id || null;
+  await updateCheckout(unifiedCheckoutId, {
+    status: 'finalized',
+    'payment.status': 'succeeded',
+    'payment.stripePaymentIntentId': pi || null,
+    'finalization.finalizedAt': new Date()
+  }).catch(() => {});
 }

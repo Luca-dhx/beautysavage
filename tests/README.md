@@ -344,6 +344,15 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Sprint U3 — UnifiedCheckout plateforme Stripe Dev (rapports 154-155)
+
+- `platformCheckoutFeatureFlag.test.js` (+2) — `PLATFORM_CHECKOUT_HOSTED` false → clientSecret (Dev) ; true → url hosted (commission).
+- `platformCommissionHostedCheckout.test.js` (+2) — Session Dev + UnifiedCheckout commission + metadata ; netAmountDue=0 → settled_zero.
+- `platformLaunchFeeHostedCheckout.test.js` (+1) — Session Dev (payment) + UnifiedCheckout launch_fee + ContractCheckoutIntent.
+- `platformSubscriptionHostedCheckout.test.js` (+1) — Stripe Checkout mode setup + UnifiedCheckout subscription + ContractCheckoutIntent monthly.
+- `platformCheckoutWebhookFinalization.test.js` (+3) — `checkout.session.completed` réconcilie l'UC ; commission `payment_intent.succeeded` finalise (existant) ; replay idempotent ; metadata inconnue → 200.
+- Client Stripe Dev mocké via `utils/stripeDevClient` ; flag off = anciens flows Dev byte-identiques ; Stripe Institut non impacté.
+
 ## Sprint U2 — UnifiedCheckout câblé + Stripe Checkout hébergé (rapports 152-153)
 
 - `hostedCheckoutFeatureFlag.test.js` (+2) — `CHECKOUT_HOSTED` false → clientSecret Elements ; true → url hosted (aucun secret).

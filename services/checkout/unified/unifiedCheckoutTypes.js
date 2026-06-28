@@ -2,7 +2,11 @@
 // Sprint U1 — Types & constantes du moteur UnifiedCheckout (achats institut). Aucune logique
 // métier dupliquée ; le "kind" est dérivé du pricing serveur existant.
 
-export const UNIFIED_CHECKOUT_KINDS = ['service', 'formation', 'product', 'gift_card', 'cart'];
+// Kinds institut (U1/U2) + kinds plateforme Stripe Dev (U3 : commission, launch_fee, subscription).
+export const UNIFIED_CHECKOUT_KINDS = [
+  'service', 'formation', 'product', 'gift_card', 'cart',
+  'commission', 'launch_fee', 'subscription'
+];
 
 export const UNIFIED_CHECKOUT_STATUSES = [
   'draft',

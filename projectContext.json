@@ -29,7 +29,25 @@
     "reactTargetArchitectureAudit": "completed",
     "unifiedCheckoutAndReactPlan": "completed",
     "unifiedCheckoutU1Foundations": "completed",
-    "unifiedCheckoutU2HostedCheckout": "completed"
+    "unifiedCheckoutU2HostedCheckout": "completed",
+    "unifiedCheckoutU3PlatformCheckout": "completed"
+  },
+  "unifiedCheckoutU3PlatformCheckout": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["154_audit_pre_sprint_u3_platform_checkout.md", "155_rapport_sprint_u3_platform_checkout.md"],
+    "summary": "UnifiedCheckout etendu aux paiements PLATEFORME (compte Stripe Dev) : commission/launch_fee/subscription, derriere flag PLATFORM_CHECKOUT_HOSTED. ZERO changement metier/payload existant/statut HTTP. Anciens flows Dev en fallback. Stripe Institut intact. Suite 394 verte.",
+    "kinds": "commission, launch_fee, subscription (+ kinds institut). payment.provider='stripe_dev'.",
+    "featureFlag": "PLATFORM_CHECKOUT_HOSTED (.env.example, defaut false). isPlatformCheckoutHostedEnabled(). false=anciens flows Dev inchanges ; true=Stripe Checkout heberge (mode payment commission/launch, mode setup abonnement). Independant de CHECKOUT_HOSTED (institut).",
+    "commission": "true -> UnifiedCheckout(commission) + createDevPaymentCheckoutSession (payment_intent_data.metadata.commissionPaymentId) -> webhook Dev payment_intent.succeeded EXISTANT finalise (finalizeCommissionPaymentById). CommissionPayment.stripePaymentIntentId=session.payment_intent. 0 EUR -> settled_zero. Reponse {mode:hosted,url,checkoutId,amountCents}.",
+    "launchFee": "true -> UnifiedCheckout(launch_fee) + Session Dev payment + ContractCheckoutIntent{stripePaymentIntentId,type:launch} -> webhook PI existant -> launchFee.paid.",
+    "subscription": "Flow actuel = SetupIntent+Subscription. true -> Stripe Checkout mode:setup + ContractCheckoutIntent{stripeSetupIntentId,type:monthly} -> webhook setup_intent.succeeded EXISTANT cree la Subscription (aucune refonte).",
+    "webhookDev": "checkout.session.completed -> handleDevCheckoutSessionCompleted (reconciliation UC best-effort). Finalisation metier via handlers existants (PI/SetupIntent). Idempotent.",
+    "filesCreated": "services/stripe/dev/stripeDevHostedCheckoutService.js + 5 tests platform*.",
+    "filesModified": "unifiedCheckoutTypes (+3 kinds), unifiedCheckoutConfig (+flag), unifiedCheckoutFactory (createPlatformUnifiedCheckoutRecord), commissionPaymentController, stripeDevContractBillingService, stripeDevWebhookHandlers, stripeDevWebhookService, .env.example.",
+    "tests": "+9 (platformCheckoutFeatureFlag, platformCommissionHostedCheckout, platformLaunchFeeHostedCheckout, platformSubscriptionHostedCheckout, platformCheckoutWebhookFinalization). Total 394 verts (p0=44, p1=344, integration=6) + audit business 36 + commissions 20.",
+    "limitesU3": "Pas de bascule UI (Manager consomme encore Elements ; redirection url = React R3). Flag false par defaut -> prod inchangee. payment_intent.succeeded/setup_intent.succeeded ET checkout.session.completed coexistent (idempotents). Stripe Institut inchange.",
+    "prochaineMission": "React R0 : setup monorepo frontend-react (Vite+React+TS, React Router, TanStack Query, packages api-client/ui/auth/config, guards role). Puis R1 vitrine -> R2 checkout (redirection hosted) -> R3 manager (onboarding contrat + commissions hosted)."
   },
   "unifiedCheckoutU2HostedCheckout": {
     "date": "2026-06-28",

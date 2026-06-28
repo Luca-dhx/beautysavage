@@ -16,7 +16,8 @@ import {
   handleInvoicePaymentSucceeded,
   handleInvoicePaymentFailed,
   handleSubscriptionUpdated,
-  handleSubscriptionDeleted
+  handleSubscriptionDeleted,
+  handleDevCheckoutSessionCompleted
 } from './stripeDevWebhookHandlers.js';
 
 export async function handleDevWebhookFromRequest(req) {
@@ -62,6 +63,10 @@ export async function handleDevWebhookFromRequest(req) {
         break;
       case 'customer.subscription.deleted':
         await handleSubscriptionDeleted(event.data.object);
+        break;
+      case 'checkout.session.completed':
+        // Sprint U3 — réconciliation UnifiedCheckout (la finalisation passe par PI/SetupIntent).
+        await handleDevCheckoutSessionCompleted(event.data.object);
         break;
       default:
         // Ignore unhandled events

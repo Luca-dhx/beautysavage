@@ -66,3 +66,9 @@ Le backend peut désormais router les achats client vers Stripe Checkout héberg
 `CHECKOUT_HOSTED`), tout en gardant Elements en fallback. Décision produit confirmée : la sécurité
 (SCA/3DS délégués à Stripe) et le mobile priment ; la carte cadeau reste un moyen de paiement
 (jamais un discount), Stripe n'encaisse que le reste dû. La bascule visible côté client se fera avec React (R2).
+
+## MAJ U3 — Paiements plateforme unifiés
+Les encaissements de la plateforme (commission mensuelle, frais de lancement, abonnement) peuvent
+désormais passer par Stripe Checkout hébergé (flag `PLATFORM_CHECKOUT_HOSTED`), comme les achats
+client. Le modèle SaaS (frais + abonnement + commissions) est ainsi entièrement routable par le
+moteur UnifiedCheckout, base d'une facturation plateforme cohérente. Anciens flows conservés (fallback).

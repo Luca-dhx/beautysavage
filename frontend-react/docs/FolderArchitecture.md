@@ -148,3 +148,16 @@ régression** (endpoints/payload/couleurs inchangés sans config).
 - React : `@bs/api-client` `getThemeByScope(scope)` ; `@bs/ui` `mapBackendThemeToTokens` (mapping
   neutre réutilisé vitrine + manager). Manager : `PanelThemeProvider` charge `/api/theme/manager`
   (fallback `defaultPanelTheme`). Vitrine inchangée.
+
+## MAJ R2A — Préparation checkout (panier, créneau, consentements)
+Couche de **préparation** du checkout, **sans paiement** (rapports 165/166). Aucun appel Stripe /
+create-checkout-session ; aucun changement backend.
+- **`@bs/api-client/booking/`** : `availability` (jours/créneaux), `legalConsents`
+  (`isLegalConsentComplete`), `checkoutPreparation` (`buildCheckoutPreparationPayload` — **pur**),
+  types (AvailabilitySlot, SelectedServiceSlot, LegalConsentState, CheckoutLine, CheckoutPreparationPayload).
+- **Vitrine** : `features/cart` (`CartProvider`/`useCart`, localStorage versionné, indicatif),
+  `features/booking` (`AvailabilityCalendar`/`SlotPicker`/`ServiceBookingPanel`), `features/legal`
+  (`LegalConsentChecklist`). Pages réelles `/panier` + `/checkout` (préparation, payload en debug).
+- **Règle confirmée** : le backend fait foi (prix/dispo/lock) ; le front prépare seulement. Pas de
+  lock de créneau côté front. Composants 100 % tokens `--bs-*` (aucun hex). 54 tests frontend verts.
+- Prochaine : **R2B** (paiement Stripe Checkout hébergé).

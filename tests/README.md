@@ -381,6 +381,14 @@ Frontend (+3 → 41 verts) :
 - `apps/manager/src/features/theme/themeMultiScope.test.tsx` — `PanelThemeProvider` : fallback `defaultPanelTheme` si `theme:null` / si endpoint échoue ; applique la couleur backend manager.
 - Total backend après T1 : **404** tests (96+ fichiers).
 
+## Sprint React R2A — Préparation checkout (rapports 165-166)
+
+Frontend uniquement (`npm run react:test`, total **54 verts**, +13) ; **aucun test backend** (zéro changement backend) :
+- `packages/api-client/src/booking/booking.test.ts` (5) — mapping disponibilités (slots/jours), `isLegalConsentComplete`, `buildCheckoutPreparationPayload` (pur, sans réseau, contient slot + consentements).
+- `apps/vitrine/src/features/cart/cart.test.tsx` (4) — storage vide/roundtrip, version incompatible → reset, CartProvider add/remove/persist/résumé indicatif.
+- `apps/vitrine/src/pages/r2aFlow.test.tsx` (6) — panier vide ; panier prestation+créneau+retrait ; checkout bouton désactivé→payload préparé (slot+CGV) ; **aucun appel réseau lors de la préparation** ; sélection jour→créneau→ajout panier ; jour sans créneau → empty state.
+- Backend (`npm test` 404, audits 36/20) **inchangé** : R2A ne touche pas le backend.
+
 ## Sprint U3 — UnifiedCheckout plateforme Stripe Dev (rapports 154-155)
 
 - `platformCheckoutFeatureFlag.test.js` (+2) — `PLATFORM_CHECKOUT_HOSTED` false → clientSecret (Dev) ; true → url hosted (commission).

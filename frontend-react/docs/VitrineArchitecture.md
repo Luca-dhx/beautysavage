@@ -143,3 +143,24 @@ vitrine** (les anciens documents sans scope sont traités comme vitrine). Aucun 
 vitrine React : même `VitrineThemeProvider`, même fallback. L'adapter `mapVitrineThemeToTokens`
 délègue au mapping centralisé `mapBackendThemeToTokens` de `@bs/ui` (partagé avec le manager). Un
 endpoint générique `GET /api/theme/vitrine` existe aussi (équivalent).
+
+## MAJ R2A — Panier + préparation checkout (exécuté)
+**Panier React local** (`features/cart`) : `CartProvider`/`useCart`, persistance `localStorage`
+versionnée (`bs_cart`/`CART_VERSION`, reset si incompatible), `addService`/`removeItem`/`updateItem`/
+`clearCart`, `summary` indicatif. `ServiceCartItem` porte `selectedSlot`/`selectedOptions`/`indicativePrice`.
+
+**Réservation prestation** (`features/booking`) : hooks `useServiceAvailableDays`/
+`useServiceAvailableSlots` (`/api/vitrine/availability/days|slots`), `AvailabilityCalendar`
+(calendrier mensuel, jours dispo cliquables), `SlotPicker` (créneaux : loading/empty/erreur),
+`SelectedSlotSummary`, `ServiceBookingPanel` (sur la fiche prestation → ajout panier avec créneau).
+**Aucun lock front** ; message « confirmé après paiement/validation ». Slots `start/end` =
+`"YYYY-MM-DDTHH:mm"`, jours `"YYYY-MM-DD"`.
+
+**Consentements** (`features/legal`) : `LegalConsentChecklist` (CGV + rétractation + prestation
+datée), `buildLegalConsentPayload`. UX ; backend = autorité.
+
+**Pages** : `/panier` (liste + retrait + CTA `/checkout`, vide → EmptyState) et `/checkout` (récap +
+consentements + bouton « Préparer le paiement » **désactivé** tant que consentements incomplets →
+`buildCheckoutPreparationPayload` affiché en `<details>` debug). **Aucun appel Stripe / create-checkout-session**
+en R2A. `/panier` et `/checkout` ne sont plus sous `RequireAuth` (panier local). `CartProvider` monté
+dans `main.tsx`. Le payload prépare le `checkoutState.service` + `legal` attendu par le backend (R2B).

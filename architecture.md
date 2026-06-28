@@ -3464,3 +3464,20 @@ Le modèle `Theme` devient **multi-scope** (`vitrine`/`manager`). Rapports 163 (
 - **Compat** : Vanilla (endpoints/payload inchangés, theme global = vitrine, themeManagerModule édite
   vitrine), React Vitrine inchangée, React Manager défaut→backend optionnel (couleurs inchangées sans
   config). Prochaine mission : **R2A** (panier + checkout hébergé).
+
+## Sprint React R2A — Préparation checkout (panier, créneau, consentements) (2026-06-28)
+Couche React de **préparation** du checkout (panier local, sélection créneau prestation,
+disponibilités, consentements). **Aucun paiement / aucun appel Stripe / aucun create-checkout-session.**
+**Zéro changement backend.** Rapports 165 (audit) / 166 (rapport). Backend 404 + audits 36/20 inchangés ;
+frontend **54 tests** verts.
+- `@bs/api-client/booking/` : `availability` (`getServiceAvailableDays/Slots` → `/api/vitrine/availability/days|slots`),
+  `legalConsents` (`isLegalConsentComplete`), `checkoutPreparation` (`buildCheckoutPreparationPayload`,
+  **pur**, mirroir partiel de `checkoutState.service`+`legal`). Slots `"YYYY-MM-DDTHH:mm"`, jours `"YYYY-MM-DD"`.
+- Vitrine `features/cart` (`CartProvider`/`useCart`, localStorage versionné `bs_cart`/`CART_VERSION`,
+  panier **indicatif** en euros), `features/booking` (`AvailabilityCalendar`/`SlotPicker`/
+  `ServiceBookingPanel`, **aucun lock front**), `features/legal` (`LegalConsentChecklist`).
+- Pages réelles `/panier` + `/checkout` (préparation ; bouton « Préparer le paiement » désactivé tant
+  que consentements incomplets → payload en `<details>` debug ; **aucun Stripe**). `/panier`,`/checkout`
+  sortis de `RequireAuth` (panier local). Composants 100 % tokens `--bs-*` (aucun hex).
+- **Le backend reste source de vérité** (prix/dispo/lock). Prochaine mission : **R2B** (paiement
+  Stripe Checkout hébergé : `{mode:'hosted',url}` / finalize-free).

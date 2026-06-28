@@ -1,5 +1,4 @@
 import { Routes, Route } from 'react-router-dom';
-import { RequireAuth } from '@bs/auth';
 import { PublicLayout } from './layouts/PublicLayout';
 import { Placeholder } from './pages/Placeholder';
 import { HomePage } from './pages/HomePage';
@@ -10,6 +9,8 @@ import { TrainingDetailPage } from './pages/TrainingDetailPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { GiftCardsPage } from './pages/GiftCardsPage';
+import { CartPage } from './pages/CartPage';
+import { CheckoutPage } from './pages/CheckoutPage';
 
 // Routing vitrine R1 — catalogue public réel. Checkout/paiement = placeholders (R2).
 export function App() {
@@ -26,16 +27,14 @@ export function App() {
         <Route path="produits/:id" element={<ProductDetailPage />} />
         <Route path="cartes-cadeaux" element={<GiftCardsPage />} />
 
-        {/* Auth / paiement (placeholders — hors R1) */}
-        <Route path="connexion" element={<Placeholder title="Connexion" description="Connexion client (R2+)." />} />
-        <Route path="paiement/succes" element={<Placeholder title="Paiement réussi" description="Retour Stripe (R2)." />} />
-        <Route path="paiement/annule" element={<Placeholder title="Paiement annulé" description="Retour Stripe (R2)." />} />
+        {/* Panier + préparation checkout (R2A — panier local, AUCUN paiement) */}
+        <Route path="panier" element={<CartPage />} />
+        <Route path="checkout" element={<CheckoutPage />} />
 
-        {/* Client (RequireAuth) — placeholders hors R1 */}
-        <Route element={<RequireAuth loginPath="/connexion" />}>
-          <Route path="panier" element={<Placeholder title="Panier" description="Récapitulatif du panier (R2)." />} />
-          <Route path="checkout" element={<Placeholder title="Checkout" description="Tunnel de paiement (R2)." />} />
-        </Route>
+        {/* Auth / paiement (placeholders — R2B) */}
+        <Route path="connexion" element={<Placeholder title="Connexion" description="Connexion client (R2B+)." />} />
+        <Route path="paiement/succes" element={<Placeholder title="Paiement réussi" description="Retour Stripe (R2B)." />} />
+        <Route path="paiement/annule" element={<Placeholder title="Paiement annulé" description="Retour Stripe (R2B)." />} />
 
         <Route path="*" element={<Placeholder title="Page introuvable" description="404." />} />
       </Route>

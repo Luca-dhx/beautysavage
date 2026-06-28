@@ -104,3 +104,11 @@ Manager n'est plus figé sur un défaut codé en dur : il charge son thème depu
 **configurables** (le dev pourra les éditer via le futur Theme Studio) tout en garantissant zéro
 changement visible tant qu'aucune config manager n'existe. Étape clé avant un Theme Studio Dev
 réellement multi-scope.
+
+## MAJ R2A — Vers la conversion (sans encore payer)
+L'utilisateur peut désormais composer un panier et choisir un créneau de prestation dans React, puis
+préparer sa commande (consentements légaux), **sans paiement**. C'est l'étape qui précède la
+conversion : on valide l'expérience d'achat (panier indicatif, calendrier, transparence légale) en
+gardant le backend comme seule autorité (prix, disponibilité, verrou de créneau). Le paiement réel
+(Stripe Checkout hébergé) est volontairement reporté à **R2B** pour livrer la préparation de façon
+sûre et testée d'abord.

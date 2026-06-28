@@ -79,3 +79,11 @@ Le thème de la vitrine est désormais un **scope dédié** côté backend, dist
 gérante (via le dev) peut faire évoluer l'identité publique sans impacter l'outil interne, et
 inversement. Côté expérience, rien ne change pour le visiteur : la vitrine charge toujours son thème
 de la même façon, avec repli si indisponible.
+
+## MAJ R2A — Choisir, réserver un créneau, préparer (sans payer)
+Le client peut maintenant ajouter une prestation au panier, **choisir un créneau** via un calendrier,
+et préparer sa commande avec les consentements légaux — mais **le paiement n'est pas encore actif**.
+Message clé pour l'utilisateur : le créneau n'est pas réservé tant que le paiement/validation n'a pas
+eu lieu (le backend verrouille au moment du checkout). Le panier est indicatif (le montant final est
+calculé par le serveur). Cette étape « préparation » sécurise l'expérience avant d'ouvrir le paiement
+Stripe en R2B.

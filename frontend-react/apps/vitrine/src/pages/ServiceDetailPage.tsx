@@ -3,6 +3,7 @@ import { Card, MediaImage, PriceLabel, LoadingState, ErrorState } from '@bs/ui';
 import { resolveMediaUrl, formatDuration } from '@bs/api-client';
 import { usePublicService } from '../features/catalog/hooks/usePublicServices';
 import { servicePriceProps } from '../features/catalog/priceProps';
+import { ServiceBookingPanel } from '../features/booking/ServiceBookingPanel';
 
 export function ServiceDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -23,11 +24,7 @@ export function ServiceDetailPage() {
         <PriceLabel {...servicePriceProps(data)} />
         {data.shortDescription ? <p>{data.shortDescription}</p> : null}
         {data.description ? <p>{data.description}</p> : null}
-        <p>
-          <span className="bs-btn" aria-disabled="true" style={{ pointerEvents: 'none', opacity: 0.6 }}>
-            Réservation bientôt disponible
-          </span>
-        </p>
+        <ServiceBookingPanel service={data} />
       </Card>
     </article>
   );

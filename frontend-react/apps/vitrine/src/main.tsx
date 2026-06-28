@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@bs/auth';
 import '@bs/ui/tokens.css';
 import { VitrineThemeProvider } from './features/theme/VitrineThemeProvider';
+import { CartProvider } from './features/cart/CartProvider';
 import { App } from './App';
 
 const queryClient = new QueryClient({
@@ -22,9 +23,11 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <VitrineThemeProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
+          <CartProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </CartProvider>
         </VitrineThemeProvider>
       </AuthProvider>
     </QueryClientProvider>

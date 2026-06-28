@@ -34,7 +34,23 @@
     "reactR0Infrastructure": "completed",
     "reactR1VitrineCatalogue": "completed",
     "reactThemeFoundation": "completed",
-    "themeMultiScopeT1": "completed"
+    "themeMultiScopeT1": "completed",
+    "reactR2ACheckoutPreparation": "completed"
+  },
+  "reactR2ACheckoutPreparation": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["165_audit_react_r2a_checkout_preparation.md", "166_rapport_react_r2a_checkout_preparation.md"],
+    "summary": "Couche React de PREPARATION checkout : panier local, selection creneau prestation, disponibilites, consentements legaux, resume + payload prepare. AUCUN paiement / AUCUN appel Stripe / AUCUN create-checkout-session. ZERO changement backend. Backend 404 + audits 36/20 inchanges ; frontend 54 tests + build + lint + typecheck verts.",
+    "apiClient": "@bs/api-client/booking : availability (getServiceAvailableDays/Slots -> /api/vitrine/availability/days|slots ; slots start/end 'YYYY-MM-DDTHH:mm', jours 'YYYY-MM-DD'), legalConsents (EMPTY_LEGAL_CONSENT, isLegalConsentComplete), checkoutPreparation (buildCheckoutPreparationPayload PUR, sans reseau/Stripe, mirroir partiel checkoutState.service+legal). Types AvailabilitySlot/SelectedServiceSlot/LegalConsentState/CheckoutLine/CheckoutPreparationPayload.",
+    "cart": "apps/vitrine/src/features/cart : CartProvider/useCart, localStorage versionne (bs_cart/CART_VERSION ; version incompatible -> reset), addService/removeItem/updateItem/clearCart, summary {count,indicativeTotal}. Panier INDICATIF (euros) ; backend recalcule tout. ServiceCartItem porte selectedSlot/selectedOptions/indicativePrice. lineId crypto.randomUUID + fallback.",
+    "booking": "apps/vitrine/src/features/booking : hooks useServiceAvailableDays/useServiceAvailableSlots (TanStack Query), AvailabilityCalendar (calendrier mensuel, jours dispo cliquables), SlotPicker (loading/empty/erreur), SelectedSlotSummary, ServiceBookingPanel (fiche prestation -> ajout panier avec creneau). AUCUN lock front ; message 'confirme apres paiement/validation'. dateUtils (monthMatrix, formatSlotTime/Label).",
+    "legal": "apps/vitrine/src/features/legal : LegalConsentChecklist (CGV + retractation + prestation datee), buildLegalConsentPayload, legalConsentTypes. UX seulement ; backend = autorite (re-derive waivers, codes LEGAL_VALIDATION_REQUIRED/LEGAL_CONSENT_REQUIRED).",
+    "pages": "/panier (liste items + creneau, retrait, total indicatif, CTA Continuer, vide -> EmptyState) et /checkout (recap + consentements + bouton 'Preparer le paiement' DESACTIVE tant que consentements incomplets -> buildCheckoutPreparationPayload affiche en <details> debug ; AUCUN Stripe ; message paiement R2B). /panier,/checkout SORTIS de RequireAuth (panier local). CartProvider monte dans main.tsx. ServiceBookingPanel integre dans ServiceDetailPage.",
+    "theme": "Tous les composants via @bs/ui + CSS vars --bs-* (classes calendrier/creneau/consent/debug ajoutees a tokens.css, couleurs color-mix/vars). AUCUN hex dans les .tsx (verifie). Responsive.",
+    "tests": "54 frontend verts (+13) : booking.test (5), cart.test (4), r2aFlow.test (6) + existants. Aucun appel reseau Stripe en R2A (verifie par test). Backend inchange (404 + 36/20).",
+    "limites": "AUCUN paiement (pas de Stripe, pas de redirection hosted, pas de finalize-free, pas de carte cadeau payante). Panier centre prestation (produits/formations/cartes cadeaux non ajoutes au panier en R2A). Panier indicatif. Pas d'espace client, pas de manager/dev.",
+    "prochaineMission": "React R2B : brancher le paiement. Depuis /checkout, envoyer le payload prepare a create-checkout-session (flag CHECKOUT_HOSTED) -> {mode:'hosted',url} (redirection Stripe Checkout) ou {mode:'free'} -> finalize-free (0 EUR). Pages retour /paiement/succes & /annule (payment-result). Auth client au paiement."
   },
   "themeMultiScopeT1": {
     "date": "2026-06-28",

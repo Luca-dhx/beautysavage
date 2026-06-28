@@ -23,7 +23,30 @@
     "preReactE1E2": "completed",
     "preReactF1CheckoutExtraction": "completed",
     "preReactF2StripeExtraction": "completed",
-    "preReactF2bStripeDevExtraction": "completed"
+    "preReactF2bStripeDevExtraction": "completed",
+    "preReactF3aContractBillingExtraction": "completed"
+  },
+  "preReactF3aContractBillingExtraction": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["129_audit_pre_sprint_f3a_contract_billing.md", "130_rapport_sprint_f3a_contract_billing_extraction.md"],
+    "summary": "Extraction facturation contrat (frais de lancement, abonnement mensuel, sync, annulation) hors de contractController (1098->687 lignes, -37%). ZERO changement fonctionnel / contrat API / statut HTTP / payload / commission / Stripe Institut. Caracterisation ecrite AVANT extraction (11 probes vertes avant/apres).",
+    "servicesCreated": {
+      "services/contract/contractStateService": "contractAmountTtcCents, computeLockedUntil (purs).",
+      "services/contract/contractResponseMapper": "toResponseContract + send(res,{status,json}).",
+      "services/stripe/dev/stripeDevContractSyncService": "syncStripeStatuses(contract) (importe par le controleur ET contractPaymentSyncJob).",
+      "services/stripe/dev/stripeDevContractBillingService": "createLaunchIntent/createMonthlySetup/verifyLaunchPayment/verifyMonthlySetup/cancelContract/cancelImmediate -> {status,json}."
+    },
+    "controllerDelegates": "6 handlers de facturation = delegateurs (contractBilling.* + sendContractResponse). getStripeDevConfig via stripeDevConfigService.getStripeDevPublishableKey. activateContract/checkPaymentStatus/computeResumeSlide conserves (passent par syncStripeStatuses du sync service).",
+    "gate": "git grep paymentIntents.create|paymentIntents.retrieve|stripeDev|STRIPE_DEV dans contractController = aucune occurrence. Imports orphelins (mongoose/getStripeDevClient/getCredential) retires.",
+    "tests": "349 verts (p0=44, p1=299, integration=6) dont contractBillingCharacterization (+11). audit business 36, audit commissions 20.",
+    "preservation": "Garde client absent -> 500 'Client Stripe Developer non configure.' (sans champ code) preservee. Catch reproduisent respondError ({ok,code,error}). Client Dev via shim utils/stripeDevClient (mocks de test inchanges).",
+    "detteRestante": [
+      "createContract (upload multipart) + deleteContract/getContractHistory/upload temp : orchestration non-Stripe conservee (hors perimetre)",
+      "stripeDevContractBillingService melange encore billing + transitions (cancel mute le statut) ; separation plus fine possible (faible valeur)",
+      "Split interne mailService (rapport 122) : dernier monolithe backend"
+    ],
+    "recommandationF3B": "Split de mailService (~3845 lignes) derriere le seam mailDispatcher (E2) : mailTemplateRuntime/mailBrevoGateway/mailTrackingService/mailContextResolver. Tests de caracterisation (rendu template + Brevo mockes) d'abord."
   },
   "preReactF2bStripeDevExtraction": {
     "date": "2026-06-28",

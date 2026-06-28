@@ -344,6 +344,17 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Sprint F3A — Extraction facturation contrat (rapports 129-130)
+
+- `contractBillingCharacterization.test.js` (+11) — **caractérisation écrite AVANT extraction**
+  (verte avant ET après), fige le contrat HTTP de la facturation contrat : getStripeDevConfig,
+  createLaunchIntent (+409 déjà payé), createMonthlySetup, verifyLaunch/MonthlySetup,
+  checkPaymentStatus (steps), activate (+lockedUntil null), cancel (period-end vs immédiat), sync.
+- `contractController` 1098 → 687 lignes ; facturation extraite vers
+  `services/stripe/dev/stripeDevContractBillingService` + `stripeDevContractSyncService` +
+  `services/contract/{contractStateService,contractResponseMapper}`. Client Dev via le shim
+  `utils/stripeDevClient` (mocks inchangés) ; aucun secret réel.
+
 ## Sprint F2B — Extraction Stripe Dev / plateforme (rapports 127-128)
 
 - `stripeDevExtractionParity.test.js` (+5) — extraction structurelle du domaine Dev/plateforme :

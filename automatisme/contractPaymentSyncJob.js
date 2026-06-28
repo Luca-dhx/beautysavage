@@ -1,5 +1,6 @@
 import Contract from '../models/Contract.js';
-import { syncStripeStatuses } from '../controllers/contractController.js';
+// Sprint F3A — syncStripeStatuses déplacée vers le service de sync Stripe Dev contrat.
+import { syncStripeStatuses } from '../services/stripe/dev/stripeDevContractSyncService.js';
 
 let syncInterval = null;
 

@@ -1,14 +1,16 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import mongoose from 'mongoose';
-
 import Contract from '../models/Contract.js';
 import ContractCheckoutIntent from '../models/ContractCheckoutIntent.js';
-import { getStripeDevClient } from '../utils/stripeDevClient.js';
 import { invalidateContractCache } from '../middlewares/contractGuard.js';
-import { getCredential } from '../services/integratedApiCredentialService.js';
 import { getActiveCommissionConfig } from '../services/commissionService.js';
+// Sprint F3A — domaine facturation contrat extrait vers services/stripe/dev/* + services/contract/*.
+import { getStripeDevPublishableKey } from '../services/stripe/dev/stripeDevConfigService.js';
+import { syncStripeStatuses } from '../services/stripe/dev/stripeDevContractSyncService.js';
+import * as contractBilling from '../services/stripe/dev/stripeDevContractBillingService.js';
+import { toResponseContract, send as sendContractResponse } from '../services/contract/contractResponseMapper.js';
+import { computeLockedUntil } from '../services/contract/contractStateService.js';
 
 const CONTRACT_UPLOAD_ROOT = path.resolve(process.cwd(), 'uploads', 'contracts');
 const CONTRACT_TEMP_DIR = path.resolve(process.cwd(), 'uploads', 'contracts', 'temp');
@@ -17,12 +19,6 @@ const CONTRACT_UPLOAD_PUBLIC_PREFIX = '/uploads/contracts';
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function contractAmountTtcCents(amount, taxRate) {
-  const amountNum = Number(amount || 0);
-  const taxNum = Number(taxRate || 0);
-  return Math.round(amountNum * (1 + taxNum) * 100);
-}
 
 function resolveAbsolutePath(storagePath) {
   const normalized = String(storagePath || '').replace(/\\/g, '/');
@@ -36,42 +32,6 @@ function resolveAbsolutePath(storagePath) {
     throw new Error('Chemin de fichier contrat non autorisé.');
   }
   return absolutePath;
-}
-
-function toResponseContract(contract) {
-  if (!contract) return null;
-  const c = contract.toObject ? contract.toObject() : { ...contract };
-  return {
-    _id: c._id,
-    status: c.status,
-    file: c.file,
-    fileOriginalName: c.fileOriginalName,
-    fileMimeType: c.fileMimeType,
-    fileDownloadedAt: c.fileDownloadedAt,
-    lockedAt: c.lockedAt,
-    launchFee: c.launchFee,
-    monthlyFee: {
-      amount: c.monthlyFee?.amount,
-      taxRate: c.monthlyFee?.taxRate,
-      active: c.monthlyFee?.active,
-      currentPeriodEnd: c.monthlyFee?.currentPeriodEnd,
-      gracePeriodDays: c.monthlyFee?.gracePeriodDays,
-      stripeSubscriptionId: c.monthlyFee?.stripeSubscriptionId,
-      stripeCustomerId: c.monthlyFee?.stripeCustomerId
-      // pendingClientSecret intentionnellement omis de la réponse par défaut
-    },
-    commissions: c.commissions || null,
-    cancellationPolicy: c.cancellationPolicy,
-    pendingMessage: c.pendingMessage,
-    activatedAt: c.activatedAt,
-    activatedBy: c.activatedBy,
-    cancelledAt: c.cancelledAt,
-    cancelledBy: c.cancelledBy,
-    createdBy: c.createdBy,
-    updatedBy: c.updatedBy,
-    createdAt: c.createdAt,
-    updatedAt: c.updatedAt
-  };
 }
 
 async function ensureNoActiveOrPending() {
@@ -114,12 +74,7 @@ function respondError(res, error, context) {
 // Retourne la clé publique Stripe Developer
 // ---------------------------------------------------------------------------
 export async function getStripeDevConfig(_req, res) {
-  let publishableKey = '';
-  try {
-    publishableKey = await getCredential('stripe-dev', { role: 'publishable_key' });
-  } catch (_err) {
-    publishableKey = '';
-  }
+  const publishableKey = await getStripeDevPublishableKey();
   if (!publishableKey) {
     return res.status(500).json({ ok: false, error: 'Clé Stripe Developer non configurée.' });
   }
@@ -226,89 +181,7 @@ export async function downloadContractFile(req, res) {
 // Crée un PaymentIntent Stripe Developer pour les frais de lancement
 // ---------------------------------------------------------------------------
 export async function createLaunchIntent(req, res) {
-  const stripeDevClient = await getStripeDevClient();
-  try {
-    if (!stripeDevClient) {
-      return res.status(500).json({ ok: false, error: 'Client Stripe Developer non configuré.' });
-    }
-
-    const contract = await Contract.findOne({ status: 'pending' });
-    if (!contract) {
-      return res.status(404).json({ ok: false, error: 'Aucun contrat en attente.' });
-    }
-
-    if (contract.launchFee?.paid) {
-      return res.status(409).json({ ok: false, error: 'Frais de lancement déjà réglés.' });
-    }
-
-    const amountCents = contractAmountTtcCents(
-      contract.launchFee?.amount,
-      contract.launchFee?.taxRate
-    );
-    if (amountCents <= 0) {
-      return res.status(400).json({ ok: false, error: 'Montant des frais de lancement invalide.' });
-    }
-
-    // Idempotence — check existing unprocessed intent and verify its Stripe status
-    const existingLaunch = await ContractCheckoutIntent.findOne({
-      contractId: contract._id,
-      type: 'launch',
-      processed: false,
-      stripePaymentIntentId: { $ne: null }
-    }).lean();
-    if (existingLaunch?.stripePaymentIntentId) {
-      const pi = await stripeDevClient.paymentIntents.retrieve(existingLaunch.stripePaymentIntentId);
-      switch (pi.status) {
-        case 'succeeded':
-          await ContractCheckoutIntent.findByIdAndUpdate(existingLaunch._id, { processed: true });
-          return res.json({ ok: true, alreadyProcessed: true });
-        case 'canceled':
-        case 'requires_payment_method':
-          await ContractCheckoutIntent.findByIdAndDelete(existingLaunch._id);
-          break; // fall through to create a new PaymentIntent
-        case 'requires_confirmation':
-        case 'requires_action':
-        case 'processing':
-          return res.json({ ok: true, clientSecret: pi.client_secret, paymentIntentId: pi.id, amountCents });
-        default:
-          await ContractCheckoutIntent.findByIdAndDelete(existingLaunch._id);
-          break;
-      }
-    }
-
-    // Nettoyer TOUS les anciens intents launch — processed ou non
-    await ContractCheckoutIntent.deleteMany({
-      contractId: contract._id,
-      type: 'launch'
-    });
-
-    const paymentIntent = await stripeDevClient.paymentIntents.create({
-      amount: amountCents,
-      currency: 'eur',
-      automatic_payment_methods: { enabled: true },
-      metadata: {
-        contractId: String(contract._id),
-        type: 'launch_fee'
-      }
-    });
-
-    await ContractCheckoutIntent.create({
-      stripePaymentIntentId: paymentIntent.id,
-      contractId: contract._id,
-      adminId: req.sessionUser._id,
-      type: 'launch',
-      processed: false
-    });
-
-    return res.json({
-      ok: true,
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
-      amountCents
-    });
-  } catch (error) {
-    return respondError(res, error, 'CreateLaunchIntent');
-  }
+  return sendContractResponse(res, await contractBilling.createLaunchIntent({ adminId: req.sessionUser?._id }));
 }
 
 // ---------------------------------------------------------------------------
@@ -316,102 +189,7 @@ export async function createLaunchIntent(req, res) {
 // Crée un SetupIntent Stripe Developer pour la souscription mensuelle
 // ---------------------------------------------------------------------------
 export async function createMonthlySetup(req, res) {
-  const stripeDevClient = await getStripeDevClient();
-  try {
-    if (!stripeDevClient) {
-      return res.status(500).json({ ok: false, error: 'Client Stripe Developer non configuré.' });
-    }
-
-    const contract = await Contract.findOne({ status: 'pending' });
-    if (!contract) {
-      return res.status(404).json({ ok: false, error: 'Aucun contrat en attente.' });
-    }
-
-    // If launch fee exists, it must be paid first
-    if ((contract.launchFee?.amount || 0) > 0 && !contract.launchFee?.paid) {
-      return res.status(409).json({
-        ok: false,
-        error: 'Les frais de lancement doivent être réglés avant la souscription mensuelle.'
-      });
-    }
-
-    if (contract.monthlyFee?.active) {
-      return res.status(409).json({ ok: false, error: 'Mensualité déjà active.' });
-    }
-
-    // Create or reuse Stripe customer
-    let customerId = contract.monthlyFee?.stripeCustomerId;
-    if (!customerId) {
-      const customer = await stripeDevClient.customers.create({
-        metadata: { contractId: String(contract._id) }
-      });
-      customerId = customer.id;
-      contract.monthlyFee.stripeCustomerId = customerId;
-      await contract.save();
-    }
-
-    // Idempotence — check existing unprocessed intent and verify its Stripe status
-    const existingMonthly = await ContractCheckoutIntent.findOne({
-      contractId: contract._id,
-      type: 'monthly',
-      processed: false,
-      stripeSetupIntentId: { $ne: null }
-    }).lean();
-    if (existingMonthly?.stripeSetupIntentId) {
-      const si = await stripeDevClient.setupIntents.retrieve(existingMonthly.stripeSetupIntentId);
-      switch (si.status) {
-        case 'succeeded':
-          await ContractCheckoutIntent.findByIdAndUpdate(existingMonthly._id, { processed: true });
-          return res.json({ ok: true, alreadyProcessed: true });
-        case 'canceled':
-          await ContractCheckoutIntent.findByIdAndDelete(existingMonthly._id);
-          break; // fall through to create a new SetupIntent
-        case 'requires_confirmation':
-        case 'requires_action':
-          return res.json({ ok: true, clientSecret: si.client_secret, setupIntentId: si.id, customerId });
-        default:
-          await ContractCheckoutIntent.findByIdAndDelete(existingMonthly._id);
-          break;
-      }
-    }
-
-    // Nettoyer TOUS les anciens intents monthly — processed ou non
-    await ContractCheckoutIntent.deleteMany({
-      contractId: contract._id,
-      type: 'monthly'
-    });
-
-    const setupIntent = await stripeDevClient.setupIntents.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      metadata: {
-        contractId: String(contract._id),
-        type: 'monthly_setup'
-      }
-    });
-
-    await ContractCheckoutIntent.create({
-      stripeSetupIntentId: setupIntent.id,
-      contractId: contract._id,
-      adminId: req.sessionUser._id,
-      type: 'monthly',
-      processed: false
-    });
-
-    // Store pending client secret
-    contract.monthlyFee.pendingClientSecret = setupIntent.client_secret;
-    contract.updatedBy = req.sessionUser._id;
-    await contract.save();
-
-    return res.json({
-      ok: true,
-      clientSecret: setupIntent.client_secret,
-      setupIntentId: setupIntent.id,
-      customerId
-    });
-  } catch (error) {
-    return respondError(res, error, 'CreateMonthlySetup');
-  }
+  return sendContractResponse(res, await contractBilling.createMonthlySetup({ adminId: req.sessionUser?._id }));
 }
 
 // ---------------------------------------------------------------------------
@@ -688,47 +466,7 @@ export async function getContractHistory(req, res) {
 // syncStripeStatuses — partagée, importée par le job de sync
 // Vérifie les statuts Stripe et auto-active si tout est ok
 // ---------------------------------------------------------------------------
-export async function syncStripeStatuses(contract) {
-  const stripeDevClient = await getStripeDevClient();
-  if (!stripeDevClient) return;
-
-  // Vérifier PaymentIntent launch
-  if (!contract.launchFee?.paid && Number(contract.launchFee?.amount || 0) > 0) {
-    const intent = await ContractCheckoutIntent.findOne({
-      contractId: contract._id,
-      type: 'launch'
-    });
-    if (intent?.stripePaymentIntentId) {
-      try {
-        const pi = await stripeDevClient.paymentIntents.retrieve(intent.stripePaymentIntentId);
-        if (pi.status === 'succeeded') {
-          contract.launchFee.paid = true;
-          intent.processed = true;
-          await intent.save();
-        }
-      } catch (_) {}
-    }
-  }
-
-  // Vérifier SetupIntent + Subscription monthly
-  if (!contract.monthlyFee?.active && Number(contract.monthlyFee?.amount || 0) > 0) {
-    if (contract.monthlyFee?.stripeSubscriptionId) {
-      try {
-        const sub = await stripeDevClient.subscriptions.retrieve(contract.monthlyFee.stripeSubscriptionId);
-        if (sub.status === 'active') {
-          contract.monthlyFee.active = true;
-          await ContractCheckoutIntent.findOneAndUpdate(
-            { contractId: contract._id, type: 'monthly', processed: false },
-            { processed: true }
-          );
-        }
-      } catch (_) {}
-    }
-  }
-
-  // Pas d'auto-activation ici: activation manuelle via POST /api/contract/activate
-  await contract.save();
-}
+// syncStripeStatuses — déplacée vers services/stripe/dev/stripeDevContractSyncService.js (importée).
 
 // ---------------------------------------------------------------------------
 // GET /api/contract/check-payment-status — admin + dev
@@ -762,44 +500,7 @@ export async function checkPaymentStatus(req, res) {
 // Vérifie côté serveur le statut du dernier PaymentIntent launch
 // ---------------------------------------------------------------------------
 export async function verifyLaunchPayment(req, res) {
-  const stripeDevClient = await getStripeDevClient();
-  try {
-    if (!stripeDevClient) {
-      return res.status(500).json({ ok: false, error: 'Client Stripe Developer non configuré.' });
-    }
-
-    const contract = await Contract.findOne({ status: 'pending' });
-    if (!contract) {
-      return res.status(404).json({ ok: false, error: 'Aucun contrat en attente.' });
-    }
-
-    const intent = await ContractCheckoutIntent.findOne({
-      contractId: contract._id,
-      type: 'launch',
-      stripePaymentIntentId: { $ne: null }
-    })
-      .sort({ createdAt: -1 });
-
-    if (!intent?.stripePaymentIntentId) {
-      return res.status(404).json({ ok: false, error: 'Aucun intent launch trouvé.' });
-    }
-
-    const pi = await stripeDevClient.paymentIntents.retrieve(intent.stripePaymentIntentId);
-    if (pi.status === 'succeeded') {
-      contract.launchFee.paid = true;
-      contract.updatedBy = req.sessionUser?._id || contract.updatedBy;
-      await contract.save();
-      if (!intent.processed) {
-        intent.processed = true;
-        await intent.save();
-      }
-      return res.json({ ok: true });
-    }
-
-    return res.json({ ok: false, status: pi.status });
-  } catch (error) {
-    return respondError(res, error, 'VerifyLaunchPayment');
-  }
+  return sendContractResponse(res, await contractBilling.verifyLaunchPayment({ adminId: req.sessionUser?._id }));
 }
 
 // ---------------------------------------------------------------------------
@@ -807,44 +508,7 @@ export async function verifyLaunchPayment(req, res) {
 // Vérifie côté serveur le statut du dernier SetupIntent monthly
 // ---------------------------------------------------------------------------
 export async function verifyMonthlySetup(req, res) {
-  const stripeDevClient = await getStripeDevClient();
-  try {
-    if (!stripeDevClient) {
-      return res.status(500).json({ ok: false, error: 'Client Stripe Developer non configuré.' });
-    }
-
-    const contract = await Contract.findOne({ status: 'pending' });
-    if (!contract) {
-      return res.status(404).json({ ok: false, error: 'Aucun contrat en attente.' });
-    }
-
-    const intent = await ContractCheckoutIntent.findOne({
-      contractId: contract._id,
-      type: 'monthly',
-      stripeSetupIntentId: { $ne: null }
-    })
-      .sort({ createdAt: -1 });
-
-    if (!intent?.stripeSetupIntentId) {
-      return res.status(404).json({ ok: false, error: 'Aucun intent monthly trouvé.' });
-    }
-
-    const si = await stripeDevClient.setupIntents.retrieve(intent.stripeSetupIntentId);
-    if (si.status === 'succeeded') {
-      contract.monthlyFee.active = true;
-      contract.updatedBy = req.sessionUser?._id || contract.updatedBy;
-      await contract.save();
-      if (!intent.processed) {
-        intent.processed = true;
-        await intent.save();
-      }
-      return res.json({ ok: true });
-    }
-
-    return res.json({ ok: false, status: si.status });
-  } catch (error) {
-    return respondError(res, error, 'VerifyMonthlySetup');
-  }
+  return sendContractResponse(res, await contractBilling.verifyMonthlySetup({ adminId: req.sessionUser?._id }));
 }
 
 // ---------------------------------------------------------------------------
@@ -883,12 +547,7 @@ export async function activateContract(req, res) {
       invalidateContractCache();
     }
 
-    let lockedUntil = null;
-    if (contract.cancellationPolicy?.type === 'locked' && contract.cancellationPolicy?.lockedMonths) {
-      const d = new Date(contract.activatedAt);
-      d.setMonth(d.getMonth() + contract.cancellationPolicy.lockedMonths);
-      lockedUntil = d.toISOString();
-    }
+    const lockedUntil = computeLockedUntil(contract);
 
     return res.json({ ok: true, activatedAt: contract.activatedAt, lockedUntil });
   } catch (error) {
@@ -944,48 +603,7 @@ export async function getCurrentContract(req, res) {
 // Sans abonnement Stripe : résiliation immédiate (status='cancelled')
 // ---------------------------------------------------------------------------
 export async function cancelContract(req, res) {
-  const stripeDevClient = await getStripeDevClient();
-  try {
-    const contract = await Contract.findOne({ status: 'active' });
-
-    if (!contract) {
-      return res.status(404).json({ ok: false, error: 'Aucun contrat actif.' });
-    }
-
-    if (contract.monthlyFee?.stripeSubscriptionId) {
-      const updatedSub = await stripeDevClient.subscriptions.update(
-        contract.monthlyFee.stripeSubscriptionId,
-        { cancel_at_period_end: true }
-      );
-      // Persiste current_period_end si pas encore en base (webhook peut ne pas avoir encore tourné)
-      if (!contract.monthlyFee.currentPeriodEnd && updatedSub.current_period_end) {
-        contract.monthlyFee.currentPeriodEnd = new Date(updatedSub.current_period_end * 1000);
-      }
-
-      contract.monthlyFee.cancelAtPeriodEnd = true;
-      contract.updatedBy = req.sessionUser?._id;
-      await contract.save();
-
-      return res.json({
-        ok: true,
-        cancelAtPeriodEnd: true,
-        immediate: false,
-        currentPeriodEnd: contract.monthlyFee.currentPeriodEnd ?? null
-      });
-    }
-
-    // Pas d'abonnement Stripe — résiliation immédiate
-    contract.status = 'cancelled';
-    contract.cancelledAt = new Date();
-    contract.cancelledBy = req.sessionUser?._id;
-    contract.updatedBy = req.sessionUser?._id;
-    await contract.save();
-    invalidateContractCache();
-
-    return res.json({ ok: true, cancelAtPeriodEnd: false, immediate: true });
-  } catch (error) {
-    return respondError(res, error, 'CancelContract');
-  }
+  return sendContractResponse(res, await contractBilling.cancelContract({ adminId: req.sessionUser?._id }));
 }
 
 // ---------------------------------------------------------------------------
@@ -993,38 +611,7 @@ export async function cancelContract(req, res) {
 // Résilie immédiatement le contrat actif ou en attente
 // ---------------------------------------------------------------------------
 export async function cancelImmediate(req, res) {
-  const stripeDevClient = await getStripeDevClient();
-  try {
-    if (process.env.NODE_ENV === 'production') {
-      return res.status(403).json({ ok: false, error: 'Non disponible en production.' });
-    }
-
-    const contract = await Contract.findOne({ status: { $in: ['pending', 'active'] } });
-    if (!contract) return res.status(404).json({ ok: false, error: 'Aucun contrat actif.' });
-
-    // Annuler l'abonnement Stripe si existant
-    if (contract.monthlyFee?.stripeSubscriptionId) {
-      try {
-        await stripeDevClient.subscriptions.cancel(contract.monthlyFee.stripeSubscriptionId);
-      } catch (err) {
-        console.warn('[DevCancel] Erreur annulation subscription Stripe:', err.message);
-      }
-    }
-
-    contract.status = 'cancelled';
-    contract.cancelledAt = new Date();
-    contract.cancelledBy = req.sessionUser?._id;
-    contract.monthlyFee.active = false;
-    await contract.save();
-
-    invalidateContractCache();
-
-    await ContractCheckoutIntent.deleteMany({ contractId: contract._id });
-
-    return res.json({ ok: true });
-  } catch (error) {
-    return respondError(res, error, 'CancelImmediate');
-  }
+  return sendContractResponse(res, await contractBilling.cancelImmediate({ adminId: req.sessionUser?._id }));
 }
 
 // ---------------------------------------------------------------------------

@@ -3269,3 +3269,20 @@ contrat / paiement client institut.**
 - Parité prouvée par `stripeDevExtractionParity` + `stripeDevWebhookExtractionParity`.
 - Reporté (F3) : facturation **contrat** (`contractController`, machine à états, client via shim)
   + split interne de `mailService`.
+
+## Sprint F3A — Extraction facturation contrat (2026-06-28)
+Domaine facturation contrat (frais de lancement, abonnement mensuel, sync, annulation) extrait
+de `contractController` (1098 → **687 lignes**, −37 %) vers `services/stripe/dev/*` +
+`services/contract/*`. Rapports 129 + 130. **Zéro changement fonctionnel / contrat API / statut
+HTTP / payload / commission / Stripe Institut.** Caractérisation écrite AVANT extraction
+(`contractBillingCharacterization`, 11 probes vertes avant/après).
+- `services/contract/contractStateService` : `contractAmountTtcCents`, `computeLockedUntil` (purs).
+- `services/contract/contractResponseMapper` : `toResponseContract` + `send(res,{status,json})`.
+- `services/stripe/dev/stripeDevContractSyncService` : `syncStripeStatuses` (importé contrôleur + job).
+- `services/stripe/dev/stripeDevContractBillingService` : `createLaunchIntent`/`createMonthlySetup`/
+  `verifyLaunchPayment`/`verifyMonthlySetup`/`cancelContract`/`cancelImmediate` → `{status,json}`.
+- Contrôleur : 6 délégateurs (raw Stripe Dev éliminé) ; `getStripeDevConfig` via config service ;
+  `activateContract`/`checkPaymentStatus`/`computeResumeSlide` conservés (passent par le sync service).
+- Gate : `git grep paymentIntents.create|retrieve|stripeDev|STRIPE_DEV controllers/contractController.js`
+  → aucune occurrence. Imports orphelins (`mongoose`/`getStripeDevClient`/`getCredential`) retirés.
+- Reste (F3B) : split interne de `mailService` (dernier monolithe, rapport 120/122).

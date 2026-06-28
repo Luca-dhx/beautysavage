@@ -3542,3 +3542,25 @@ Backend **442** + audits 36/20 ; frontend inchangé (78).
   commerciale=admin/dev, client jamais configurable. Payload safe.
 - Tests : +31 (`communicationIdentity{Model,Service,Routes,BrevoVerification}` + `communicationRoleResolver`).
   Brevo mocké → aucun vrai e-mail. Prochaine mission : **M2** (Mail Event Dispatch Engine).
+
+## Sprint M2 — Mail Event Dispatch Engine (fromRole/toRole) (2026-06-28)
+Moteur d'envoi e-mail **événementiel par rôles** (event → règle → fromRole/toRole → resolver M1 →
+template → gateway → SendLog), **idempotent**. **Brique additive** : envois directs **conservés**
+(moteur en shadow), mailService/postToBrevo/sendLogService/SendLog/webhook **non modifiés** ; aucune UI.
+Rapports 173/174. Backend **467** + audits 36/20 ; frontend inchangé (78).
+- Flag `MAIL_ROLE_RESOLVER_ENABLED=false` (`.env.example`) → subscriber no-op. true → dispatch (shadow
+  tant qu'un envoi direct existe).
+- `constants/mailDispatchRules.js` : `{eventName,templateKey,fromRole,toRole,contextType,enabled,
+  directSenderExists}`. Règles : sale.finalized/booking.confirmed/refund.succeeded → commerciale→client ;
+  commission.available/reminder_sent → support→commerciale. Toutes `directSenderExists:true` (shadow).
+- `models/MailEventDelivery.js` : ledger idempotent (statuts shadow/skipped_*/sent/failed) ; index
+  unique `{eventName,contextType,contextId,templateKey}` → pas de double e-mail au replay.
+- `services/mail/mailEventDispatchService.js` : `resolveMailRule`, `dispatchTemplateByRoles` (envoi
+  réel : resolver→template→render→postToBrevo→SendLog ; tags `from:/to:` ; statuts skipped_template_missing/
+  identity_missing/client_missing/sent/failed ; jamais de throw/fallback), `dispatchMailForEvent`
+  (règle+flag+idempotence+shadow).
+- `subscribers/mailEventSubscriber.js` : écoute les events des règles, flag off → no-op, best-effort ;
+  enregistré dans `app.js`.
+- **SendLog/EventLog inchangés** (enum strict) ; rôles via `metadata.tags`. Tests +25
+  (`mailDispatchRules`, `mailEventDispatchService`, `mailEventSubscriber`, `mailEventDeliveryIdempotence`,
+  `mailRoleResolverIntegration`) ; Brevo mocké. Prochaine mission : **M3** (Notification Target Engine).

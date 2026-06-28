@@ -119,3 +119,15 @@ Manager/Dev React consommera (UI non créée en M1) :
   (`domainAuthenticated`/`dnsRecords`). Payload **sans secret**.
 - Une future page Manager « Identités de communication » (dev: support, admin: commerciale) +
   écran de vérification sender/DNS s'appuiera sur ces endpoints. **client** n'est jamais configurable.
+
+## MAJ M2 — Moteur d'envoi par rôles (backend prêt, UI future)
+Un **Mail Event Dispatch Engine** backend route les e-mails par rôle au moment de l'événement (rapports
+173/174) — pas d'UI en M2, mais une future page Manager/Dev s'y appuiera :
+- **Règles** `constants/mailDispatchRules.js` : `event → templateKey → fromRole/toRole` (ex.
+  `sale.finalized`→`vente` commerciale→client ; `commission.available`→`commission_available`
+  support→commerciale). Le template ne porte aucune adresse.
+- **Ledger** `MailEventDelivery` : journal idempotent des dispatchs (statuts shadow/skipped_*/sent/
+  failed) — base d'un futur écran « Journal des communications » côté Dev.
+- Flag `MAIL_ROLE_RESOLVER_ENABLED` (défaut off) ; en shadow tant qu'un envoi direct existe (anti-doublon).
+- La future UI Dev pourra : visualiser/éditer les règles, voir le journal `MailEventDelivery`, et —
+  avec les identités M1 — piloter entièrement « qui envoie quoi à qui ». **client** reste non configurable.

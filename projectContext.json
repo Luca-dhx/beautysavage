@@ -38,7 +38,23 @@
     "reactR2ACheckoutPreparation": "completed",
     "reactR2BPaymentFlow": "completed",
     "reactR2CStripeReturnLogin": "completed",
-    "m1CommunicationIdentity": "completed"
+    "m1CommunicationIdentity": "completed",
+    "m2MailEventDispatch": "completed"
+  },
+  "m2MailEventDispatch": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["173_audit_pre_m2_mail_event_dispatch.md", "174_rapport_m2_mail_event_dispatch_engine.md"],
+    "summary": "Moteur d'envoi e-mail evenementiel par roles (event -> regle -> fromRole/toRole -> resolver M1 -> template -> gateway -> SendLog), idempotent. BRIQUE ADDITIVE : envois directs CONSERVES (moteur en shadow), mailService/postToBrevo/sendLogService/SendLog/webhook NON modifies ; aucune UI ; aucun vrai e-mail (Brevo mocke). Backend 467 + audits 36/20 ; frontend inchange (78).",
+    "flag": "MAIL_ROLE_RESOLVER_ENABLED=false (.env.example) ; isMailRoleResolverEnabled() lu a l'execution. false -> subscriber no-op (envois existants inchanges). true -> dispatch (shadow tant qu'un envoi direct existe).",
+    "rules": "constants/mailDispatchRules.js : {eventName,templateKey,fromRole,toRole,contextType,enabled,directSenderExists}. sale.finalized->vente, booking.confirmed->booking_confirmed, refund.succeeded->refund_confirmed (commerciale->client) ; commission.available->commission_available, commission.reminder_sent->commission_reminder (support->commerciale). TOUTES directSenderExists:true (shadow, anti-doublon). Aucune adresse dans les regles.",
+    "ledger": "models/MailEventDelivery.js : statuts shadow/skipped_duplicate_direct_sender/skipped_rule_disabled/skipped_template_missing/identity_missing/client_missing/sent/failed. Index unique {eventName,contextType,contextId,templateKey} -> pas de double e-mail au replay.",
+    "service": "services/mail/mailEventDispatchService.js : resolveMailRule ; dispatchTemplateByRoles (envoi REEL : loadTemplate -> resolveMailEnvelope (M1) -> render withMailThemeVars/replaceTemplateVariables -> postToBrevo (cree SendLog : templateKey + metadata.tags [transactional,<key>,from:<role>,to:<role>,role-engine] + recipientHash + contextType/Id) ; statuts skipped_template_missing/identity_missing/client_missing/sent/failed ; ne throw jamais) ; dispatchMailForEvent (regle+flag+idempotence ledger+shadow). Jamais de fallback hardcode, jamais de secret.",
+    "subscriber": "subscribers/mailEventSubscriber.js : subscribe(eventName,handleMailEvent) pour chaque regle ; flag off -> no-op ; best-effort (try/catch, n'interrompt jamais l'emetteur). Enregistre dans app.js (registerMailEventSubscribers) apres les autres subscribers.",
+    "compat": "SendLog enum STRICT inchange (queued/sent/delivered/opened/bounced/failed) -> statuts M2 sur le ledger MailEventDelivery. EventLog email.* inchanges. Roles via metadata.tags. Flag false -> prod inchangee ; flag true -> regles en shadow -> aucun doublon.",
+    "tests": "+25 backend -> 467. mailDispatchRules (5), mailEventDispatchService (9), mailEventSubscriber (4), mailEventDeliveryIdempotence (4), mailRoleResolverIntegration (3). Brevo mocke (getCredential+fetch). AUCUN vrai e-mail.",
+    "limites": "Chemin evenementiel reste en SHADOW (payloadSafe sans e-mail client + envoi direct existant). Vraie capacite d'envoi prouvee par dispatchTemplateByRoles (tests) pour de futurs appelants avec contexte client. Aucun envoi direct retire. Pas d'UI. Pas de metadata role sur EmailTemplate (regles = source de verite).",
+    "prochaineMission": "M3 Notification Target Engine : enrichir le contexte d'event / appeler dispatchTemplateByRoles depuis les flux disposant du client pour MIGRER progressivement un envoi direct -> moteur (retirer directSenderExists, bascule par event), ciblage destinataires/canaux, puis UI React Manager/Dev (identites + regles + journal MailEventDelivery)."
   },
   "m1CommunicationIdentity": {
     "date": "2026-06-28",

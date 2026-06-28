@@ -205,3 +205,12 @@ envoi migré, mailService/SendLog/webhook **non touchés**.
   `/api/gestion/communication-identities` (admin/dev, commerciale). Aucun secret exposé.
 - **Côté React (futur)** : le Manager/Dev consommera ces endpoints (UI de gestion des expéditeurs) —
   pas en M1. Le client React continue d'utiliser l'API existante ; rien ne change pour la vitrine.
+
+## MAJ M2 — Moteur d'envoi e-mail par rôles (backend, brique additive)
+Le backend possède désormais un **Mail Event Dispatch Engine** (rapports 173/174) : event métier →
+règle (`constants/mailDispatchRules.js`) → fromRole/toRole → resolver M1 → template → gateway →
+SendLog, **idempotent** (`models/MailEventDelivery.js`). Flag `MAIL_ROLE_RESOLVER_ENABLED=false` (défaut
+→ no-op) ; les envois directs existants sont **conservés** (moteur en **shadow** pour éviter les
+doublons). SendLog/EventLog **inchangés** (rôles tracés via `metadata.tags`). **Aucune UI React** — un
+futur écran Manager/Dev affichera les règles + le journal `MailEventDelivery`. Rien ne change pour la
+vitrine/client React.

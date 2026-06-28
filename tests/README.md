@@ -417,6 +417,16 @@ Backend (+31 → **442**), aucun vrai e-mail (Brevo mocké) :
 - `tests/p1/communicationIdentityBrevoVerification.test.js` (2) — request→confirm→refresh (verified + domainAuthenticated + dnsRecords), échec provider → lastErrorMessageSafe sans secret. Mock `integratedApiCredentialService.getCredential` + `globalThis.fetch`.
 - Brevo Sender API mockée via `vi.mock('../../services/communicationBrevoSenderAdapter.js')` (routes/service) ou getCredential+fetch (adapter). mailService/SendLog/webhook **non touchés**.
 
+## Sprint M2 — Mail Event Dispatch Engine (rapports 173-174)
+
+Backend (+25 → **467**), aucun vrai e-mail (Brevo mocké getCredential+fetch) :
+- `tests/p1/mailDispatchRules.test.js` (5) — lookup règle, liste, flag runtime, aucune adresse dans les règles.
+- `tests/p1/mailEventDispatchService.test.js` (9) — dispatchTemplateByRoles sent (SendLog templateKey + tags from:/to:, e-mail non fuité), template absent → skipped_template_missing, identity_missing, client_missing, support→commerciale ; dispatchMailForEvent no rule / shadow (skipped_duplicate_direct_sender) + ledger / idempotent.
+- `tests/p1/mailEventSubscriber.test.js` (4) — flag off no-op, flag on dispatch (ledger shadow), event hors règles no-op, jamais de throw.
+- `tests/p1/mailEventDeliveryIdempotence.test.js` (4) — replay → 1 entrée, contextes distincts → 2, index unique E11000, concurrent → 1 entrée.
+- `tests/p1/mailRoleResolverIntegration.test.js` (3) — commerciale→client (sender/to corrects), support→commerciale, aucun fallback hardcodé (identity_missing → aucun envoi).
+- SendLog/EventLog **non modifiés** (enum strict) ; statuts M2 sur le ledger `MailEventDelivery`.
+
 ## Sprint U3 — UnifiedCheckout plateforme Stripe Dev (rapports 154-155)
 
 - `platformCheckoutFeatureFlag.test.js` (+2) — `PLATFORM_CHECKOUT_HOSTED` false → clientSecret (Dev) ; true → url hosted (commission).

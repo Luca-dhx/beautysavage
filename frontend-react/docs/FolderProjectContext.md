@@ -137,3 +137,13 @@ n'étant jamais une identité configurable mais un destinataire résolu depuis l
 fondation (vérification sender Brevo, domaine DNS, résolution from/to) prépare une future plateforme
 de communication unifiée et une UI de gestion côté Manager/Dev — sans encore changer les e-mails
 envoyés aujourd'hui (brique additive). Prochaine étape : M2 (moteur d'envoi événementiel) puis l'UI.
+
+## MAJ M2 — Le « qui envoie quoi » devient déclaratif
+Au-delà des identités (M1), le backend sait maintenant **router un e-mail par rôle au moment de
+l'événement** : une règle déclare, pour chaque event métier, le template et le couple
+expéditeur→destinataire (ex. vente → commerciale→client ; commission → support→commerciale). Le
+template ne contient jamais d'adresse ; le moteur l'injecte. Pour l'instant c'est en **shadow** (on
+n'envoie pas en double : les e-mails directs actuels restent la source), mais la mécanique est prête
+et journalisée (idempotente). Cela prépare une plateforme de communication unifiée et une UI de
+pilotage côté Manager/Dev (règles + journal d'envois), tout en gardant le comportement de prod
+inchangé tant que le flag n'est pas activé.

@@ -51,6 +51,7 @@ import communicationIdentityDevRouter from './routers/communicationIdentityDevRo
 import communicationIdentityRouter from './routers/communicationIdentityRouter.js';
 import devDiagnosticRouter from './routers/devDiagnosticRouter.js';
 import { registerNotificationSubscribers, getSubscriberMode } from './subscribers/notificationEventSubscriber.js';
+import { registerMailEventSubscribers } from './subscribers/mailEventSubscriber.js';
 import { migrateEmailTemplatesToVersioning } from './scripts/migrateEmailTemplatesToVersioning.js';
 import siteIdentityRouter from './routers/siteIdentityRouter.js';
 import contractRouter from './routers/contractRouter.js';
@@ -505,6 +506,8 @@ if (process.env.NODE_ENV !== 'test') {
     registerNotificationSubscribers();
     console.log(`[boot] Notification event subscribers registered (mode=${subscriberMode}).`);
   }
+  // M2 — Mail event dispatch (no-op tant que MAIL_ROLE_RESOLVER_ENABLED=false ; shadow ensuite).
+  registerMailEventSubscribers();
   await startSessionCancellationAutoRefundScheduler();
 startCommissionReminderJob();
 // Booking reminders — check every hour

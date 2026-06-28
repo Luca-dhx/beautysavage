@@ -87,3 +87,11 @@ gère l'adresse **support** (plateforme → institut), la **gérante** (admin) g
 destinataire résolu automatiquement depuis le dossier métier. Cette séparation (avec vérification de
 l'expéditeur chez Brevo et authentification du domaine) garantit des e-mails fiables et une frontière
 de responsabilité claire dev/admin. M1 pose le backend ; l'écran de gestion arrive ensuite.
+
+## MAJ M2 — Des règles d'envoi, pas des adresses dans les templates
+Le système sait désormais, pour chaque événement métier (vente, réservation, remboursement,
+commission), **quel expéditeur** et **quel destinataire** utiliser — sans jamais coder l'adresse dans
+le template. La gérante/le dev pourront, à terme, consulter ces règles et le **journal des envois**
+depuis le Manager, et comprendre exactement quel e-mail part de quel rôle vers quel rôle. En M2 c'est
+encore en coulisses (mode shadow, aucun changement visible pour les clients) ; l'objectif est une
+communication fiable, traçable et pilotable côté interne.

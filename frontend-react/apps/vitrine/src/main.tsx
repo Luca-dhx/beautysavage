@@ -6,7 +6,15 @@ import { AuthProvider } from '@bs/auth';
 import '@bs/ui/tokens.css';
 import { App } from './App';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 60_000,
+    },
+  },
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

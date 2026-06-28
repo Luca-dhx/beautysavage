@@ -57,3 +57,13 @@ catalogues et pages de paiement, et les routes client (panier/checkout) sont pro
 `RequireAuth`. Aucune donnée réelle n'est encore affichée — l'objectif R0 est de valider la
 structure et les guards, pas l'expérience. Le parcours d'achat décrit ci-dessus se construit à
 partir de **R1** (catalogue) et **R2** (checkout hébergé).
+
+## MAJ R1 — La devanture prend vie
+Le client peut désormais **parcourir le vrai catalogue** (prestations, formations, produits, cartes
+cadeaux) dans React : images, prix vendus (serveur fait foi), badges promo, distinction
+distanciel/présentiel, accès aux fiches détail. C'est la première fois que React affiche des données
+métier réelles — mais l'achat reste volontairement **désactivé** (boutons « bientôt disponible »),
+car checkout/paiement/réservation sont le périmètre R2. Un bandeau informe si le site est en
+maintenance/suspendu, sans jamais empêcher la consultation du catalogue. Objectif R1 : valider la
+chaîne API publique → React (proxy, typage, états loading/error/empty, responsive) sur du vrai
+contenu, avant d'ouvrir la conversion en R2.

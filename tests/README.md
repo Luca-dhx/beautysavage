@@ -353,7 +353,15 @@ la suite backend ; le `npm test` backend reste à 394.
 - `packages/auth/src/guards.test.tsx` (4) — `RequireAuth` bloque l'anonyme / laisse passer l'authentifié ; `RequireRole` refuse un rôle insuffisant / accepte un rôle autorisé.
 - `apps/vitrine/src/App.test.tsx` (1) — rendu de la page d'accueil.
 - `apps/manager/src/App.test.tsx` (4) — anonyme→/login, admin→dashboard, dev→/dev, admin bloqué sur /dev.
-- Total : **12 tests frontend verts**. `loader` injectable dans `AuthProvider` (pas d'appel réseau en test). Aucun secret.
+- Total R0 : **12 tests frontend verts**. `loader` injectable dans `AuthProvider` (pas d'appel réseau en test). Aucun secret.
+
+### MAJ R1 — Vitrine catalogue (rapports 158-159)
+Tests frontend ajoutés (`npm run react:test`, total **26 verts**) :
+- `packages/config/src/proxy.test.ts` (3) — `PROXY_PATHS`/`buildProxyMap` couvrent `/api`,`/auth`,`/uploads` + cible par défaut/personnalisée.
+- `packages/api-client/src/catalog/mappers.test.ts` (5) — mapping tolérant prestation/formation/produit/site-status/gift-card (champs absents, coercition id, statut inconnu→active).
+- `apps/vitrine/src/pages/catalogPages.test.tsx` (5) — prestations loading→cards, formations empty state, produits error state, accueil rend les sections, route détail prestation par slug.
+- `apps/vitrine/src/App.test.tsx` (2, mis à jour) — accueil (hero) + bandeau maintenance via `/api/site-status`.
+- Helper `apps/vitrine/src/test/utils.tsx` : `stubFetch`/`jsonResponse`/`renderWithProviders` (QueryClient retry off + AuthProvider anonyme + MemoryRouter). Aucun appel réseau réel.
 
 ## Sprint U3 — UnifiedCheckout plateforme Stripe Dev (rapports 154-155)
 

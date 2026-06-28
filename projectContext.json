@@ -31,7 +31,23 @@
     "unifiedCheckoutU1Foundations": "completed",
     "unifiedCheckoutU2HostedCheckout": "completed",
     "unifiedCheckoutU3PlatformCheckout": "completed",
-    "reactR0Infrastructure": "completed"
+    "reactR0Infrastructure": "completed",
+    "reactR1VitrineCatalogue": "completed"
+  },
+  "reactR1VitrineCatalogue": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["158_audit_react_r1_proxy_catalogue.md", "159_rapport_react_r1_vitrine_catalogue.md"],
+    "summary": "Premiere vraie couche vitrine React : catalogue public (prestations/formations/produits/cartes cadeaux) consommant l'API publique EXISTANTE. ZERO changement backend. Vanilla intact. PAS de checkout (R2). Backend 394 + audits 36/20 inchanges ; frontend 26 tests verts + build + lint + typecheck.",
+    "proxy": "Durci : @bs/config expose PROXY_PATHS=['/api','/auth','/uploads'] + buildProxyMap(target) (teste). vite.shared.makeApiProxy le consomme pour les 2 apps. VITE_PROXY_TARGET defaut http://localhost:3000. Same-origin, cookie via credentials:include, medias /uploads/... via proxy. Aucun secret front.",
+    "endpoints": "GET /api/vitrine/services (+/services/:slug par SLUG), /api/vitrine/shop ({formations[],products[]}), /api/vitrine/formations/:id, /api/vitrine/products/:id, /api/vitrine/gift-cards (config seule: minAmount/description/image), /api/site-status (bandeau). Mapping fidele (rapport 158).",
+    "apiClient": "@bs/api-client/catalog : types (PublicService/Training/Product/GiftCardConfig/SiteStatus/Category/Media), format.ts (formatPrice fr-FR, formatDuration, resolveMediaUrl), mappers tolerants (tout optionnel sauf id/name ; prix serveur fait foi), clients services/shop/trainings/products/giftCards/site.",
+    "hooks": "apps/vitrine/src/features/catalog/hooks : usePublicShop (cle ['catalog','shop']), usePublicTrainings/usePublicProducts (meme cle + select => 1 fetch partage), usePublicServices (+usePublicService(slug)), usePublicTraining(id)/usePublicProduct(id), usePublicGiftCards, useSiteStatus (retry off). QueryClient app retry:1, staleTime 60s.",
+    "ui": "@bs/ui : CatalogueGrid (1/2/3 col responsive), CatalogueCard, PriceLabel (presentation pure), MediaImage (placeholder), SectionHeader, EmptyState. LoadingState/ErrorState reutilises.",
+    "pages": "Accueil (hero + sections prestations/formations/produits + CTA cartes cadeaux, fallback propre), /prestations(+/:slug), /formations(+/:id), /produits(+/:id), /cartes-cadeaux (config). loading/error/empty partout. Boutons achat inactifs (bientot disponible). SiteStatusBanner dans PublicLayout. /connexion,/paiement/*,/panier,/checkout restent placeholders.",
+    "tests": "26 frontend verts : proxy.test (3), catalog mappers.test (5), catalogPages.test (5: loading->cards, empty, error, sections accueil, route detail slug), App.test (2: hero + bandeau maintenance), + R0 (apiFetch 3, guards 4, manager App 4). Helper test/utils.tsx (stubFetch/renderWithProviders).",
+    "limitesR1": "Pas de detail carte cadeau (endpoint config seul). Pas de categories publiques (PublicCategory defini non peuple). Pas de calendrier/reservation prestation (R2). Pas de checkout/paiement. Manager/dev intacts.",
+    "prochaineMission": "React R2 : panier + checkout + paiement Stripe Checkout heberge (consommer {mode:'hosted',url} de create-checkout-session derriere flag CHECKOUT_HOSTED ; finalize-free 0 EUR). Reservation prestation (calendrier /availability)."
   },
   "reactR0Infrastructure": {
     "date": "2026-06-28",

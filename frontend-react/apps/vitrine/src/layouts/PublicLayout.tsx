@@ -1,6 +1,7 @@
 import { Link, Outlet } from 'react-router-dom';
 import { AppShell } from '@bs/ui';
 import { useAuth } from '@bs/auth';
+import { SiteStatusBanner } from '../features/catalog/components/SiteStatusBanner';
 
 const NAV = [
   { to: '/', label: 'Accueil' },
@@ -30,6 +31,7 @@ export function PublicLayout() {
       }
       footer={<span>Beauty Savage — mentions légales · CGV · confidentialité (placeholders R0)</span>}
     >
+      <SiteStatusBanner />
       <Outlet />
     </AppShell>
   );

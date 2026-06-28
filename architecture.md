@@ -3405,3 +3405,23 @@ production. Cf. `frontend-react/docs/*` (sections « MAJ R0 »).
   verts ; suite backend inchangée (394).
 - **Limite** : placeholders uniquement (seul `/auth/me` appelé au boot). Prochaine mission : **R1**
   (première vraie page vitrine).
+
+## Sprint React R1 — Vitrine catalogue public (2026-06-28)
+Première vraie couche vitrine React consommant l'**API publique existante** (rapports 158/159).
+**Zéro changement backend** ; Vanilla intact ; **pas de checkout** (R2). 26 tests frontend verts ;
+backend 394 + audits 36/20 inchangés.
+- **Proxy durci** : `@bs/config` → `PROXY_PATHS = ['/api','/auth','/uploads']` + `buildProxyMap()`
+  (testé) ; `vite.shared.makeApiProxy` le consomme (2 apps). Same-origin, cookie via
+  `credentials:'include'`, médias `/uploads/...` via proxy.
+- **Endpoints consommés** : `/api/vitrine/services` (+`/services/:slug`), `/api/vitrine/shop`
+  (`{formations[],products[]}`), `/api/vitrine/formations/:id`, `/api/vitrine/products/:id`,
+  `/api/vitrine/gift-cards` (config seule), `/api/site-status` (bandeau).
+- **`@bs/api-client/catalog`** : types publics + `formatPrice`/`formatDuration`/`resolveMediaUrl` +
+  mappers tolérants (prix serveur fait foi) + clients `services/shop/trainings/products/giftCards/site`.
+- **`@bs/ui`** : `CatalogueGrid` (1/2/3 col responsive), `CatalogueCard`, `PriceLabel`, `MediaImage`,
+  `SectionHeader`, `EmptyState`.
+- **Vitrine** : hooks TanStack Query (cache `/shop` partagé via `select`), pages accueil + 4
+  catalogues (+ détails formations/produits/prestations), états loading/error/empty, responsive,
+  `SiteStatusBanner`. Boutons d'achat inactifs (« bientôt disponible »).
+- **Limites** : pas de carte cadeau détail (config seule) ; pas de catégories publiques ; pas de
+  réservation/checkout. Prochaine mission : **R2** (checkout + paiement Stripe Checkout hébergé).

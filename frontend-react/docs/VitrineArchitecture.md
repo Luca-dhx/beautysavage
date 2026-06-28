@@ -76,3 +76,51 @@ placeholder** sous `PublicLayout` (header catalogue/panier/connexion + footer l�
 **aucun appel métier** (seul `/auth/me` au boot via `AuthProvider`). Les routes/écrans/API réels
 décrits ci-dessus seront branchés à partir de **R1** (catalogue) puis **R2** (checkout hébergé).
 Test : `apps/vitrine/src/App.test.tsx` (rendu de l'accueil).
+
+## MAJ R1 — Catalogue public réel (exécuté)
+Première vraie couche vitrine : pages catalogue branchées sur l'API publique existante (**aucun
+changement backend**, cf. rapport 158/159). **Pas de checkout** (R2).
+
+### Proxy (durci)
+`@bs/config` expose `PROXY_PATHS = ['/api','/auth','/uploads']` + `buildProxyMap(target)` (testé) ;
+`vite.shared.makeApiProxy` le consomme. Les 2 apps proxifient ces 3 chemins → `VITE_PROXY_TARGET`
+(défaut `http://localhost:3000`). Same-origin, cookie via `credentials:'include'`. Médias `/uploads/...`
+servis tels quels.
+
+### Endpoints catalogue consommés (R1)
+- `GET /api/vitrine/services` (liste) + `/services/:slug` (détail, clé **slug**).
+- `GET /api/vitrine/shop` → `{formations[], products[]}` (un seul fetch, cache partagé).
+- `GET /api/vitrine/formations/:id`, `GET /api/vitrine/products/:id` (détails).
+- `GET /api/vitrine/gift-cards` (**config seule** : minAmount/description/image — pas de liste/détail).
+- `GET /api/site-status` (bandeau maintenance/suspension, best-effort).
+
+### Client API (`@bs/api-client/catalog`)
+`types.ts` (PublicService/Training/Product/GiftCardConfig/SiteStatus/Category/Media), `format.ts`
+(`formatPrice` fr-FR, `formatDuration`, `resolveMediaUrl`), `mappers.ts` (mapping tolérant, tout
+optionnel sauf id/name ; prix serveur fait foi), clients `services/shop/trainings/products/
+giftCards/site`.
+
+### Hooks (`apps/vitrine/src/features/catalog/hooks`)
+`usePublicShop` (clé `['catalog','shop']`), `usePublicTrainings`/`usePublicProducts` (mêmes clé +
+`select` → 1 fetch partagé), `usePublicServices` (+ `usePublicService(slug)`), détails
+`usePublicTraining(id)`/`usePublicProduct(id)`, `usePublicGiftCards`, `useSiteStatus` (retry off).
+QueryClient app : `retry:1`, `refetchOnWindowFocus:false`, `staleTime 60s`.
+
+### Composants (`@bs/ui`)
+`CatalogueGrid` (1/2/3 colonnes responsive), `CatalogueCard`, `PriceLabel` (présentation pure :
+prix courant + barré + badge promo), `MediaImage` (placeholder si pas d'image), `SectionHeader`,
+`EmptyState`. `LoadingState`/`ErrorState` réutilisés.
+
+### Pages réelles
+`/` (hero + sections prestations/formations/produits + CTA cartes cadeaux, fallback propre si API
+vide/erreur), `/prestations` + `/prestations/:slug`, `/formations` + `/formations/:id`, `/produits`
++ `/produits/:id`, `/cartes-cadeaux` (config). Chaque liste gère **loading/error/empty**. CTA détail
+= « Voir »/« Détail » ; **aucun bouton d'achat actif** (« Réservation/Achat bientôt disponible »).
+`SiteStatusBanner` dans `PublicLayout` (si statut ≠ active). `/connexion`, `/paiement/*`, `/panier`,
+`/checkout` restent des placeholders (R2).
+
+### Limites R1
+Pas de détail carte cadeau (endpoint config seul) ; pas de catégories publiques (`PublicCategory`
+défini mais non peuplé) ; pas de calendrier/réservation prestation (R2) ; pas de checkout/paiement.
+Tests : `catalogPages.test.tsx` (loading→cards, empty, error, sections accueil, route détail) +
+`App.test.tsx` (hero + bandeau maintenance) + `mappers.test.ts` + `proxy.test.ts`.

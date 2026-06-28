@@ -102,3 +102,18 @@ CSS = **tokens CSS variables** dans `@bs/ui` (pas de Tailwind). Alias `@bs/*` �
   scripts `react:*` ajoutés au `package.json` racine).
 - **Limite R0** : aucune vraie page métier (placeholders) ; seul `/auth/me` est appelé (boot).
   Prochaine phase **R1** = première vraie page vitrine. Cf. rapport 157.
+
+## MAJ R1 — Catalogue vitrine public (exécuté)
+Première consommation réelle de l'API publique (rapports 158/159). **Zéro changement backend.**
+- **Proxy durci** : `PROXY_PATHS`/`buildProxyMap` dans `@bs/config` (source unique testée) ;
+  `vite.shared.makeApiProxy` le réutilise pour les 2 apps (`/api`,`/auth`,`/uploads`).
+- **`@bs/api-client/catalog`** : types publics (Service/Training/Product/GiftCardConfig/SiteStatus),
+  format (prix fr-FR + médias `/uploads`), mappers tolérants, clients `services/shop/trainings/
+  products/giftCards/site`. Le serveur fait foi sur les prix (jamais recalculés).
+- **`@bs/ui`** : composants catalogue (`CatalogueGrid` responsive 1/2/3 col, `CatalogueCard`,
+  `PriceLabel`, `MediaImage`, `SectionHeader`, `EmptyState`) — présentation pure (pas de dépendance
+  data, props préformatées).
+- **Vitrine** : pages réelles accueil + 4 catalogues (+ détails formations/produits/prestations),
+  hooks TanStack Query (cache `/shop` partagé), états loading/error/empty, `SiteStatusBanner`.
+- **Limite** : pas de checkout/paiement (R2) ; carte cadeau = config seule ; manager/dev intacts.
+  26 tests frontend verts ; backend inchangé.

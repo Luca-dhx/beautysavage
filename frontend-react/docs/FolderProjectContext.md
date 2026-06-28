@@ -81,3 +81,10 @@ fonctionnalité métier n'est encore migrée — le Vanilla reste la seule UI de
 faisabilité (build, tests, proxy same-origin) sans aucun risque sur l'existant. Les vraies pages
 arrivent à partir de **R1** (vitrine) puis **R3** (manager), en consommant l'API et le paiement
 hébergé déjà prêts côté backend (U2/U3).
+
+## MAJ R1 — Première valeur produit visible
+La vitrine React affiche désormais le vrai catalogue (prestations/formations/produits/cartes
+cadeaux) en réutilisant l'API publique existante — preuve que la migration progressive fonctionne
+sur du contenu réel, sans toucher au backend ni au Vanilla. L'achat reste fermé (R2) : R1 est une
+étape « consultation » qui dérisque la suite (typage des payloads, formats prix/médias centralisés,
+états de chargement, responsive) avant d'ouvrir la conversion et le paiement hébergé.

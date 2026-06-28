@@ -28,7 +28,23 @@
     "preReactF3bMailServiceSplit": "completed",
     "reactTargetArchitectureAudit": "completed",
     "unifiedCheckoutAndReactPlan": "completed",
-    "unifiedCheckoutU1Foundations": "completed"
+    "unifiedCheckoutU1Foundations": "completed",
+    "unifiedCheckoutU2HostedCheckout": "completed"
+  },
+  "unifiedCheckoutU2HostedCheckout": {
+    "date": "2026-06-28",
+    "branch": "phase-0-security-baseline",
+    "reports": ["152_audit_pre_sprint_u2_hosted_checkout.md", "153_rapport_sprint_u2_hosted_checkout.md"],
+    "summary": "UnifiedCheckout cable sur le checkout client reel + Stripe Checkout HEBERGE derriere feature flag CHECKOUT_HOSTED. Elements reste le fallback (flag off). ZERO changement prix/finalisation metier/remboursement/booking. Suite 385 verte.",
+    "featureFlag": "CHECKOUT_HOSTED (.env.example, defaut false). isCheckoutHostedEnabled() lu a l'execution (rollback immediat). false=Elements inchange ; true=Checkout heberge ; 0 EUR=toujours finalize-free.",
+    "flagFalse": "createCheckoutSession inchange : paymentIntents.create + clientSecret. Aucun UnifiedCheckout cree.",
+    "flagTrue": "createHostedCheckoutResult : 0 EUR -> {mode:free, checkoutId, requiresPayment:false} (finalize-free) ; >0 -> StripeCheckoutIntent persiste + UnifiedCheckout(payment_pending) + stripe.checkout.sessions.create(mode payment, line_items.unit_amount=amountToPay, payment_intent_data.metadata.intentId, metadata{unifiedCheckoutId,checkoutId,kind}, success/cancel url) + reservation carte cadeau par session.payment_intent + {mode:hosted, url, checkoutId}. Carte cadeau JAMAIS un discount Stripe.",
+    "webhook": "checkout.session.completed -> handleCheckoutSessionCompletedEvent : pre-check Sale (idempotent au replay / si PI succeeded deja passe) ; sinon finalizeUnifiedCheckout -> DELEGUE a processCheckoutStatePurchase (finaliseur existant). payment_intent.succeeded inchange (PI heberge porte metadata.intentId) ; les deux idempotents (index PI unique).",
+    "giftCard": "100% -> mode free (finalize-free, recu interne non fiscal D2) ; partielle -> Session Stripe pour le reste. Facture officielle = Stripe (montant>0).",
+    "filesModified": "stripeCheckoutService (branche hosted + createHostedCheckoutResult), stripeWebhookService (route session.completed), stripeWebhookEventHandlers (handleCheckoutSessionCompletedEvent + pre-check idempotent), unifiedCheckoutFactory (createUnifiedCheckoutRecord), checkoutFacade (shadow UC 0 EUR gated), unifiedCheckoutConfig (cree), .env.example.",
+    "tests": "+11 (hostedCheckoutFeatureFlag, hostedCheckoutSessionCreation, hostedCheckoutGiftCardZero, hostedCheckoutWebhookFinalization, unifiedCheckoutLiveWiring). Total 385 verts (p0=44, p1=335, integration=6) + audit business 36 + commissions 20.",
+    "limitesU2": "Pas de bascule UI (front Vanilla consomme encore Elements ; consommer la redirection url = chantier React/R2). Flag false par defaut -> prod inchangee. Kinds plateforme (commission/launch_fee/subscription) non unifies (U3). payment_intent.succeeded ET checkout.session.completed finalisent tous deux (idempotents).",
+    "prochaineMissionU3": "Unifier les kinds plateforme (compte Dev) : commission/launch_fee/subscription -> kinds UnifiedCheckout via Stripe Checkout/Setup heberge, finalizers Dev existants reutilises, flag dedie + parite. Puis bascule UI React (R2)."
   },
   "unifiedCheckoutU1Foundations": {
     "date": "2026-06-28",

@@ -67,3 +67,11 @@ snapshots serveur (pricing/tax/legal), idempotence par clé, finaliseur qui DÉL
 existants. NON câblé aux endpoints live en U1. U2 = câblage + Stripe Checkout hébergé (redirection
 `url`, webhook `checkout.session.completed`). Le client React (`packages/api-client`) consommera un
 point d'entrée unique de paiement.
+
+## MAJ U2 — UnifiedCheckout câblé + Stripe Checkout hébergé
+Feature flag backend `CHECKOUT_HOSTED` (défaut false). `false` → Stripe Elements inchangé ;
+`true` → `create-checkout-session` crée un UnifiedCheckout et renvoie `{ mode:'hosted', url }`
+(redirection Stripe Checkout) ou `{ mode:'free', checkoutId }` (0 € → finalize-free). Webhook
+`checkout.session.completed` → finalisation idempotente (délègue à `processCheckoutStatePurchase`).
+Côté React : `packages/api-client` gère la réponse `mode:'hosted'` (redirection vers `url`) /
+`mode:'free'` ; la bascule UI (consommer `url`) est le chantier R2.

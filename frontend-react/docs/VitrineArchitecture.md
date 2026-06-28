@@ -60,3 +60,9 @@ réponse `{ mode:"hosted", url }` (redirection Stripe Checkout hébergé, rempla
 `{ mode:"free", saleId }` (finalize-free, 0 €). Retour via `success_url` → `/api/stripe/payment-result`.
 En U1 le moteur est posé côté backend (non câblé) ; le front garde le flux actuel jusqu'à U2. Le
 pricing serveur fait toujours foi ; la carte cadeau reste un moyen de paiement capé au solde.
+
+## MAJ U2 — Checkout hébergé (backend prêt)
+`POST /api/stripe/create-checkout-session` (flag `CHECKOUT_HOSTED=true`) renvoie `{ mode:'hosted',
+url, checkoutId }` → l'app vitrine redirige vers `url` (Stripe Checkout) ; retour via `success_url`.
+0 € → `{ mode:'free' }` → `finalize-free`. Le client API (R2) doit gérer ces deux modes + la
+redirection. Tant que R2 n'est pas livré, le front Vanilla utilise Elements (flag false).

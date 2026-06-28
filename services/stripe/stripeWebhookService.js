@@ -12,7 +12,8 @@ import { recordWebhookFailure } from '../webhookFailureService.js';
 import { handleRefundUpdatedEvent } from './stripeRefundEventService.js';
 import {
   handlePaymentFailedEvent,
-  handlePaymentIntentSucceededEvent
+  handlePaymentIntentSucceededEvent,
+  handleCheckoutSessionCompletedEvent
 } from './stripeWebhookEventHandlers.js';
 
 export async function handleWebhookFromRequest(req) {
@@ -60,6 +61,11 @@ export async function handleWebhookFromRequest(req) {
 
   if (event.type === 'payment_intent.payment_failed') {
     return handlePaymentFailedEvent(event);
+  }
+
+  // Sprint U2 — Stripe Checkout hébergé : réconciliation UnifiedCheckout (finalisation idempotente).
+  if (event.type === 'checkout.session.completed') {
+    return handleCheckoutSessionCompletedEvent(event);
   }
 
   if (event.type !== 'payment_intent.succeeded') {

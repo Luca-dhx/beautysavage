@@ -29,6 +29,10 @@ import {
 } from '../giftCardReservationService.js';
 import { getStripeClient } from './stripeConfigService.js';
 import { buildPaymentIntentCheckoutMetadata, roundToCents } from './stripeMetadataService.js';
+// Sprint U2 — checkout Stripe HÉBERGÉ (feature flag) + moteur UnifiedCheckout.
+import { isCheckoutHostedEnabled } from '../checkout/unified/unifiedCheckoutConfig.js';
+import { createUnifiedCheckoutRecord } from '../checkout/unified/unifiedCheckoutFactory.js';
+import { updateCheckout } from '../checkout/unified/unifiedCheckoutRepository.js';
 
 function isLegalStateValid(checkoutState) {
   const legal = checkoutState?.legal || {};
@@ -541,6 +545,16 @@ export async function createCheckoutSessionFromRequest(req) {
   // Amount to charge = montant SERVEUR (acompte/plein, après cartes cadeaux serveur).
   const amountToPay = serverPricing.amountToPay;
   const amountCents = Math.round(amountToPay * 100);
+
+  // Sprint U2 — Stripe Checkout HÉBERGÉ derrière feature flag. Le flux Elements (ci-dessous)
+  // reste le fallback par défaut (CHECKOUT_HOSTED=false). La carte cadeau n'est JAMAIS un
+  // discount Stripe : Stripe n'encaisse que `amountToPay` (catalogue − promo − carte cadeau).
+  if (isCheckoutHostedEnabled()) {
+    return createHostedCheckoutResult({
+      checkoutState, userId, clientIp, serverPricing, amountToPay, amountCents, ngrokDomain, stripe
+    });
+  }
+
   if (amountCents < 50) {
     return {
       status: 400,
@@ -658,5 +672,145 @@ export async function createCheckoutSessionFromRequest(req) {
         code: error?.code || null
       }
     };
+  }
+}
+
+/**
+ * Sprint U2 — Chemin Stripe Checkout HÉBERGÉ (feature flag CHECKOUT_HOSTED=true). La validation
+ * (legal/offre/anti-doublon) et le pricing serveur ont déjà été faits par l'appelant. Crée un
+ * UnifiedCheckout puis :
+ *  - montant 0 € → mode "free" (pas de Stripe ; le client appelle finalize-free) ;
+ *  - montant > 0 → Stripe Checkout Session hébergée (le PaymentIntent porte metadata.intentId →
+ *    le webhook payment_intent.succeeded EXISTANT finalise la vente, à l'identique d'Elements ;
+ *    checkout.session.completed réconcilie l'UnifiedCheckout).
+ * La carte cadeau n'est JAMAIS un discount Stripe : Stripe n'encaisse que `amountToPay`.
+ */
+async function createHostedCheckoutResult({
+  checkoutState, userId, clientIp, serverPricing, amountToPay, amountCents, ngrokDomain, stripe
+}) {
+  // 0 € → aucune Stripe Session ; finalisation via finalize-free (inchangé).
+  if (amountToPay <= 0) {
+    const { checkout } = await createUnifiedCheckoutRecord({
+      checkoutState,
+      pricing: serverPricing,
+      userId,
+      source: 'hosted_free',
+      status: 'free_ready'
+    });
+    return {
+      status: 200,
+      json: { ok: true, mode: 'free', checkoutId: checkout.checkoutId, requiresPayment: false }
+    };
+  }
+
+  if (amountCents < 50) {
+    return {
+      status: 400,
+      json: {
+        ok: false,
+        error: 'Le montant minimum pour un paiement par carte est de 0.50 EUR.',
+        code: 'AMOUNT_TOO_LOW'
+      }
+    };
+  }
+
+  let createdPaymentIntentId = '';
+  let reservationApplied = false;
+  let sessionId = '';
+  try {
+    // Persiste le checkoutState (le webhook PI EXISTANT le retrouve par metadata.intentId).
+    const intent = new StripeCheckoutIntent({ checkoutState, userId, clientIp });
+    await intent.save();
+
+    const { checkout } = await createUnifiedCheckoutRecord({
+      checkoutState,
+      pricing: serverPricing,
+      userId,
+      source: 'hosted_checkout',
+      idempotencyKey: intent._id?.toString() || null,
+      status: 'payment_pending'
+    });
+
+    const paymentIntentMetadata = buildPaymentIntentCheckoutMetadata({
+      intentId: intent._id?.toString() || '',
+      userId: String(userId || '').trim(),
+      checkoutState
+    });
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: 'eur',
+            unit_amount: amountCents,
+            product_data: { name: 'Beauty Savage' }
+          },
+          quantity: 1
+        }
+      ],
+      // Le PI hérite de metadata.intentId → finalisation par le webhook PI existant.
+      payment_intent_data: { metadata: paymentIntentMetadata },
+      metadata: {
+        unifiedCheckoutId: checkout.checkoutId,
+        checkoutId: checkout.checkoutId,
+        kind: checkout.kind,
+        idempotencyKey: intent._id?.toString() || ''
+      },
+      success_url: `https://${ngrokDomain}/vitrine.html?slug=payment&checkout_session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://${ngrokDomain}/vitrine.html?slug=checkout`
+    });
+    sessionId = String(session?.id || '').trim();
+    createdPaymentIntentId = String(session?.payment_intent || '').trim();
+
+    let persistedAppliedGiftCards = Array.isArray(checkoutState?.appliedGiftCards)
+      ? checkoutState.appliedGiftCards
+      : [];
+    if (createdPaymentIntentId && Array.isArray(checkoutState?.appliedGiftCards) && checkoutState.appliedGiftCards.length) {
+      const reservationResult = await reserveGiftCardAmountsForPaymentIntent({
+        paymentIntentId: createdPaymentIntentId,
+        appliedGiftCards: checkoutState.appliedGiftCards
+      });
+      persistedAppliedGiftCards = reservationResult.reserved.map(entry => ({
+        giftCardId: String(entry?.giftCardId || '').trim(),
+        code: String(entry?.code || '').trim().toUpperCase(),
+        amount: Number(entry?.amount || 0)
+      }));
+      reservationApplied = true;
+    }
+
+    // Le webhook PI retrouve l'intent par stripeSessionId = PI id (comme le flux Elements).
+    await StripeCheckoutIntent.findByIdAndUpdate(intent._id, {
+      stripeSessionId: createdPaymentIntentId || sessionId,
+      checkoutState: { ...checkoutState, appliedGiftCards: persistedAppliedGiftCards }
+    });
+
+    await updateCheckout(checkout.checkoutId, {
+      'payment.stripeCheckoutSessionId': sessionId,
+      'payment.stripePaymentIntentId': createdPaymentIntentId || null
+    }).catch(() => {});
+
+    return {
+      status: 200,
+      json: { ok: true, mode: 'hosted', checkoutId: checkout.checkoutId, url: session.url }
+    };
+  } catch (error) {
+    if (reservationApplied && createdPaymentIntentId) {
+      await releaseGiftCardReservationsForPaymentIntent(createdPaymentIntentId, {
+        reason: 'hosted_checkout_creation_failed'
+      }).catch(() => {});
+    }
+    if (sessionId) {
+      await stripe.checkout.sessions.expire(sessionId).catch(() => {});
+    }
+    if (error?.code === 'GIFT_CARD_RESERVED_BALANCE_INSUFFICIENT') {
+      return { status: 400, json: { ok: false, error: 'Solde carte cadeau insuffisant', code: error.code } };
+    }
+    const errorStatus = Number(error?.status || 0);
+    if (errorStatus >= 400 && errorStatus < 500) {
+      return { status: errorStatus, json: { ok: false, error: error?.message || 'Contexte checkout invalide.', code: error?.code || null } };
+    }
+    console.error('[Stripe] Erreur creation Checkout Session hebergee', error);
+    return { status: 500, json: { ok: false, error: 'Impossible de creer la session de paiement.', code: error?.code || null } };
   }
 }

@@ -60,3 +60,9 @@ Décision produit confirmée : tous les paiements passeront par un moteur unique
 Stripe Checkout hébergé pour montant > 0 (sécurité/SCA délégués, mobile-friendly), finalize-free
 pour 0 €. U1 pose les fondations backend sans changer les flux existants ; U2 branchera le checkout
 client réel. Cf. FolderArchitecture (section UnifiedCheckout) et rapports 143/144/151.
+
+## MAJ U2 — Paiement hébergé activable
+Le backend peut désormais router les achats client vers Stripe Checkout hébergé (flag
+`CHECKOUT_HOSTED`), tout en gardant Elements en fallback. Décision produit confirmée : la sécurité
+(SCA/3DS délégués à Stripe) et le mobile priment ; la carte cadeau reste un moyen de paiement
+(jamais un discount), Stripe n'encaisse que le reste dû. La bascule visible côté client se fera avec React (R2).

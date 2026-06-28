@@ -120,4 +120,47 @@ export async function createUnifiedCheckout({
   });
 }
 
+/**
+ * Persiste un UnifiedCheckout à partir d'un pricing serveur DÉJÀ calculé (et d'une validation
+ * déjà effectuée par l'appelant — ex. createCheckoutSession). N'exécute NI pricing NI validation
+ * (évite tout double-calcul/double-validation). Idempotent par idempotencyKey.
+ */
+export async function createUnifiedCheckoutRecord({
+  checkoutState,
+  pricing,
+  userId = null,
+  source = 'stripe_checkout',
+  origin = null,
+  idempotencyKey = null,
+  legalConsentSnapshot = null,
+  status = null
+} = {}) {
+  return findOrCreateByIdempotencyKey(idempotencyKey, async () => {
+    const kind = classifyUnifiedKind(checkoutState, pricing?.kind);
+    const mode = resolvePaymentMode(pricing || {});
+    const resolvedStatus = status || (pricing?.isZeroPayment ? 'free_ready' : 'payment_pending');
+    return {
+      checkoutId: buildCheckoutId(),
+      kind,
+      status: resolvedStatus,
+      userId: userId || null,
+      clientId: userId || null,
+      source,
+      origin,
+      inputSnapshot: sanitizeCheckoutStateForSnapshot(checkoutState),
+      pricingSnapshot: pricing?.pricingSnapshot || null,
+      taxSnapshot: pricing?.taxSnapshot || null,
+      legalConsentSnapshot: legalConsentSnapshot || null,
+      payment: {
+        mode,
+        amountToPay: pricing?.amountToPay ?? 0,
+        giftCardPaymentAmount: pricing?.giftCardPaymentAmount ?? 0,
+        provider: 'stripe',
+        status: 'pending'
+      },
+      metadata: { pricingKind: pricing?.kind || null, currency: pricing?.currency || 'eur' }
+    };
+  });
+}
+
 export { sanitizeCheckoutStateForSnapshot };

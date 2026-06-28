@@ -44,3 +44,9 @@ formation/produit/carte cadeau/panier) : redirection vers Stripe Checkout héber
 mobile) ou finalisation 0 € transparente. Les fondations backend (UnifiedCheckout, U1) garantissent
 pricing serveur, consentements et carte cadeau capée — base d'un paiement sûr et cohérent. Cf.
 VitrineArchitecture (section Checkout via UnifiedCheckout).
+
+## MAJ U2 — Paiement sécurisé hébergé
+L'expérience cible : redirection vers une page de paiement Stripe hébergée (confiance maximale,
+SCA, mobile natif) pour tout montant > 0, finalisation 0 € transparente sinon. Le backend est prêt
+(flag `CHECKOUT_HOSTED`) ; l'activation visible côté client arrive avec R2 (consommation de la
+redirection). Carte cadeau toujours capée au solde, jamais une remise Stripe.

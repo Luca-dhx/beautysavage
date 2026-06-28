@@ -3349,3 +3349,19 @@ contrat non touchés.** Suite 374 verte.
 - Endpoint dev lecture seule `GET /api/gestion/dev/unified-checkouts` (`requireStrictDev`, vue safe).
 - Kinds U1 : service/formation/product/gift_card/cart. **Non câblé** aux endpoints live (décision
   zéro-changement) ; câblage + Stripe Checkout hébergé = U2.
+
+## Sprint U2 — UnifiedCheckout câblé + Stripe Checkout hébergé (2026-06-28)
+Feature flag **`CHECKOUT_HOSTED`** (`.env.example`, défaut `false`). Rapports 152/153. **Aucun
+changement prix/finalisation/remboursement/booking.** Suite 385 verte.
+- `CHECKOUT_HOSTED=false` → Stripe **Elements** inchangé (`clientSecret`), aucun UnifiedCheckout.
+- `CHECKOUT_HOSTED=true` → `createCheckoutSession` crée un `UnifiedCheckout` puis : 0 € → `{mode:'free'}`
+  (finalize-free) ; >0 → `stripe.checkout.sessions.create` (mode payment, `line_items.unit_amount =
+  amountToPay` serveur — carte cadeau JAMAIS un discount), `payment_intent_data.metadata.intentId` →
+  le **webhook PI existant finalise à l'identique** ; retourne `{mode:'hosted', url, checkoutId}`.
+- Webhook : `checkout.session.completed` → `handleCheckoutSessionCompletedEvent` (pré-check Sale
+  idempotent ; `finalizeUnifiedCheckout` → **délègue à `processCheckoutStatePurchase`**). PI succeeded
+  inchangé (les deux idempotents via index PI unique).
+- 0 € : `finalize-free` inchangé + UnifiedCheckout shadow best-effort (gated, payload inchangé).
+- `createUnifiedCheckoutRecord` (factory) persiste depuis un pricing déjà calculé (pas de re-validation).
+- **Limite** : pas de bascule UI (front consomme encore Elements ; consommer la redirection `url` = React/R2).
+  Flag `false` par défaut → prod inchangée. Kinds plateforme (commission/contrat) = U3.

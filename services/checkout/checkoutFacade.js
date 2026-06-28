@@ -23,6 +23,9 @@ import {
   processCheckoutStatePurchase,
   waitForExistingFreeSale
 } from './checkoutFinalizationService.js';
+// Sprint U2 — enregistrement best-effort d'un UnifiedCheckout pour le 0 € (gated par flag).
+import { isCheckoutHostedEnabled } from './unified/unifiedCheckoutConfig.js';
+import { createUnifiedCheckoutRecord } from './unified/unifiedCheckoutFactory.js';
 
 /**
  * Phase 1B-4: POST /api/client/checkout/finalize-free
@@ -92,6 +95,22 @@ export async function finalizeFreeCheckout(req, res) {
     });
     // Audit-only event (best-effort). sale.finalized is also emitted by persistSale.
     await emitSaleEvent('sale.zero_payment_finalized', result, { extra: { zeroPayment: true } });
+    // Sprint U2 — enregistrement UnifiedCheckout (shadow) pour le 0 €, gated par flag, best-effort.
+    // Ne modifie JAMAIS la réponse publique (try/catch ; payload inchangé).
+    if (isCheckoutHostedEnabled()) {
+      try {
+        await createUnifiedCheckoutRecord({
+          checkoutState,
+          pricing: checkoutState?.serverPricing || { isZeroPayment: true, amountToPay: 0, giftCardPaymentAmount: 0 },
+          userId,
+          source: 'finalize_free',
+          idempotencyKey: freeRef,
+          status: 'finalized'
+        });
+      } catch (_ucErr) {
+        // best-effort : l'état UnifiedCheckout est secondaire, ne casse jamais le 0 €.
+      }
+    }
     return res.status(200).json({ ok: true, saleId: result?.saleId });
   } catch (error) {
     // Concurrent double-submit lost the race on the unique index → idempotent success.

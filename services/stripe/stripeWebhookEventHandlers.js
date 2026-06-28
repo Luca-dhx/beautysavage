@@ -16,6 +16,9 @@ import { recordWebhookFailure } from '../webhookFailureService.js';
 import { releaseGiftCardReservationsForPaymentIntent } from '../giftCardReservationService.js';
 import { buildWebhookFallbackPayload, normalizeStripeId } from './stripeMetadataService.js';
 import { recoverStripeFeesAndUpdateSale, notifyPendingStripeFeeCreated } from './stripeFeeService.js';
+// Sprint U2 — réconciliation UnifiedCheckout sur checkout.session.completed (Stripe hébergé).
+import { findByCheckoutId, updateCheckout } from '../checkout/unified/unifiedCheckoutRepository.js';
+import { finalizeUnifiedCheckout } from '../checkout/unified/unifiedCheckoutFinalizer.js';
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -79,6 +82,92 @@ export async function handlePaymentFailedEvent(event) {
     console.error('[Stripe Webhook] Stack:', error?.stack || '(stack indisponible)');
     return { status: 500, send: 'Erreur liberation reservation carte cadeau.' };
   }
+}
+
+// Sprint U2 — Stripe Checkout HÉBERGÉ : finalise via le moteur UnifiedCheckout (qui délègue au
+// finaliseur EXISTANT processCheckoutStatePurchase). Idempotent : le webhook payment_intent.
+// succeeded peut aussi finaliser la même vente ; l'index PI unique garantit une seule Sale.
+export async function handleCheckoutSessionCompletedEvent(event) {
+  const session = event?.data?.object || {};
+  const unifiedCheckoutId = String(session?.metadata?.unifiedCheckoutId || session?.metadata?.checkoutId || '').trim();
+  const paymentIntentId = normalizeStripeId(
+    typeof session?.payment_intent === 'string' ? session.payment_intent : session?.payment_intent?.id
+  );
+
+  // Session non issue d'UnifiedCheckout → ignorer (compat : le PI webhook gère le reste).
+  if (!unifiedCheckoutId) {
+    return { status: 200, json: { received: true } };
+  }
+
+  const checkout = await findByCheckoutId(unifiedCheckoutId);
+  if (!checkout) {
+    return { status: 200, json: { received: true, idempotent: true } };
+  }
+
+  // Idempotence : vente déjà créée (replay, ou webhook payment_intent.succeeded déjà passé) →
+  // réconcilier l'UnifiedCheckout et répondre idempotent SANS re-finaliser.
+  if (paymentIntentId) {
+    const existingSale = await Sale.findOne({
+      $or: [{ stripeSessionId: paymentIntentId }, { stripePaymentIntentId: paymentIntentId }]
+    }).select('saleId').lean();
+    if (existingSale) {
+      await updateCheckout(checkout.checkoutId, {
+        status: 'finalized',
+        'finalization.saleId': existingSale.saleId,
+        'finalization.finalizedAt': new Date(),
+        'payment.status': 'succeeded',
+        'payment.stripePaymentIntentId': paymentIntentId
+      }).catch(() => {});
+      return { status: 200, json: { received: true, idempotent: true } };
+    }
+  }
+
+  // checkoutState complet récupéré depuis le StripeCheckoutIntent (clé = PI id, comme le flux PI).
+  let checkoutState = null;
+  let intentUserId = checkout.userId;
+  let clientIp = '0.0.0.0';
+  if (paymentIntentId) {
+    const intent = await StripeCheckoutIntent.findOne({ stripeSessionId: paymentIntentId }).lean();
+    if (intent?.checkoutState) {
+      checkoutState = intent.checkoutState;
+      intentUserId = intent.userId || intentUserId;
+      clientIp = intent.clientIp || clientIp;
+    }
+  }
+  if (!checkoutState) {
+    // Pas de contexte → laisser le webhook PI existant faire foi (idempotent).
+    return { status: 200, json: { received: true } };
+  }
+
+  try {
+    await finalizeUnifiedCheckout(checkout, {
+      checkoutState,
+      userId: intentUserId,
+      clientIp,
+      stripeSessionId: paymentIntentId,
+      stripePaymentIntentId: paymentIntentId
+    });
+  } catch (error) {
+    // Vente déjà créée (race avec payment_intent.succeeded) → idempotent.
+    if (isDuplicateStripePaymentSaleError(error)) {
+      return { status: 200, json: { received: true, idempotent: true } };
+    }
+    console.error('[Stripe Webhook] Erreur finalisation checkout.session.completed', error);
+    await recordWebhookFailure({
+      provider: 'stripe',
+      webhookType: 'institut',
+      eventType: event.type,
+      failureStage: 'processing',
+      errorCode: error?.code ? String(error.code) : 'HOSTED_CHECKOUT_PROCESSING_ERROR',
+      errorMessageSafe: 'Echec finalisation hosted checkout',
+      stripeEventId: event.id,
+      paymentIntentId,
+      retryable: true
+    });
+    return { status: 500, send: 'Erreur interne lors de la finalisation hosted checkout.' };
+  }
+
+  return { status: 200, json: { received: true } };
 }
 
 export async function handlePaymentIntentSucceededEvent(event) {

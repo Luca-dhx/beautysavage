@@ -344,6 +344,15 @@ tests/
     solde insuffisant.
 - Commissions **non modifiées** (exclusion volontaire ; prochaine étape = discussion produit).
 
+## Sprint U2 — UnifiedCheckout câblé + Stripe Checkout hébergé (rapports 152-153)
+
+- `hostedCheckoutFeatureFlag.test.js` (+2) — `CHECKOUT_HOSTED` false → clientSecret Elements ; true → url hosted (aucun secret).
+- `hostedCheckoutSessionCreation.test.js` (+1) — Session `mode:payment`, `line_items.unit_amount=amountToPay`, metadata checkoutId, UnifiedCheckout `payment_pending`.
+- `hostedCheckoutGiftCardZero.test.js` (+2) — 100 % carte cadeau → `mode:free` (aucune Session) ; partielle → Session pour le reste (carte cadeau jamais un discount).
+- `hostedCheckoutWebhookFinalization.test.js` (+3) — `checkout.session.completed` finalise via `processCheckoutStatePurchase`, replay idempotent, metadata inconnue → 200.
+- `unifiedCheckoutLiveWiring.test.js` (+3) — flag off : aucun UnifiedCheckout + clientSecret ; flag on : UnifiedCheckout créé + hosted ; finalize-free intact.
+- Le client Stripe est mocké via `stripeConfigService.getStripeClient` ; flag off = comportement byte-identique (fallback Elements).
+
 ## Sprint U1 — Fondations UnifiedCheckout (rapports 150-151)
 
 - `unifiedCheckoutModel.test.js` (+6) — modèle : requis/enums/défauts, `checkoutId` unique,

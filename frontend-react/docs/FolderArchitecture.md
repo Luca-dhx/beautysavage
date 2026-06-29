@@ -258,3 +258,12 @@ direct legacy y est gaté par `!isMailRoleResolverEnabled()`. Règle `mailDispat
 `mailEventVariableBuilder.buildBookingConfirmedVariables` complété (parité legacy). Idempotence =
 `booking._id` + templateKey (report = nouveau booking = nouvelle confirmation ; replay = 1 e-mail).
 Rollback = flag false. **Aucune UI React.** Rien ne change pour la vitrine/client. Suite : **M3E**.
+
+## Sprint M3E — Supervision mail (backend + api-client, rapports 183-184)
+
+Supervision lecture seule du moteur mail M2 : `services/mail/mailSupervisionService.js` +
+`mailSupervisionMapper.js` (DTO safe), `controllers/mailSupervisionController.js`, routeurs dev
+(`requireStrictDev`) et admin (roleView=admin). Endpoints `mail-deliveries` + `send-logs` (liste,
+détail, stats). Privacy stricte (recipientHash, jamais d'e-mail/secret) ; cloisonnement admin (pas de
+plateforme). Client React `@bs/api-client/manager/mailSupervision` (types + fonctions, **aucun écran**).
+Rien ne change pour la vitrine/client ni pour les envois. Suite : **M3F**.

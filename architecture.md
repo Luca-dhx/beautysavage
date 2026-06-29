@@ -2438,6 +2438,42 @@ moteur pour les deux. Au checkout flag true : `vente` (shadow direct) **+** `boo
 ### Suite
 **M3E** : envisager `sale.finalized` (comptable, prudence) ou consolider la supervision du journal.
 
+## STEP 26 — Supervision mail MailEventDelivery + SendLog (M3E — 2026-06-29)
+
+### Principe
+Couche de **supervision backend lecture seule** du moteur mail M2. Deux vues : **dev** (tout, safe)
+et **admin** (institut/client uniquement). Rapports `183` (audit) + `184`.
+
+### Services
+- `services/mail/mailSupervisionMapper.js` : DTO safe (`mapMailDelivery`/`mapSendLog`), rôles depuis
+  `metadata.tags`, denylist templates plateforme, `deliveryTargetAudience`.
+- `services/mail/mailSupervisionService.js` : `listMailEventDeliveries`, `getMailEventDeliveryDetail`,
+  `getMailSupervisionStats`, `listSendLogsForSupervision`, `getSendLogSupervisionStats` (roleView,
+  filtres validés, corrélation SendLog best-effort).
+- `controllers/mailSupervisionController.js` : handlers dev/admin (roleView imposé par la route).
+
+### Endpoints
+- Dev (`requireStrictDev`) : `GET /api/gestion/dev/mail-deliveries[/:id|/stats]`,
+  `GET /api/gestion/dev/send-logs/stats` (+ `/dev/send-logs` existant, filtres étendus, contrat conservé).
+- Admin (`requireGestionRole`, roleView=admin) : `GET /api/gestion/mail-deliveries[/:id|/stats]`,
+  `GET /api/gestion/send-logs[/stats]`. Montés avant les routeurs dev-only broad-mount.
+
+### Filtres / Stats / Privacy
+- Filtres : status, eventName, templateKey, fromRole, toRole, contextType, contextId, dateFrom, dateTo,
+  limit (max 100). Enums vérifiées, dates invalides ignorées, aucune regex utilisateur.
+- Stats deliveries : total, byStatus/byTemplate/byEvent, last24h, failuresLast24h, shadowCount/activeCount.
+- Privacy : jamais d'e-mail (recipientHash seul), jamais de secret/payload ; admin ne voit pas la
+  plateforme (commission support→commerciale ; denylist templates password_reset/commission_*/site_*).
+
+### React (sans UI)
+`packages/api-client/src/manager/mailSupervision.ts` : `listMailDeliveries`, `getMailDeliveryDetail`,
+`getMailDeliveryStats`, `listSendLogs`, `getSendLogStats` + types. Cible les endpoints admin.
+
+### Limites & suite
+Lecture seule (aucune relance) ; pas d'UI ; sendLogId rarement renseigné (corrélation best-effort par
+contexte) ; attempts=1. **M3F** : écran React de supervision OU lien delivery↔sendLog + actions de
+relance, avant la migration `sale.finalized`.
+
 ### Migration
 - `automatisme/notificationConfigMigration.js` : `runNotificationConfigMigration()` -- cree le singleton config si absent avec 8 evenements preconfigures. Appelee au boot dans `app.js`.
 

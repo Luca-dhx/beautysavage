@@ -10034,6 +10034,31 @@
     "testNotes": "mailEventActivationBooking.test.js (M3C, booking shadow) supprime. mailEventDeliveryIdempotence repointe sur sale.finalized (regle shadow).",
     "next": "M3E — envisager sale.finalized (comptable, prudence) ou consolider la supervision du journal MailEventDelivery/SendLog."
   },
+  "mailSupervision": {
+    "description": "M3E (2026-06-29) — supervision backend lecture seule MailEventDelivery + SendLog. Vues dev (tout safe) et admin (institut/client).",
+    "reports": [
+      "Rapports/version 1/183_audit_pre_m3e_mail_supervision.md",
+      "Rapports/version 1/184_rapport_m3e_mail_supervision.md"
+    ],
+    "services": "services/mail/mailSupervisionService.js (list/detail/stats deliveries + sendlogs, roleView, filtres valides) + services/mail/mailSupervisionMapper.js (DTO safe, roles depuis metadata.tags, denylist templates plateforme).",
+    "controller": "controllers/mailSupervisionController.js (devMailSupervision/adminMailSupervision, roleView impose par la route).",
+    "endpointsDev": "requireStrictDev — GET /api/gestion/dev/mail-deliveries[/:id|/stats], GET /api/gestion/dev/send-logs/stats. /api/gestion/dev/send-logs (existant) filtres etendus, contrat conserve.",
+    "endpointsAdmin": "requireGestionRole roleView=admin — GET /api/gestion/mail-deliveries[/:id|/stats], GET /api/gestion/send-logs[/stats]. Montes avant les routeurs dev-only broad-mount.",
+    "filters": "status, eventName, templateKey, fromRole, toRole, contextType, contextId, dateFrom, dateTo, limit (max 100). Enums verifiees, dates invalides ignorees, aucune regex utilisateur.",
+    "stats": "deliveries: total, byStatus, byTemplate, byEvent, last24h, failuresLast24h, shadowCount/activeCount (mode regle). sendlogs: total, byStatus, byTemplate, last24h, failuresLast24h.",
+    "privacy": "jamais d'e-mail (recipientHash SHA-256 seul), jamais de secret/payload. Admin ne voit pas la plateforme: deliveries fromRole=commerciale OU toRole=client; sendlogs denylist (password_reset, email_confirmation_code, commission_*, site_*). Detail admin hors audience -> 404.",
+    "reactApiClient": "frontend-react/packages/api-client/src/manager/mailSupervision.ts (listMailDeliveries, getMailDeliveryDetail, getMailDeliveryStats, listSendLogs, getSendLogStats + types). Cible endpoints admin. Aucun ecran.",
+    "tests": [
+      "tests/p1/mailSupervisionService.test.js",
+      "tests/p1/mailSupervisionRoutesDev.test.js",
+      "tests/p1/mailSupervisionRoutesAdmin.test.js",
+      "tests/p1/mailSupervisionPrivacy.test.js",
+      "tests/p1/mailSupervisionStats.test.js",
+      "frontend-react/packages/api-client/src/manager/mailSupervisionApi.test.ts"
+    ],
+    "limits": "lecture seule (aucune relance), pas d'UI React, sendLogId rarement renseigne (correlation best-effort par contexte), attempts=1, pas de pagination curseur reelle.",
+    "next": "M3F — ecran React de supervision OU lien delivery<->sendLog + actions de relance, avant migration sale.finalized."
+  },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",
     "problem": "applyFlowServiceRescheduleDecision creait ServiceBooking sans verifier disponibilite",

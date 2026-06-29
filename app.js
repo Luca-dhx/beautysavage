@@ -39,6 +39,8 @@ import passwordResetRouter from './routers/passwordResetRouter.js';
 import invoiceRouter from './routers/invoiceRouter.js';
 import notificationRouter from './routers/notificationRouter.js';
 import notificationDevRouter from './routers/notificationDevRouter.js';
+import mailSupervisionDevRouter from './routers/mailSupervisionDevRouter.js';
+import { mailDeliveriesAdminRouter, sendLogsAdminRouter } from './routers/mailSupervisionRouter.js';
 import { startCommissionReminderJob } from './automatisme/commissionReminderJob.js';
 import { runBookingRemindersJob } from './automatisme/bookingRemindersJob.js';
 import { runEmailTemplateCategoryMigration } from './automatisme/emailTemplateCategoryMigration.js';
@@ -410,6 +412,12 @@ app.use('/api/gestion/dev/notifications', notificationDevRouter);
 // dev-only montés en masse sur '/api/gestion' (ex. commissionRouter avec
 // requireStrictDev), qui sinon shadowent ce chemin et renvoient 403 aux admins.
 app.use('/api/gestion/notifications', notificationRouter);
+// M3E — Supervision mail dev (mail-deliveries + send-logs stats), strict dev — AVANT /api/gestion/dev générique.
+app.use('/api/gestion/dev', mailSupervisionDevRouter);
+// M3E — Supervision mail admin (roleView=admin, institut/client). Monté AVANT les routeurs
+// dev-only broad-mount sur '/api/gestion' (ex. commissionRouter requireStrictDev).
+app.use('/api/gestion/mail-deliveries', mailDeliveriesAdminRouter);
+app.use('/api/gestion/send-logs', sendLogsAdminRouter);
 app.use('/api/gestion/dev', devDiagnosticRouter);
 app.use('/api/gestion/vitrine', vitrineGestionRouter);
 app.use('/api/gestion/business', businessGestionRouter);

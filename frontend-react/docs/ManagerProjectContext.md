@@ -138,3 +138,13 @@ au moteur par rôles. On a d'abord **aligné** l'événement : tout chemin qui c
 créneau envoie logiquement une nouvelle confirmation (la date a changé), sans jamais dupliquer un e-mail
 déjà envoyé. Les flux comptables (vente, commissions) restent en attente. Suite **M3E** : décider de la
 suite (vente, ou écran de supervision des envois).
+
+## Sprint M3E — Supervision des envois (rapports 183-184)
+
+Avant d'élargir la migration des e-mails, on se dote d'une **visibilité** : la gérante (admin) et le
+dev peuvent consulter le journal des envois (statuts, modèle, de qui à qui, erreurs éventuelles) — la
+gérante uniquement pour ses communications institut/client, le dev pour l'ensemble (y compris la
+plateforme/technique). Aucune adresse e-mail ni secret n'est exposé (on ne montre qu'une empreinte
+anonymisée). C'est une base de diagnostic : comprendre ce qui part, ce qui est inhibé (shadow) et ce
+qui échoue, pour activer la suite en confiance. L'écran dédié viendra ensuite (M3F) ; ici on prépare le
+backend et le client d'API.

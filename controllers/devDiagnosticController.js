@@ -19,6 +19,17 @@ export async function getSendLogs(req, res) {
     const limit = Math.min(Math.max(Number(req.query?.limit) || 50, 1), 200);
     const filter = {};
     if (req.query?.status) filter.status = String(req.query.status);
+    // M3E — filtres additionnels (additif, contrat inchangé).
+    if (req.query?.templateKey) filter.templateKey = String(req.query.templateKey);
+    if (req.query?.contextType) filter.contextType = String(req.query.contextType);
+    if (req.query?.contextId) filter.contextId = String(req.query.contextId);
+    const dateFrom = req.query?.dateFrom ? new Date(req.query.dateFrom) : null;
+    const dateTo = req.query?.dateTo ? new Date(req.query.dateTo) : null;
+    if ((dateFrom && !Number.isNaN(dateFrom.getTime())) || (dateTo && !Number.isNaN(dateTo.getTime()))) {
+      filter.createdAt = {};
+      if (dateFrom && !Number.isNaN(dateFrom.getTime())) filter.createdAt.$gte = dateFrom;
+      if (dateTo && !Number.isNaN(dateTo.getTime())) filter.createdAt.$lte = dateTo;
+    }
     const logs = await SendLog.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit)

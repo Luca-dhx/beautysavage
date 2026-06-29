@@ -181,3 +181,16 @@ au report — rollback). Journaux internes : `MailEventDelivery` (statut `sent`/
 `booking._id` : un report crée un nouveau booking → nouvelle confirmation ; replay → 1 e-mail. À noter :
 au checkout flag true, le client reçoit l'e-mail « vente » (shadow) **et** la confirmation prestation
 (engine) — deux e-mails distincts. **Aucune UI React.** Détails : `Rapports/version 1/182_rapport_m3d_booking_confirmed_activation.md`. Suite : **M3E**.
+
+## Sprint M3E — Supervision mail (backend + api-client, rapports 183-184)
+
+Couche de **supervision lecture seule** du moteur mail M2, prête à être consommée par un futur écran
+Manager/Dev. Endpoints **admin** : `GET /api/gestion/mail-deliveries[/:id|/stats]` et
+`GET /api/gestion/send-logs[/stats]` (roleView=admin → institut/client uniquement ; la plateforme
+— commission, comptes, site — est masquée). Endpoints **dev** (`requireStrictDev`) : équivalents sous
+`/api/gestion/dev/...` (vue complète safe). Filtres : status, eventName, templateKey, fromRole, toRole,
+contextType, contextId, dateFrom, dateTo, limit (max 100). Stats : byStatus/byTemplate/byEvent,
+shadow/active, failuresLast24h. **Privacy** : jamais d'e-mail (recipientHash seul), jamais de secret.
+Client API : `@bs/api-client` → `manager/mailSupervision.ts` (`listMailDeliveries`, `getMailDeliveryDetail`,
+`getMailDeliveryStats`, `listSendLogs`, `getSendLogStats` + types). **Aucun écran livré** (M3F).
+Détails : `Rapports/version 1/184_rapport_m3e_mail_supervision.md`.

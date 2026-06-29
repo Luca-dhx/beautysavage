@@ -5,3 +5,4 @@ export * from './catalog';
 export * from './booking';
 export * from './checkout';
 export * from './auth';
+export * from './manager';

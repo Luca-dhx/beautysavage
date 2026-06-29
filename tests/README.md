@@ -437,6 +437,16 @@ Backend (+35), notifications in-app uniquement (aucun e-mail) :
 - `tests/p1/notificationEventSubscriberTargetRole.test.js` (4) — subscriber crée `targetRole='admin'` (new_sale, no_show_recorded), aucune notif dev, pas de fuite e-mail client.
 - **Fix d'ordre de montage** : `notificationRouter` remonté AVANT les routeurs dev-only broad-mount sur `/api/gestion` (ex. `commissionRouter requireStrictDev`) qui shadowaient `/api/gestion/notifications` (403 admins, pré-existant). Manager filtre `targetRole {$ne:'dev'}` (legacy-safe), dev filtre `targetRole 'dev'` (requireStrictDev).
 
+## Sprint M3E — Supervision MailEventDelivery + SendLog (rapports 183-184)
+
+Backend (+29) + frontend (+5). Lecture seule ; aucun envoi ; Brevo non sollicité :
+- `tests/p1/mailSupervisionService.test.js` (10) — dev voit tout / admin masque la plateforme (commission) ; filtres status/event/template ; limit borné 100 ; détail safe + corrélation SendLog ; send-logs denylist admin.
+- `tests/p1/mailSupervisionRoutesDev.test.js` (7) — endpoints dev (mail-deliveries[/:id|/stats], send-logs/stats), `/dev/send-logs` existant conservé ; admin/client refusés (403).
+- `tests/p1/mailSupervisionRoutesAdmin.test.js` (6) — endpoints admin (roleView=admin) ; plateforme exclue ; détail hors audience → 404 ; client interdit.
+- `tests/p1/mailSupervisionPrivacy.test.js` (2) — aucun e-mail complet, aucun secret/payload ; recipientHash + providerMessageId exposés ; senderRole/recipientRole depuis tags.
+- `tests/p1/mailSupervisionStats.test.js` (4) — byStatus/byEvent, shadow/active (mode règle), failuresLast24h, date range.
+- Frontend : `frontend-react/packages/api-client/src/manager/mailSupervisionApi.test.ts` (5) — client typé (listMailDeliveries/getMailDeliveryDetail/getMailDeliveryStats/listSendLogs/getSendLogStats), fetch mocké.
+
 ## Sprint M3D — Alignement & activation booking.confirmed (rapports 181-182)
 
 Backend (13 nouveaux tests), Brevo mocké, aucun vrai e-mail. 2e flux migré (`booking.confirmed`),

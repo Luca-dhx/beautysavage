@@ -187,3 +187,11 @@ confirmation, puis migré l'e-mail (« de la commerciale au client »), avec rol
 anti-doublon. Un report de créneau envoie une nouvelle confirmation (date modifiée), sans jamais doubler
 un e-mail. Les e-mails comptables restent volontairement en attente. C'est la suite logique de la
 migration prudente, flux par flux. Suite **M3E**.
+
+## Sprint M3E — Supervision des envois e-mail (rapports 183-184)
+
+Pour migrer la suite des e-mails sereinement, il faut d'abord **voir** ce qui se passe. M3E ajoute une
+supervision : journaux des livraisons (moteur par rôles) et des envois, avec statuts, modèles et
+erreurs. Le dev voit tout (y compris la plateforme), la gérante voit uniquement l'institut/client —
+sans jamais exposer d'adresse e-mail ni de secret. C'est une fondation de diagnostic et de confiance,
+en lecture seule pour l'instant ; l'interface de consultation arrivera ensuite.

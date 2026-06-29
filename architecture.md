@@ -2376,6 +2376,35 @@ vars, { event })` les persiste ; subscriber propage + enrichit `variables` depui
 M3B n'active aucun envoi, ne migre pas les envois directs, ne crée pas d'UI React. Prochaine étape
 **M3C** : passage de M2 en envoi réel (shadow→actif) en s'appuyant sur le resolver contextuel.
 
+## STEP 24 — Activation e-mail événementiel : refund.succeeded (M3C — 2026-06-29)
+
+### Principe
+1er flux migré du système d'envoi **direct** vers le moteur **événementiel** M2. Rapports `179`
+(audit) + `180`. Piloté par le flag `MAIL_ROLE_RESOLVER_ENABLED` (rollback = false).
+
+### Flux migré : `refund.succeeded`
+- Règle `constants/mailDispatchRules.js` : `directSenderExists:false, enabled:true, mode:'active'`
+  (templateKey `refund_confirmed`, variante `refund_confirmed_service`).
+- `services/mail/mailEventVariableBuilder.js` : `buildRefundSucceededVariables` reconstruit les mêmes
+  variables que le direct (réutilise `buildCommonMailVars`) + choisit la variante ; `buildMailVariablesForRule`.
+- `services/mail/mailEventDispatchService.js` : `dispatchMailForEvent(..., { context, templateKeyOverride })`
+  (templateKey effectif pour la variante ; ledger idempotent sur ce templateKey).
+- `subscribers/mailEventSubscriber.js` : pour une règle **active**, résout client + variables et
+  dispatche (commerciale→client) ; règles **shadow** inchangées.
+- `services/refundExecutionService.js` `sendRefundConfirmedEmailInternal` : émet TOUJOURS l'event ;
+  `if (isMailRoleResolverEnabled()) return;` → l'e-mail direct legacy n'est envoyé QUE flag=false.
+
+### Flux NON migrés (shadow)
+`booking.confirmed` (misalignement event/email — voir rapport 179), `sale.finalized`,
+`commission.available`, `commission.reminder_sent` (comptables/sensibles).
+
+### Rollback / anti-doublon
+Flag false → direct legacy (subscriber no-op). Flag true → moteur (direct désactivé, ledger `sent`).
+Une seule voie active à la fois ; `MailEventDelivery` garantit 1 e-mail max par event/contexte/template.
+
+### Suite
+**M3D** : aligner puis migrer `booking.confirmed`, étendre aux autres flux non comptables.
+
 ### Migration
 - `automatisme/notificationConfigMigration.js` : `runNotificationConfigMigration()` -- cree le singleton config si absent avec 8 evenements preconfigures. Appelee au boot dans `app.js`.
 

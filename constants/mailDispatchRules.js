@@ -22,6 +22,9 @@ export const MAIL_DISPATCH_RULES = [
     toRole: 'client',
     contextType: 'service_booking',
     enabled: true,
+    mode: 'shadow',
+    // M3C : NON migré — l'event est émis au checkout (sans e-mail direct) alors que l'e-mail
+    // direct part au report de créneau (sans event). Misalignement → reste shadow. Voir rapport 179.
     directSenderExists: true // sendBookingConfirmedEmail → shadow
   },
   {
@@ -31,7 +34,11 @@ export const MAIL_DISPATCH_RULES = [
     toRole: 'client',
     contextType: 'refund_request',
     enabled: true,
-    directSenderExists: true // sendRefundConfirmedEmail → shadow
+    // M3C — MIGRÉ : moteur événementiel actif. L'e-mail direct est gaté derrière
+    // !isMailRoleResolverEnabled() (rollback = flag false). Variante service gérée via
+    // templateKeyOverride (mailEventVariableBuilder). Voir rapport 180.
+    mode: 'active',
+    directSenderExists: false
   },
   {
     eventName: 'commission.available',

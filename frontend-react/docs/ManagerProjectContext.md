@@ -117,3 +117,14 @@ d'audit lisibles, notifications corrélées à leur événement d'origine, et pl
 et de l'IA — sans jamais exposer d'e-mail ou de secret (les e-mails sont retrouvés à la demande via la
 base, jamais stockés). M3B reste **en coulisses** (backend) ; rien ne change pour le client. Étape
 suivante **M3C** : activer l'envoi e-mail réel par rôles en s'appuyant sur ce contexte.
+
+## Sprint M3C — Premier e-mail piloté par rôles (rapports 179-180)
+
+Le moteur de communication par rôles (M1/M2) passe pour la première fois en **envoi réel**, sur un
+flux sûr : l'e-mail de **confirmation de remboursement**. Il part maintenant « de la commerciale vers
+le client » via les identités configurées, plutôt que d'une adresse codée en dur — visible et traçable
+dans les journaux internes. Le changement est **réversible par un simple flag** : si on le désactive,
+l'ancien e-mail direct reprend la main. Les flux comptables/sensibles et les e-mails dont l'événement
+n'est pas encore aligné restent volontairement en attente. Objectif : fiabiliser pas à pas la
+communication, sans risque de doublon ni de perte d'e-mail. Suite **M3D** : préparer puis migrer la
+confirmation de réservation.

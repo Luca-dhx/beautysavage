@@ -437,6 +437,16 @@ Backend (+35), notifications in-app uniquement (aucun e-mail) :
 - `tests/p1/notificationEventSubscriberTargetRole.test.js` (4) — subscriber crée `targetRole='admin'` (new_sale, no_show_recorded), aucune notif dev, pas de fuite e-mail client.
 - **Fix d'ordre de montage** : `notificationRouter` remonté AVANT les routeurs dev-only broad-mount sur `/api/gestion` (ex. `commissionRouter requireStrictDev`) qui shadowaient `/api/gestion/notifications` (403 admins, pré-existant). Manager filtre `targetRole {$ne:'dev'}` (legacy-safe), dev filtre `targetRole 'dev'` (requireStrictDev).
 
+## Sprint M3C — Activation e-mail événementiel (rapports 179-180)
+
+Backend (+14), Brevo mocké (getCredential + fetch), aucun vrai e-mail. 1er flux migré
+(`refund.succeeded`) du direct vers le moteur M2, piloté par `MAIL_ROLE_RESOLVER_ENABLED` :
+- `tests/p1/mailEventActivationRefund.test.js` (6) — flag true → e-mail engine (SendLog `role-engine`/`from:commerciale`, ledger `sent`, direct non envoyé) ; flag false → direct legacy (pas de ledger) ; variante service → `refund_confirmed_service` ; replay → 1 e-mail ; commerciale absente → `identity_missing` ; client absent → `client_missing`.
+- `tests/p1/mailEventActivationBooking.test.js` (3) — `booking.confirmed` reste **shadow** (non migré, misalignement) ; `buildBookingConfirmedVariables` parité (client + servicename, pas d'e-mail dans variables).
+- `tests/p1/mailEventVariableParity.test.js` (3) — `buildRefundSucceededVariables` produit les mêmes variables que le direct (via `buildCommonMailVars`), variante service/non-service, aucun e-mail/secret, refund introuvable → null.
+- `tests/p1/mailEventActivationRollbackFlag.test.js` (2) — rollback : flag false → direct + event émis + 0 ledger ; flag true → moteur + ledger `sent`. L'event `refund.succeeded` est toujours émis.
+- Aucune régression : les tests M2 existants (sale.finalized/booking.confirmed restent shadow) inchangés.
+
 ## Sprint M3B — Event Context Enrichment (rapports 177-178)
 
 Backend (+30), aucun vrai e-mail, EventLog non cassé (additif) :

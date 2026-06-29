@@ -70,8 +70,8 @@ export async function dispatchTemplateByRoles({ templateKey, fromRole, toRole, c
 }
 
 // Enregistre (idempotent) une livraison dans le ledger. Au replay, renvoie l'entrée existante.
-async function recordDelivery(rule, { contextId, status, sendLogId = null, detailSafe = '' }) {
-  const filter = { eventName: rule.eventName, contextType: rule.contextType || null, contextId: contextId != null ? String(contextId) : null, templateKey: rule.templateKey };
+async function recordDelivery(rule, { contextId, status, sendLogId = null, detailSafe = '', templateKey = null }) {
+  const filter = { eventName: rule.eventName, contextType: rule.contextType || null, contextId: contextId != null ? String(contextId) : null, templateKey: templateKey || rule.templateKey };
   try {
     const doc = await MailEventDelivery.findOneAndUpdate(
       filter,
@@ -100,41 +100,43 @@ async function recordDelivery(rule, { contextId, status, sendLogId = null, detai
  * Dispatch déclenché par un event (best-effort). Honore le ledger d'idempotence et le mode shadow.
  * `eventLogOrPayload` : { eventName, contextType, contextId, payloadSafe } (+ context optionnel enrichi).
  */
-export async function dispatchMailForEvent(eventLogOrPayload = {}, { context = {} } = {}) {
+export async function dispatchMailForEvent(eventLogOrPayload = {}, { context = {}, templateKeyOverride = null } = {}) {
   const eventName = String(eventLogOrPayload?.eventName || '');
   const rule = resolveMailRule(eventName);
   if (!rule) return { status: 'skipped_no_rule' };
 
   const contextId = eventLogOrPayload?.contextId ?? context?.contextId ?? null;
+  // M3C — templateKey effectif : permet les variantes par event (ex. refund_confirmed_service).
+  const effectiveTemplateKey = templateKeyOverride || rule.templateKey;
 
   // Idempotence : si une livraison existe déjà pour (event, contexte, template), ne rien refaire.
   const existing = await MailEventDelivery.findOne({
     eventName: rule.eventName,
     contextType: rule.contextType || null,
     contextId: contextId != null ? String(contextId) : null,
-    templateKey: rule.templateKey
+    templateKey: effectiveTemplateKey
   }).lean();
   if (existing) return { status: existing.status, idempotent: true };
 
   if (!rule.enabled) {
-    await recordDelivery(rule, { contextId, status: 'skipped_rule_disabled' });
+    await recordDelivery(rule, { contextId, status: 'skipped_rule_disabled', templateKey: effectiveTemplateKey });
     return { status: 'skipped_rule_disabled' };
   }
 
-  // Un envoi direct existe déjà → shadow (pas de doublon) jusqu'à migration M3.
+  // Un envoi direct existe déjà → shadow (pas de doublon) jusqu'à migration.
   if (rule.directSenderExists) {
-    await recordDelivery(rule, { contextId, status: 'skipped_duplicate_direct_sender', detailSafe: 'Envoi direct existant.' });
+    await recordDelivery(rule, { contextId, status: 'skipped_duplicate_direct_sender', detailSafe: 'Envoi direct existant.', templateKey: effectiveTemplateKey });
     return { status: 'skipped_duplicate_direct_sender' };
   }
 
   const mergedContext = { ...context, contextType: rule.contextType, contextId };
   const result = await dispatchTemplateByRoles({
-    templateKey: rule.templateKey,
+    templateKey: effectiveTemplateKey,
     fromRole: rule.fromRole,
     toRole: rule.toRole,
     context: mergedContext,
     variables: context?.variables || {}
   });
-  await recordDelivery(rule, { contextId, status: result.status, detailSafe: result.detailSafe });
+  await recordDelivery(rule, { contextId, status: result.status, detailSafe: result.detailSafe, templateKey: effectiveTemplateKey });
   return result;
 }

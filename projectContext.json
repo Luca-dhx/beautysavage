@@ -9989,6 +9989,29 @@
     "outOfScope": "Activation des envois (M2 reste shadow), migration envois directs, nouveaux mails reels, UI React, automatisations/webhooks externes.",
     "next": "M3C — passage de M2 en envoi reel (shadow->actif) via mailEventContextResolver, parite stricte + anti-doublon."
   },
+  "mailEventActivation": {
+    "description": "M3C (2026-06-29) — 1er flux e-mail migre du direct vers le moteur evenementiel M2. Pilote par MAIL_ROLE_RESOLVER_ENABLED.",
+    "reports": [
+      "Rapports/version 1/179_audit_pre_m3c_mail_event_activation.md",
+      "Rapports/version 1/180_rapport_m3c_mail_event_activation.md"
+    ],
+    "migrated": "refund.succeeded — regle directSenderExists:false, enabled:true, mode:'active' (templateKey refund_confirmed + variante refund_confirmed_service).",
+    "shadow": "booking.confirmed (misalignement event/email — voir rapport 179), sale.finalized, commission.available, commission.reminder_sent.",
+    "variableBuilder": "services/mail/mailEventVariableBuilder.js — buildRefundSucceededVariables (parite via buildCommonMailVars, choisit la variante), buildBookingConfirmedVariables, buildMailVariablesForRule.",
+    "dispatch": "dispatchMailForEvent(..., { context, templateKeyOverride }) — templateKey effectif pour variante; ledger MailEventDelivery idempotent sur ce templateKey.",
+    "subscriber": "mailEventSubscriber — regle active: resout client+variables et dispatche (commerciale->client); regle shadow: comportement M2 inchange.",
+    "directGating": "refundExecutionService.sendRefundConfirmedEmailInternal: event TOUJOURS emis; if(isMailRoleResolverEnabled()) return (e-mail direct legacy seulement si flag false).",
+    "rollback": "MAIL_ROLE_RESOLVER_ENABLED=false -> direct legacy (subscriber no-op, pas de ledger). true -> moteur (direct off, ledger sent). Une seule voie active.",
+    "antiDoublon": "MailEventDelivery unique (event+contextType+contextId+templateKey) -> 1 e-mail max (replay/retry webhook).",
+    "prodActivation": "Identite commerciale active+verified requise; templates refund_confirmed(_service) publies; passer le flag true; surveiller MailEventDelivery/SendLog; rollback flag false.",
+    "tests": [
+      "tests/p1/mailEventActivationRefund.test.js",
+      "tests/p1/mailEventActivationBooking.test.js",
+      "tests/p1/mailEventVariableParity.test.js",
+      "tests/p1/mailEventActivationRollbackFlag.test.js"
+    ],
+    "next": "M3D — aligner puis migrer booking.confirmed, etendre aux autres flux non comptables."
+  },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",
     "problem": "applyFlowServiceRescheduleDecision creait ServiceBooking sans verifier disponibilite",

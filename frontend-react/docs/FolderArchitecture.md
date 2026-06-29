@@ -238,3 +238,14 @@ d'e-mail stocké ; pont vers M2, sans activer d'envoi). Notifications : `Notific
 `eventId/eventName/contextType/contextId` (SAFE). **PII** : e-mail jamais persisté, `clientName`
 toléré + flaggé, secrets/tokens interdits (sanitize + redaction EventLog). EventLog non cassé.
 **Aucune UI React.** Rien ne change pour la vitrine/client. Suite : **M3C** (M2 shadow→réel).
+
+## Sprint M3C — Activation e-mail événementiel (backend, rapports 179-180)
+
+1er flux migré du direct vers le moteur M2 : **refund.succeeded**. Règle `mailDispatchRules`
+(`directSenderExists:false, enabled:true, mode:'active'`) ; `mailEventVariableBuilder.js` reconstruit
+les variables (parité via `buildCommonMailVars`, variante `refund_confirmed_service`) ;
+`dispatchMailForEvent(..., {context, templateKeyOverride})` ; `mailEventSubscriber` résout
+client+variables pour les règles actives ; `refundExecutionService` gate l'e-mail direct derrière
+`!isMailRoleResolverEnabled()` (event toujours émis). Rollback = flag `MAIL_ROLE_RESOLVER_ENABLED=false`.
+Anti-doublon via ledger `MailEventDelivery`. Autres flux restent shadow. **Aucune UI React.** Rien ne
+change pour la vitrine/client. Suite : **M3D** (booking.confirmed).

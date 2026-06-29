@@ -159,3 +159,14 @@ clientName, bookingDate…). **Aucun e-mail** n'est stocké (résolu via DB par 
 Les notifications gagnent `eventId/eventName/contextType/contextId` (corrélation event→notif, exposés
 par `GET /api/gestion/notifications`). `targetRole` (M3A) inchangé. **Aucune UI React livrée.**
 Détails : `Rapports/version 1/178_rapport_m3b_event_context_enrichment.md`. Suite : **M3C** (M2 en envoi réel).
+
+## Sprint M3C — Activation e-mail événementiel : refund.succeeded (backend, rapports 179-180)
+
+1er e-mail réellement migré du système direct vers le moteur événementiel M2 :
+**refund.succeeded** (remboursement confirmé) part désormais via `commerciale→client` quand
+`MAIL_ROLE_RESOLVER_ENABLED=true` (sinon e-mail direct legacy — rollback). Côté Manager/Dev, le
+journal `MailEventDelivery` montre le statut réel (`sent`/`identity_missing`/`client_missing`) et le
+journal `SendLog` les tags `from:commerciale`/`to:client`/`role-engine`. Les autres flux
+(`booking.confirmed`, `sale.finalized`, `commission.*`) **restent en shadow**. Anti-doublon garanti
+(une seule voie active selon le flag + ledger idempotent). **Aucune UI React.** Détails :
+`Rapports/version 1/180_rapport_m3c_mail_event_activation.md`. Suite : **M3D** (aligner+migrer booking.confirmed).

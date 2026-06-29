@@ -168,3 +168,13 @@ protection des données : aucun e-mail ni secret n'est stocké dans le journal d
 est retrouvé à la demande via la base quand un envoi est nécessaire. C'est une fondation invisible
 pour l'utilisateur, mais décisive pour une plateforme fiable et traçable. Prochaine étape **M3C** :
 activer l'envoi e-mail réel par rôles (sortie du mode shadow) en s'appuyant sur ce contexte.
+
+## Sprint M3C — Premier e-mail réel par rôles (rapports 179-180)
+
+Après avoir préparé le terrain (identités M1, moteur M2, contexte M3B), on bascule **un** e-mail en
+production réelle via le moteur par rôles : la **confirmation de remboursement**. Elle est envoyée « de
+la commerciale au client » à partir des identités configurées, de façon traçable, et **réversible par
+un flag** (retour à l'envoi direct si besoin). On ne migre qu'un flux sûr à la fois, sans jamais
+risquer d'envoyer deux fois le même e-mail ni d'en perdre un. Les e-mails comptables et ceux dont
+l'événement n'est pas encore aligné restent en attente. C'est une avancée prudente vers une
+communication entièrement pilotable. Suite **M3D** : la confirmation de réservation.

@@ -14,6 +14,7 @@ import {
 } from './refundRequestService.js';
 import { getCredential } from './integratedApiCredentialService.js';
 import { emitRefundEvent } from './businessEventService.js';
+import { isMailRoleResolverEnabled } from '../constants/mailDispatchRules.js';
 
 async function getStripe() {
   const secretKey = await getCredential('stripe-institut', { role: 'secret_key' });
@@ -55,8 +56,14 @@ async function resolveSiteNameForEmail() {
 }
 
 export async function sendRefundConfirmedEmailInternal(refundRequest) {
-  // Audit-only event (best-effort): a confirmed refund reached the notification step.
+  // M3C — Event TOUJOURS émis (audit + moteur événementiel). Le subscriber mail (si
+  // MAIL_ROLE_RESOLVER_ENABLED=true) envoie l'e-mail refund_confirmed via le moteur par rôles
+  // (commerciale→client) pendant cet emit. On NE renvoie donc PAS l'e-mail direct legacy dans
+  // ce cas (anti-doublon). Rollback = flag false → e-mail direct legacy ci-dessous conservé.
   await emitRefundEvent('refund.succeeded', refundRequest);
+  if (isMailRoleResolverEnabled()) {
+    return; // moteur événementiel actif : l'e-mail part via le subscriber (pas de doublon)
+  }
   try {
     const user = refundRequest?.userId ? await User.findById(refundRequest.userId).lean() : null;
     const toEmail = String(user?.email || '').trim();

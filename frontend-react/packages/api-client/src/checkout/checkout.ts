@@ -10,6 +10,10 @@ import type {
 /**
  * Construit le `checkoutState` backend (mode prestation) depuis une ligne panier + consentements.
  * NE force AUCUN montant (le serveur recalcule). `waiverText` non fourni (re-dérivé serveur).
+ *
+ * M11A — entité institut unique : `service.practitionerId` est un champ **legacy** ; le backend
+ * l'IGNORE (réservation créée via le calendrier global institut). React ne dépend plus du
+ * prestataire — la valeur est transmise telle quelle (ou `null`) uniquement pour compat ascendante.
  */
 export function buildServiceCheckoutState(
   line: CheckoutLine,
@@ -20,7 +24,7 @@ export function buildServiceCheckoutState(
     item: { type: 'service', id: line.service.serviceId, name: line.name },
     service: {
       serviceId: line.service.serviceId,
-      practitionerId: line.service.practitionerId,
+      practitionerId: line.service.practitionerId ?? null, // legacy — ignoré par le backend
       slotStart: line.service.slotStart,
       slotEnd: line.service.slotEnd,
       selectedOptions: line.service.selectedOptions,

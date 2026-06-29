@@ -9,14 +9,12 @@
 // (pas de dépendance vers les finaliseurs → graphe acyclique).
 
 import crypto from 'node:crypto';
-import mongoose from 'mongoose';
 
 import Sale from '../../models/Sale.js';
 import Service from '../../models/Service.js';
 import ServiceBooking from '../../models/ServiceBooking.js';
-import PractitionerProfile from '../../models/PractitionerProfile.js';
 import { resolveEffectiveServiceUnitPrice } from '../promotionService.js';
-import { createServiceBookingWithProtection } from '../serviceAvailabilityService.js';
+import { createGlobalServiceBooking } from '../calendar/globalAvailabilityService.js';
 import { triggerNotification } from '../notificationService.js';
 import { emitSaleEvent, emitBookingEvent } from '../businessEventService.js';
 import { buildTaxSnapshot } from '../../constants/tax.js';
@@ -105,19 +103,10 @@ export async function processServiceCheckoutStatePurchase({
     waiverAcceptedAt
   };
 
-  // Resolve practitioner (optional)
+  // M11A — entité institut unique : un `practitionerId` legacy éventuellement présent dans le
+  // checkoutState est ACCEPTÉ mais IGNORÉ. La réservation est créée via le chemin GLOBAL
+  // (createGlobalServiceBooking résout l'institut + verrou anti-double-booking global).
   const rawPractitionerId = serviceData.practitionerId || null;
-  let practitionerObjectId = null;
-  if (rawPractitionerId && mongoose.Types.ObjectId.isValid(String(rawPractitionerId))) {
-    const practitioner = await PractitionerProfile.findById(rawPractitionerId).lean();
-    if (practitioner?.isActive) practitionerObjectId = practitioner._id;
-  }
-  if (!practitionerObjectId) {
-    throw Object.assign(new Error('Praticienne introuvable.'), {
-      status: 404,
-      code: 'PRACTITIONER_NOT_FOUND'
-    });
-  }
 
   // Generate bookingId
   const bookingIdSuffix = crypto.randomUUID().split('-')[0];
@@ -130,13 +119,14 @@ export async function processServiceCheckoutStatePurchase({
   const isDeposit = service.paymentType === 'deposit';
   const balanceDueAmount = isDeposit ? roundToCents(Math.max(0, totalPrice - depositAmount)) : 0;
 
-  // Create ServiceBooking
-  const { booking } = await createServiceBookingWithProtection({
+  // Create ServiceBooking — chemin GLOBAL institut (M11A). `practitionerId` legacy transmis
+  // tel quel : createGlobalServiceBooking l'écrase par l'id institut (entité unique).
+  const { booking } = await createGlobalServiceBooking({
     bookingData: {
       bookingId: newBookingId,
       clientId: userId,
       serviceId: service._id,
-      practitionerId: practitionerObjectId,
+      practitionerId: rawPractitionerId, // legacy — ignoré/écrasé par l'institut
       startAt,
       endAt,
       totalPrice,
@@ -150,8 +140,7 @@ export async function processServiceCheckoutStatePurchase({
       selectedOptions: validatedOptions,
       consumerWaiverSnapshot,
       stripePaymentIntentId: normalizedStripePaymentIntentId || null
-    },
-    service
+    }
   });
 
   // For deposit payments, totalAmount = deposit charged now (not full service price)
@@ -216,7 +205,7 @@ export async function processServiceCheckoutStatePurchase({
     serviceName: service.name,
     bookingDate: booking.startAt.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
     bookingTime: booking.startAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-    userId: practitionerObjectId ? String(practitionerObjectId) : '',
+    userId: booking.practitionerId ? String(booking.practitionerId) : '',
     link: '/gestion.html?page=planning',
     linkLabel: 'Voir le planning'
   });

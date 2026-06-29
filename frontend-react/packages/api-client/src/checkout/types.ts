@@ -7,6 +7,7 @@ export interface ServiceCheckoutState {
   item: { type: 'service'; id: string; name?: string };
   service: {
     serviceId: string;
+    /** M11A — legacy : entité institut unique, ignoré par le backend (calendrier global). */
     practitionerId: string | null;
     slotStart: string;
     slotEnd: string;

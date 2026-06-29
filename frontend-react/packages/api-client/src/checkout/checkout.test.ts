@@ -32,6 +32,19 @@ describe('buildServiceCheckoutState', () => {
   it('renvoie null pour une ligne non-service', () => {
     expect(buildServiceCheckoutState({ kind: 'product', refId: 'p', name: 'P' }, legal)).toBeNull();
   });
+  it('M11A — ne dépend pas du prestataire : payload construit même sans practitionerId', () => {
+    const lineNoPract: CheckoutLine = {
+      kind: 'service',
+      refId: 's1',
+      slug: 'soin',
+      name: 'Soin',
+      service: { serviceId: 's1', slotStart: '2026-07-01T14:00', slotEnd: '2026-07-01T14:30', practitionerId: null, selectedOptions: [] },
+    };
+    const st = buildServiceCheckoutState(lineNoPract, legal)!;
+    expect(st.service.serviceId).toBe('s1');
+    expect(st.service.slotStart).toBe('2026-07-01T14:00');
+    expect(st.service.practitionerId).toBeNull(); // legacy, ignoré côté serveur
+  });
 });
 
 describe('buildIdempotencyKey', () => {

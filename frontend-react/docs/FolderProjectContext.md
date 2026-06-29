@@ -256,3 +256,10 @@ Symétrique du Mail Template Studio (M6), pour les notifications : édition du c
 versions/publication/rollback et aperçu sans envoi. Principe d'architecture clé : le template décrit le
 message ; c'est le moteur qui décide du destinataire (admin/dev/both). Cohérent avec toute la lignée
 communication. Dev-only, mobile-first. Suite (M8) : exploitation runtime + centre de notifications.
+
+
+## Sprint M11A — Checkout global booking (rapports 199-200)
+
+Le checkout de production est officiellement branche sur le calendrier global de l institut : toute reservation passe par l entite unique, le prestataire n existe plus cote serveur (un ancien identifiant est accepte mais ignore). La disponibilite est calculee globalement. Aucun changement pour le paiement, le remboursement ou le planning. Limites : suppression definitive du champ prestataire reportee a M11B.
+
+Portee transverse (backend + front + Vanilla). Suite M11B : nettoyage definitif du champ prestataire et endpoint de report admin.

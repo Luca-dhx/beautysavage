@@ -9,6 +9,7 @@ import crypto from 'node:crypto';
 import PractitionerSchedule from '../../models/PractitionerSchedule.js';
 import Service from '../../models/Service.js';
 import {
+  assertServiceSlotBookable,
   computeAvailableSlotsForPractitioner,
   createServiceBookingWithProtection,
   sortSlotsByStart
@@ -58,6 +59,37 @@ export async function getGlobalAvailableSlots({ serviceId, dateStr, now = new Da
 }
 
 /**
+ * M11A — Assertion de réservabilité GLOBALE d'un créneau (entité institut). Résout l'institut
+ * puis délègue à `assertServiceSlotBookable`. Aucun `practitionerId` requis : un éventuel
+ * `practitionerId` legacy fourni par le front est IGNORÉ (toujours l'institut). C'est l'unique
+ * gate de validation pré-paiement du checkout prod (Stripe Elements/hébergé + moteur unifié).
+ *
+ * @param {{ serviceId: string, startAt: Date|string, endAt: Date|string, now?: Date,
+ *           ignoreBookingId?: string|null, session?: any }} params
+ * @returns {Promise<object>} le résultat de assertServiceSlotBookable (service/practitioner/slot)
+ */
+export async function assertGlobalServiceSlotBookable({
+  serviceId,
+  startAt,
+  endAt,
+  now = new Date(),
+  ignoreBookingId = null,
+  session = null
+} = {}) {
+  const institute = await resolveInstitutePractitionerProfile({ session });
+  if (!institute) throw instituteNotConfiguredError();
+  return assertServiceSlotBookable({
+    practitionerId: institute._id,
+    serviceId,
+    startAt,
+    endAt,
+    now,
+    ignoreBookingId,
+    session
+  });
+}
+
+/**
  * Crée une réservation prestation rattachée à L'INSTITUT (calendrier global).
  * `bookingData.practitionerId` legacy éventuel est IGNORÉ. Anti-double-booking global via
  * createServiceBookingWithProtection (index unique + slot locks).
@@ -86,5 +118,6 @@ export async function createGlobalServiceBooking({ bookingData = {}, now = new D
 
 export default {
   getGlobalAvailableSlots,
+  assertGlobalServiceSlotBookable,
   createGlobalServiceBooking
 };

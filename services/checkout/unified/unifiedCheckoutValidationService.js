@@ -9,7 +9,7 @@ import {
   buildLegalConsentSnapshot
 } from '../../legalConsentService.js';
 import { assertCheckoutFormationsPurchasable } from '../../offerReadinessService.js';
-import { assertServiceSlotBookable } from '../../serviceAvailabilityService.js';
+import { assertGlobalServiceSlotBookable } from '../../calendar/globalAvailabilityService.js';
 
 /**
  * Valide un checkoutState (legal + offre + créneau si prestation) et renvoie le snapshot légal.
@@ -24,12 +24,11 @@ export async function validateUnifiedCheckout({ checkoutState, kind, source = nu
   // A7 — offres formation non finies (distanciel immédiat sans accès) bloquées.
   await assertCheckoutFormationsPurchasable(checkoutState);
 
-  // Prestation : créneau réservable (anti-chevauchement / acompte supporté).
+  // Prestation : créneau réservable GLOBALEMENT (institut unique ; practitionerId legacy ignoré).
   if (kind === 'service') {
     const svc = checkoutState?.service || {};
     if (svc?.serviceId && svc?.slotStart && svc?.slotEnd) {
-      await assertServiceSlotBookable({
-        practitionerId: svc.practitionerId,
+      await assertGlobalServiceSlotBookable({
         serviceId: svc.serviceId,
         startAt: svc.slotStart,
         endAt: svc.slotEnd,

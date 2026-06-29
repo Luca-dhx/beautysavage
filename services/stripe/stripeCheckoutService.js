@@ -19,7 +19,7 @@ import FormationSession, { buildActiveFormationSessionFilter } from '../../model
 import GiftCardConfig from '../../models/GiftCardConfig.js';
 import Purchase from '../../models/Purchase.js';
 import StripeCheckoutIntent from '../../models/StripeCheckoutIntent.js';
-import { assertServiceSlotBookable } from '../serviceAvailabilityService.js';
+import { assertGlobalServiceSlotBookable } from '../calendar/globalAvailabilityService.js';
 import { deriveLegalRequirements, validateCheckoutLegalConsents } from '../legalConsentService.js';
 import { assertCheckoutFormationsPurchasable } from '../offerReadinessService.js';
 import { buildServerCheckoutPricing, assertClientPricingMatchesServer } from '../checkoutPricingService.js';
@@ -394,8 +394,8 @@ export async function createCheckoutSessionFromRequest(req) {
       };
     }
     try {
-      await assertServiceSlotBookable({
-        practitionerId: checkoutState.service.practitionerId,
+      // M11A — réservabilité GLOBALE institut : le `practitionerId` legacy du front est ignoré.
+      await assertGlobalServiceSlotBookable({
         serviceId: checkoutState.service.serviceId,
         startAt: checkoutState.service.slotStart,
         endAt: checkoutState.service.slotEnd,

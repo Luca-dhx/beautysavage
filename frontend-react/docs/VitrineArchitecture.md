@@ -209,3 +209,12 @@ toujours son thème via `GET /api/vitrine/theme` / `getVitrineTheme` → `mapVit
 `ThemeProvider scope="vitrine"`. M5 (additif) : le pipeline transmet désormais aussi
 typography/radius/shadow/spacing (en plus des couleurs) si le thème actif les définit — sinon repli
 sur `defaultVitrineTheme`. Aucune rupture : la vitrine Vanilla et React restent compatibles.
+
+
+## Sprint M11A — Checkout prod branche sur le calendrier global institut (rapports 199-200)
+
+Fermeture de l ecart M10 : le checkout de PRODUCTION cree toute nouvelle ServiceBooking via le chemin GLOBAL institut (`createGlobalServiceBooking`). practitionerId reste legacy nullable, accepte mais IGNORE.
+- Backend : `assertGlobalServiceSlotBookable` (globalAvailabilityService) ; finaliseur `processServiceCheckoutStatePurchase` -> createGlobalServiceBooking ; validations pre-paiement (stripeCheckoutService Elements/hosted + unifiedCheckoutValidationService) -> assertGlobalServiceSlotBookable ; route directe `createBooking` neutralisee ; `getAvailableSlots` ignore le practitionerId query.
+- Regles paiement/remboursement/commission INCHANGEES ; aucune suppression DB.
+
+**Vitrine (R2A/R2B)** : `@bs/api-client/checkout` — `service.practitionerId` documente LEGACY (ignore serveur), `buildServiceCheckoutState` le transmet en `?? null`. `@bs/api-client/booking/availability.getServiceAvailableSlots(practitionerId?)` tolere mais sans effet. React ne depend plus du prestataire ; aucun nouveau texte prestataire/praticienne. Tests R2A/R2B intacts + 1 test non-dependance.

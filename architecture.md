@@ -3984,3 +3984,17 @@ Rapports 173/174. Backend **467** + audits 36/20 ; frontend inchangé (78).
 - **SendLog/EventLog inchangés** (enum strict) ; rôles via `metadata.tags`. Tests +25
   (`mailDispatchRules`, `mailEventDispatchService`, `mailEventSubscriber`, `mailEventDeliveryIdempotence`,
   `mailRoleResolverIntegration`) ; Brevo mocké. Prochaine mission : **M3** (Notification Target Engine).
+
+
+## Sprint M11A — Checkout prod branche sur le calendrier global institut (rapports 199-200)
+
+Le checkout de production cree desormais TOUTE nouvelle ServiceBooking via le chemin GLOBAL institut.
+- `services/calendar/globalAvailabilityService.js` : ajout `assertGlobalServiceSlotBookable({serviceId,startAt,endAt,...})` (resout l institut puis assertServiceSlotBookable ; aucun practitionerId requis ; INSTITUTE_NOT_CONFIGURED 409 sinon).
+- `services/checkout/checkoutBookingService.js` `processServiceCheckoutStatePurchase` (webhook Stripe payment_intent.succeeded + finalize-free 0 EUR) cree la booking via `createGlobalServiceBooking` ; PRACTITIONER_NOT_FOUND supprime ; un practitionerId legacy du checkoutState est accepte puis ecrase par l institut. Regles paiement/acompte/carte cadeau/commission INCHANGEES.
+- `services/stripe/stripeCheckoutService.js` (Elements + hosted U2) et `services/checkout/unified/unifiedCheckoutValidationService.js` valident le creneau via `assertGlobalServiceSlotBookable` (practitionerId du front ignore).
+- `controllers/serviceBookingController.js` `createBooking` (POST /api/client/bookings, route directe legacy) : practitionerId non requis ni valide (ignore), institut resolu serveur, creation via `createGlobalServiceBooking`.
+- `controllers/availabilityController.js` `getAvailableSlots` : practitionerId query LEGACY sans effet (creneaux institut). Contrat API inchange.
+- NON touche : modeles/index/slot-locks/PractitionerProfile (aucune suppression DB) ; flux reschedule/refund (cible institut via snapshot, conversion reportee M11B) ; planning manager.
+- Vanilla `public/js/modules/checkoutModule.js` continue d envoyer service.practitionerId : accepte/ignore.
+- Tests +4 fichiers/11 cas (tests/p1/checkoutGlobalBooking{Production,LegacyPayload}, globalBooking{AvailabilityOfficial,NoPractitionerRegression}). Suites : p0 44, p1 589, integration 6, audits 36+20. Secret scan RAS.
+- Prochaine mission : M11B (cleanup practitionerId + index {startAt} global ; conversion reschedule ; endpoint report admin).

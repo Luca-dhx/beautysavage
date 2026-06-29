@@ -738,3 +738,12 @@ sont documentés dans les rapports 99/102/103.
 - The mail service is mocked or outbound HTTP is stubbed in tests that would
   otherwise send email.
 - `app.js` skips background schedulers and `app.listen()` when `NODE_ENV==='test'`.
+
+
+## M11A — Checkout global booking (rapports 199-200)
+
+Quatre fichiers `tests/p1/` couvrent le branchement du checkout prod sur le calendrier global institut :
+- `checkoutGlobalBookingProduction.test.js` — webhook Stripe + finalize-free creent une booking GLOBALE (practitionerId = institut) + BookingSlotLock institut ; Sale = montant catalogue.
+- `checkoutGlobalBookingLegacyPayload.test.js` — practitionerId legacy bidon / absent dans le checkoutState : accepte mais IGNORE (rattachement institut).
+- `globalBookingAvailabilityOfficial.test.js` — GET availability/slots sans practitionerId, practitionerId legacy sans effet, double-booking global bloque (409).
+- `globalBookingNoPractitionerRegression.test.js` — route directe POST /api/client/bookings sans/avec practitionerId legacy, assertGlobalServiceSlotBookable sans practitionerId, regression acompte/remboursement (Sale = acompte, solde trace).

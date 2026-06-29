@@ -620,7 +620,9 @@ export async function getAvailableSlots(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   try {
-    const { serviceId, date, practitionerId } = req.query;
+    // M11A — disponibilité GLOBALE institut : le `practitionerId` query est LEGACY et IGNORÉ
+    // (entité unique). Le contrat API ({ ok, slots[] }) est inchangé.
+    const { serviceId, date } = req.query;
     if (!serviceId || !date) {
       return res.status(400).json({ ok: false, error: 'serviceId et date sont requis.' });
     }
@@ -639,16 +641,11 @@ export async function getAvailableSlots(req, res) {
       return res.json({ ok: true, slots: [] });
     }
 
-    let practitioners;
-    if (practitionerId) {
-      const p = await PractitionerProfile.findById(practitionerId).lean();
-      practitioners = p ? [p] : [];
-    } else {
-      practitioners = await PractitionerProfile.find({
-        serviceIds: service._id,
-        isActive: true
-      }).lean();
-    }
+    // Toujours l'entité institut (offrant la prestation). Aucun filtrage par prestataire.
+    const practitioners = await PractitionerProfile.find({
+      serviceIds: service._id,
+      isActive: true
+    }).lean();
 
     if (!practitioners.length) return res.json({ ok: true, slots: [] });
 

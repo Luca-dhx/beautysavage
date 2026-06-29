@@ -23,7 +23,10 @@ export async function getServiceAvailableDays(
   return strArr(res.availableDays);
 }
 
-/** Créneaux d'un jour (YYYY-MM-DD), optionnellement filtrés par praticien. */
+/**
+ * Créneaux d'un jour (YYYY-MM-DD). M11A — entité institut unique : `practitionerId` est un
+ * paramètre LEGACY toléré mais SANS EFFET côté serveur (disponibilité calculée globalement).
+ */
 export async function getServiceAvailableSlots(
   params: { serviceId: string; date: string; practitionerId?: string | null },
   signal?: AbortSignal,

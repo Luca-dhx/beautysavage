@@ -39,12 +39,16 @@
     "reactR2BPaymentFlow": "completed",
     "reactR2CStripeReturnLogin": "completed",
     "m1CommunicationIdentity": "completed",
-    "m2MailEventDispatch": "completed"
+    "m2MailEventDispatch": "completed",
+    "m11aCheckoutGlobalBooking": "completed"
   },
   "m2MailEventDispatch": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["173_audit_pre_m2_mail_event_dispatch.md", "174_rapport_m2_mail_event_dispatch_engine.md"],
+    "reports": [
+      "173_audit_pre_m2_mail_event_dispatch.md",
+      "174_rapport_m2_mail_event_dispatch_engine.md"
+    ],
     "summary": "Moteur d'envoi e-mail evenementiel par roles (event -> regle -> fromRole/toRole -> resolver M1 -> template -> gateway -> SendLog), idempotent. BRIQUE ADDITIVE : envois directs CONSERVES (moteur en shadow), mailService/postToBrevo/sendLogService/SendLog/webhook NON modifies ; aucune UI ; aucun vrai e-mail (Brevo mocke). Backend 467 + audits 36/20 ; frontend inchange (78).",
     "flag": "MAIL_ROLE_RESOLVER_ENABLED=false (.env.example) ; isMailRoleResolverEnabled() lu a l'execution. false -> subscriber no-op (envois existants inchanges). true -> dispatch (shadow tant qu'un envoi direct existe).",
     "rules": "constants/mailDispatchRules.js : {eventName,templateKey,fromRole,toRole,contextType,enabled,directSenderExists}. sale.finalized->vente, booking.confirmed->booking_confirmed, refund.succeeded->refund_confirmed (commerciale->client) ; commission.available->commission_available, commission.reminder_sent->commission_reminder (support->commerciale). TOUTES directSenderExists:true (shadow, anti-doublon). Aucune adresse dans les regles.",
@@ -59,7 +63,10 @@
   "m1CommunicationIdentity": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["171_audit_pre_m1_communication_identity.md", "172_rapport_m1_communication_identity_backend.md"],
+    "reports": [
+      "171_audit_pre_m1_communication_identity.md",
+      "172_rapport_m1_communication_identity_backend.md"
+    ],
     "summary": "Fondation backend des identites de communication (support/commerciale + verification sender Brevo + domaine DNS + resolver fromRole/toRole), inspiree de LYCARZ. BRIQUE ADDITIVE : mailService/SendLog/EventLog/webhook Brevo NON modifies ; aucun envoi/template migre ; aucune UI React ; aucun vrai e-mail (Brevo mocke). Backend 442 + audits 36/20 ; frontend inchange (78 + build + lint).",
     "model": "models/CommunicationIdentity.js : role(support/commerciale)+scope(platform/institute) imposes (ROLE_SCOPE support=platform, commerciale=institute), status(unverified/verification_pending/verified/disabled), active, provider brevo, providerSenderId/providerVerificationStatus/...VerifiedAt, domain/domainAuthenticated/domainStatus/dnsRecords[], verification{requestedAt,verifiedAt,lastErrorCode,lastErrorMessageSafe}, metadata/createdBy/updatedBy. CLIENT jamais dans l'enum (non configurable). Index unique partiel {role,scope} ou active:true. AUCUN secret.",
     "service": "services/communicationIdentityService.js : createCommunicationIdentity, listCommunicationIdentities, setActiveCommunicationIdentity, requestSenderVerification, confirmSenderVerification, refreshIdentityVerificationStatus, getActiveIdentity, assertIdentityReady(role,scope,{mode:strict|warn}). client rejete (client_not_configurable) ; email lowercase ; displayName requis ; active seulement si verified (identity_not_verified) ; setActive sequentiel (sans transaction). domainAuthenticated:false n'empeche pas ready. CommunicationIdentityError {code,status}.",
@@ -75,7 +82,10 @@
   "reactR2CStripeReturnLogin": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["169_audit_react_r2c_stripe_return_login.md", "170_rapport_react_r2c_stripe_return_login.md"],
+    "reports": [
+      "169_audit_react_r2c_stripe_return_login.md",
+      "170_rapport_react_r2c_stripe_return_login.md"
+    ],
     "summary": "Fermeture de la boucle paiement React : URLs de retour React (env, fallback Vanilla), session-status resout les cs_, pages retour React robustes, login client leger + reprise checkout. Backend touche UNIQUEMENT sur URLs retour + lecture session-status (aucun pricing/finalizer/consentement). Backend 411 + audits 36/20 ; frontend 91 tests + build + lint + typecheck verts.",
     "backendReturnUrls": "stripeCheckoutService.buildHostedReturnUrls(ngrok,checkoutId) : CHECKOUT_RETURN_BASE_URL (.env.example) vide -> URLs Vanilla INCHANGEES ; http(s) absolue -> success={base}/paiement/succes?session_id={CHECKOUT_SESSION_ID}&checkoutId=… , cancel={base}/paiement/annule. Base = env only (jamais client) + validee http(s) -> pas d'open redirect ; base sans schema -> fallback Vanilla.",
     "backendSessionStatus": "stripePaymentQueryService.getSessionStatusFromRequest : si id commence par cs_ -> stripe.checkout.sessions.retrieve -> payment_intent -> suite inchangee. Chemin pi_ identique. cs_ sans PI -> {status:'open',payment_status:'unpaid'}. Reponse inchangee.",
@@ -89,7 +99,10 @@
   "reactR2BPaymentFlow": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["167_audit_react_r2b_payment_flow.md", "168_rapport_react_r2b_payment_flow.md"],
+    "reports": [
+      "167_audit_react_r2b_payment_flow.md",
+      "168_rapport_react_r2b_payment_flow.md"
+    ],
     "summary": "Checkout React branche au paiement via le backend : Stripe Checkout HEBERGE (redirection) + finalize-free (0 EUR). AUCUN Stripe.js / AUCUN appel Stripe direct cote React. ZERO changement backend. Backend 404 + audits 36/20 inchanges ; frontend 71 tests + build + lint + typecheck verts.",
     "apiClient": "@bs/api-client/checkout : createCheckoutSession({checkoutState}) POST /api/stripe/create-checkout-session (body DIRECT, pas de token) -> hosted|free|elements ; finalizeFreeCheckout({checkoutState,idempotencyKey}) POST /api/client/checkout/finalize-free -> {saleId} ; getPaymentResult(pi) GET /api/stripe/payment-result ; buildServiceCheckoutState(line,legal) (SANS montant, serveur recalcule) ; buildIdempotencyKey (alphanum 8-128). credentials:include ; erreurs ApiError + mapping @bs/config resolveErrorUx.",
     "payload": "checkoutState = {item:{type:'service',id,name}, service:{serviceId,practitionerId,slotStart,slotEnd,selectedOptions}, legal:{acceptedCgv,waiverAccepted}, origin:{slug:'checkout'}}. JAMAIS de totals/amountToPay. waiverText non envoye (re-derive serveur).",
@@ -104,7 +117,10 @@
   "reactR2ACheckoutPreparation": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["165_audit_react_r2a_checkout_preparation.md", "166_rapport_react_r2a_checkout_preparation.md"],
+    "reports": [
+      "165_audit_react_r2a_checkout_preparation.md",
+      "166_rapport_react_r2a_checkout_preparation.md"
+    ],
     "summary": "Couche React de PREPARATION checkout : panier local, selection creneau prestation, disponibilites, consentements legaux, resume + payload prepare. AUCUN paiement / AUCUN appel Stripe / AUCUN create-checkout-session. ZERO changement backend. Backend 404 + audits 36/20 inchanges ; frontend 54 tests + build + lint + typecheck verts.",
     "apiClient": "@bs/api-client/booking : availability (getServiceAvailableDays/Slots -> /api/vitrine/availability/days|slots ; slots start/end 'YYYY-MM-DDTHH:mm', jours 'YYYY-MM-DD'), legalConsents (EMPTY_LEGAL_CONSENT, isLegalConsentComplete), checkoutPreparation (buildCheckoutPreparationPayload PUR, sans reseau/Stripe, mirroir partiel checkoutState.service+legal). Types AvailabilitySlot/SelectedServiceSlot/LegalConsentState/CheckoutLine/CheckoutPreparationPayload.",
     "cart": "apps/vitrine/src/features/cart : CartProvider/useCart, localStorage versionne (bs_cart/CART_VERSION ; version incompatible -> reset), addService/removeItem/updateItem/clearCart, summary {count,indicativeTotal}. Panier INDICATIF (euros) ; backend recalcule tout. ServiceCartItem porte selectedSlot/selectedOptions/indicativePrice. lineId crypto.randomUUID + fallback.",
@@ -119,7 +135,10 @@
   "themeMultiScopeT1": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["163_audit_pre_t1_theme_multiscope.md", "164_rapport_t1_theme_multiscope.md"],
+    "reports": [
+      "163_audit_pre_t1_theme_multiscope.md",
+      "164_rapport_t1_theme_multiscope.md"
+    ],
     "summary": "Theme backend multi-scope (vitrine/manager). React Manager branche sur /api/theme/manager (fallback defaultPanelTheme). ZERO regression Vanilla/React Vitrine/endpoints/couleurs sans config. Backend 404 + audits 36/20 ; frontend 41 tests + build + lint + typecheck verts.",
     "model": "models/Theme.js : +scope enum['vitrine','manager'] default vitrine (legacy sans scope = vitrine). Champs additifs optionnels typography/radius/shadow/spacing/metadata (vides -> aucun impact, exposes si presents). colors/derivedTokens/logoUrl/slogan conserves. Index theme_scope_idx + theme_active_per_scope ({scope:1} unique partiel isActive:true -> 1 actif/scope).",
     "endpoints": "GET /api/vitrine/theme CONSERVE (vitrine, inclut legacy, payload + champ additif scope). Nouveau GET /api/theme/:scope (vitrine|manager, public, {ok,scope,theme}, theme:null si aucun actif, scope invalide 400) -> routers/themePublicRouter.js monte sur /api/theme. CRUD dev /api/gestion/themes : createTheme/updateTheme acceptent scope ; activateTheme PAR SCOPE (sequentiel, sans transaction) ; listThemes?scope=.",
@@ -133,7 +152,11 @@
   "reactThemeFoundation": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["160_audit_theme_vanilla_react.md", "161_plan_theme_studio_dev.md", "162_rapport_theme_foundation_react.md"],
+    "reports": [
+      "160_audit_theme_vanilla_react.md",
+      "161_plan_theme_studio_dev.md",
+      "162_rapport_theme_foundation_react.md"
+    ],
     "summary": "Fondation de theme React deux scopes (vitrine/panel), couleurs JAMAIS en dur dans les composants (lecture CSS vars --bs-*). ZERO changement backend. Vanilla intact. PAS de R2 checkout. Backend 394 + audits 36/20 inchanges ; frontend 38 tests + build + lint + typecheck verts.",
     "audit": "Theme model (colors{primary,secondary,background,surface,text}+derivedTokens, dev-only CRUD /api/gestion/themes requireStrictDev) + /api/vitrine/theme public. Vanilla PARTAGE un seul theme vitrine+gestion (--color-*/--theme-*). React @bs/ui utilise prefixe --bs-*.",
     "model": "@bs/ui/theme : ThemeTokens (colors etendus background/surface/surfaceElevated/text/textMuted/primary/primaryHover/secondary/accent/border/success/warning/danger + radius/shadow/font/spacing). defaultVitrineTheme (violet/rose, aligne Vanilla). defaultPanelTheme (bleu/ardoise, DISTINCT). themeToCssVars (tokens->--bs-*), applyThemeVars, mergeTheme, normalizeHex, ThemeProvider scope, useThemeTokens.",
@@ -150,7 +173,10 @@
   "reactR1VitrineCatalogue": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["158_audit_react_r1_proxy_catalogue.md", "159_rapport_react_r1_vitrine_catalogue.md"],
+    "reports": [
+      "158_audit_react_r1_proxy_catalogue.md",
+      "159_rapport_react_r1_vitrine_catalogue.md"
+    ],
     "summary": "Premiere vraie couche vitrine React : catalogue public (prestations/formations/produits/cartes cadeaux) consommant l'API publique EXISTANTE. ZERO changement backend. Vanilla intact. PAS de checkout (R2). Backend 394 + audits 36/20 inchanges ; frontend 26 tests verts + build + lint + typecheck.",
     "proxy": "Durci : @bs/config expose PROXY_PATHS=['/api','/auth','/uploads'] + buildProxyMap(target) (teste). vite.shared.makeApiProxy le consomme pour les 2 apps. VITE_PROXY_TARGET defaut http://localhost:3000. Same-origin, cookie via credentials:include, medias /uploads/... via proxy. Aucun secret front.",
     "endpoints": "GET /api/vitrine/services (+/services/:slug par SLUG), /api/vitrine/shop ({formations[],products[]}), /api/vitrine/formations/:id, /api/vitrine/products/:id, /api/vitrine/gift-cards (config seule: minAmount/description/image), /api/site-status (bandeau). Mapping fidele (rapport 158).",
@@ -165,7 +191,10 @@
   "reactR0Infrastructure": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["156_audit_pre_react_r0_setup.md", "157_rapport_react_r0_setup.md"],
+    "reports": [
+      "156_audit_pre_react_r0_setup.md",
+      "157_rapport_react_r0_setup.md"
+    ],
     "summary": "Infrastructure React parallele creee dans backend/frontend-react (npm workspaces) : apps vitrine+manager, packages config/api-client/auth/ui, routing placeholder, guards role, proxy /api+/auth. AUCUNE vraie page metier. ZERO changement backend metier (seuls des scripts react:* ajoutes au package.json racine). Vanilla intact. Suite backend 394 verte ; frontend 12 tests verts + build + lint + typecheck.",
     "stack": "Vite 5 + React 18 + TypeScript strict + React Router 6 + TanStack Query 5. Tests Vitest + Testing Library (jsdom). Lint ESLint 9 (flat). CSS = tokens CSS variables (@bs/ui), pas de Tailwind. Alias @bs/* -> packages/*/src (source TS importee, pas de build des packages).",
     "apps": "apps/vitrine (routes publiques + /panier,/checkout sous RequireAuth, loginPath=/connexion ; PublicLayout). apps/manager (/login public ; tout sous RequireRole(['admin','dev']) + ManagerLayout ; /dev/* sous RequireRole(['dev'], deniedPath=/) + DevLayout).",
@@ -179,7 +208,10 @@
   "unifiedCheckoutU3PlatformCheckout": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["154_audit_pre_sprint_u3_platform_checkout.md", "155_rapport_sprint_u3_platform_checkout.md"],
+    "reports": [
+      "154_audit_pre_sprint_u3_platform_checkout.md",
+      "155_rapport_sprint_u3_platform_checkout.md"
+    ],
     "summary": "UnifiedCheckout etendu aux paiements PLATEFORME (compte Stripe Dev) : commission/launch_fee/subscription, derriere flag PLATFORM_CHECKOUT_HOSTED. ZERO changement metier/payload existant/statut HTTP. Anciens flows Dev en fallback. Stripe Institut intact. Suite 394 verte.",
     "kinds": "commission, launch_fee, subscription (+ kinds institut). payment.provider='stripe_dev'.",
     "featureFlag": "PLATFORM_CHECKOUT_HOSTED (.env.example, defaut false). isPlatformCheckoutHostedEnabled(). false=anciens flows Dev inchanges ; true=Stripe Checkout heberge (mode payment commission/launch, mode setup abonnement). Independant de CHECKOUT_HOSTED (institut).",
@@ -196,7 +228,10 @@
   "unifiedCheckoutU2HostedCheckout": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["152_audit_pre_sprint_u2_hosted_checkout.md", "153_rapport_sprint_u2_hosted_checkout.md"],
+    "reports": [
+      "152_audit_pre_sprint_u2_hosted_checkout.md",
+      "153_rapport_sprint_u2_hosted_checkout.md"
+    ],
     "summary": "UnifiedCheckout cable sur le checkout client reel + Stripe Checkout HEBERGE derriere feature flag CHECKOUT_HOSTED. Elements reste le fallback (flag off). ZERO changement prix/finalisation metier/remboursement/booking. Suite 385 verte.",
     "featureFlag": "CHECKOUT_HOSTED (.env.example, defaut false). isCheckoutHostedEnabled() lu a l'execution (rollback immediat). false=Elements inchange ; true=Checkout heberge ; 0 EUR=toujours finalize-free.",
     "flagFalse": "createCheckoutSession inchange : paymentIntents.create + clientSecret. Aucun UnifiedCheckout cree.",
@@ -211,7 +246,10 @@
   "unifiedCheckoutU1Foundations": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["150_audit_pre_sprint_u1_unified_checkout.md", "151_rapport_sprint_u1_unified_checkout_foundations.md"],
+    "reports": [
+      "150_audit_pre_sprint_u1_unified_checkout.md",
+      "151_rapport_sprint_u1_unified_checkout_foundations.md"
+    ],
     "summary": "Moteur UnifiedCheckout cree EN PARALLELE des flux existants (kinds institut: service/formation/product/gift_card/cart). ZERO finaliseur metier modifie, ZERO endpoint public/payload change, Stripe Elements/finalize-free intacts, commissions/contrat non touches. Suite 374 verte.",
     "model": "models/UnifiedCheckout.js : checkoutId(unique)/kind/status(draft|pricing_ready|payment_pending|free_ready|finalized|cancelled|failed|expired)/userId/source/origin/snapshots(inputSnapshot sanitise+pricingSnapshot+taxSnapshot+legalConsentSnapshot)/payment(mode stripe|free|mixed|gift_card_only)/finalization(saleId/bookingId/...)/idempotencyKey/expiresAt/metadata. Index: checkoutId unique, idempotencyKey unique PARTIEL (chaines), {status,expiresAt}. AUCUN secret stocke (password carte cadeau retire).",
     "services": "services/checkout/unified/ : unifiedCheckoutTypes (classifyUnifiedKind desambiguise single->product/formation via item.type ; resolvePaymentMode), unifiedCheckoutRepository (findOrCreateByIdempotencyKey), unifiedCheckoutPricingService (wrapper buildServerCheckoutPricing), unifiedCheckoutValidationService (legal A1 + offre A7 + creneau via services existants), unifiedCheckoutFactory (cree depuis checkoutState ACTUEL inchange), unifiedCheckoutFinalizer (DELEGUE a processCheckoutStatePurchase), unifiedCheckoutResponseMapper (vue safe).",
@@ -225,7 +263,15 @@
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
     "type": "documentation + scaffold (aucun code backend modifie, aucun setup React executable)",
-    "reports": ["143_audit_unified_checkout_current_flows.md", "144_roadmap_unified_checkout_engine.md", "145_react_documentation_structure.md", "146_react_parallel_setup_plan.md", "147_react_routes_and_apps_plan.md", "148_react_api_client_contract.md", "149_react_migration_sprint_roadmap.md"],
+    "reports": [
+      "143_audit_unified_checkout_current_flows.md",
+      "144_roadmap_unified_checkout_engine.md",
+      "145_react_documentation_structure.md",
+      "146_react_parallel_setup_plan.md",
+      "147_react_routes_and_apps_plan.md",
+      "148_react_api_client_contract.md",
+      "149_react_migration_sprint_roadmap.md"
+    ],
     "unifiedCheckout": "Moteur de checkout unique pour TOUS les paiements (prestation/formation/produit/carte cadeau/panier/acompte/commission/frais de lancement/abonnement). Pipeline: pricing serveur -> consentements -> moyens de paiement -> Stripe Checkout heberge (montant>0) ou finalize-free (0 EUR) -> webhook -> finalizers EXISTANTS reutilises (processCheckoutStatePurchase, finalizeCommissionPaymentById, handlers contrat). Zero reecriture metier. Architecture cible services/checkout/unified/ + modele UnifiedCheckout. Migration Stripe Elements -> Checkout heberge (feature flag, parite, rollback). NON implemente (plan only).",
     "currentFlows": "Institut = PaymentIntent + Stripe Elements (create-checkout-session) ; 0 EUR = finalize-free ; commission/launch = PaymentIntent Dev ; abonnement = SetupIntent+Subscription Dev. Tous distincts -> a unifier.",
     "frontendReactScaffold": "frontend-react/ cree (structure + docs uniquement) : apps/{vitrine,manager}, packages/{api-client,ui,auth,config}, docs/{Folder,Vitrine,Manager}{Architecture,ProjectContext}.md + READMEs. Stack cible Vite+React+TS+React Router+TanStack Query+Zod. Pas de package.json/build (setup execute au sprint R0).",
@@ -238,7 +284,18 @@
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
     "type": "documentation-only (aucun code modifie, aucun setup React)",
-    "reports": ["133_audit_site_vanilla_actuel.md", "134_audit_roles_espaces_react.md", "135_audit_blocages_site_achats.md", "136_architecture_cible_react_domaines.md", "137_plan_react_parallel_migration.md", "138_roadmap_react_ecran_par_ecran.md", "139_api_contract_react_ready.md", "140_tests_e2e_critiques_react.md", "141_corrections_pre_setup_react.md", "142_rapport_audit_react_target_architecture.md"],
+    "reports": [
+      "133_audit_site_vanilla_actuel.md",
+      "134_audit_roles_espaces_react.md",
+      "135_audit_blocages_site_achats.md",
+      "136_architecture_cible_react_domaines.md",
+      "137_plan_react_parallel_migration.md",
+      "138_roadmap_react_ecran_par_ecran.md",
+      "139_api_contract_react_ready.md",
+      "140_tests_e2e_critiques_react.md",
+      "141_corrections_pre_setup_react.md",
+      "142_rapport_audit_react_target_architecture.md"
+    ],
     "frontActuel": "2 SPA separees (vitrine.html/gestion.html), 72 modules JS, routing query-param (?slug=/?module=), PAS de toggle runtime (currentMode/modeGuard vestigial).",
     "roles": "client/admin/dev inchanges backend. Relabel UI seulement : admin->Manager, dev->Developpeur. 4 espaces : Public/Client, Manager, Developer.",
     "architectureCible": "beautysavage.fr = Vitrine React (public+client) ; manager.beautysavage.fr = Manager React (admin) + section /dev (role dev, Option B) ; backend Express inchange, proxy /api par app.",
@@ -251,7 +308,10 @@
   "preReactF3bMailServiceSplit": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["131_audit_pre_sprint_f3b_mail_service.md", "132_rapport_sprint_f3b_mail_service_split.md"],
+    "reports": [
+      "131_audit_pre_sprint_f3b_mail_service.md",
+      "132_rapport_sprint_f3b_mail_service_split.md"
+    ],
     "summary": "Split de mailService.js (3845->49 lignes, facade de compatibilite) en modules sous services/mail/. ZERO changement fonctionnel / template / contenu email / payload Brevo / SendLog / API. Caracterisation ecrite avant (mailServiceCharacterization, verte avant/apres).",
     "modulesCreated": {
       "services/mail/mailRenderer.js": "theme/couleurs, builders premium HTML, createMailTemplateDefinition, sanitization, replaceTemplateVariables, formatAmount, normalize*, VARIABLE_KEYS, getActiveMailThemeVars/withMailThemeVars.",
@@ -273,7 +333,10 @@
   "preReactF3aContractBillingExtraction": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["129_audit_pre_sprint_f3a_contract_billing.md", "130_rapport_sprint_f3a_contract_billing_extraction.md"],
+    "reports": [
+      "129_audit_pre_sprint_f3a_contract_billing.md",
+      "130_rapport_sprint_f3a_contract_billing_extraction.md"
+    ],
     "summary": "Extraction facturation contrat (frais de lancement, abonnement mensuel, sync, annulation) hors de contractController (1098->687 lignes, -37%). ZERO changement fonctionnel / contrat API / statut HTTP / payload / commission / Stripe Institut. Caracterisation ecrite AVANT extraction (11 probes vertes avant/apres).",
     "servicesCreated": {
       "services/contract/contractStateService": "contractAmountTtcCents, computeLockedUntil (purs).",
@@ -295,7 +358,10 @@
   "preReactF2bStripeDevExtraction": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["127_audit_pre_sprint_f2b_stripe_dev_extraction.md", "128_rapport_sprint_f2b_stripe_dev_extraction.md"],
+    "reports": [
+      "127_audit_pre_sprint_f2b_stripe_dev_extraction.md",
+      "128_rapport_sprint_f2b_stripe_dev_extraction.md"
+    ],
     "summary": "Extraction du domaine Stripe Dev / plateforme (platform_billing) vers services/stripe/dev/. devWebhookController 271->13 lignes (delegateur), commissionPaymentController 581->463, utils/stripeDevClient -> shim (7). ZERO changement fonctionnel / contrat API / statut HTTP / payload / commission / contrat / paiement client institut.",
     "servicesCreated": {
       "stripeDevConfigService": "getStripeDevClient (impl) + getStripeDevPublishableKey + getStripeDevWebhookSecret + getStripeDevAccountPurpose. Source unique compte Dev.",
@@ -319,7 +385,10 @@
   "preReactF2StripeExtraction": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["125_audit_pre_sprint_f2_stripe_extraction.md", "126_rapport_sprint_f2_stripe_extraction.md"],
+    "reports": [
+      "125_audit_pre_sprint_f2_stripe_extraction.md",
+      "126_rapport_sprint_f2_stripe_extraction.md"
+    ],
     "summary": "Extraction du domaine Stripe hors de stripeController (1727 -> 135 lignes, -92%). Controleur = orchestrateur HTTP mince (7 handlers delegateurs -> service -> stripeResponseMapper). ZERO changement fonctionnel/contrat API/statut HTTP/payload/pricing/commission/refund/invoice/booking.",
     "servicesCreated": {
       "stripeConfigService": "getStripeClient / getStripePublishableKey / getStripeWebhookSecret (compte institut via getCredential). Feuille du DAG.",
@@ -333,7 +402,15 @@
       "stripeResponseMapper": "send(res, {status, json|send}) — JSON (API) vs texte (webhook) preserves."
     },
     "dag": "webhookService -> {webhookEventHandlers -> {checkoutFacade, feeService, metadata, webhookFailure}, refundEventService} ; checkoutService -> {config, metadata, pricing, legal, offer, giftCardReservation} ; feeService -> {config, metadata} ; tous -> config (feuille). Acyclique (charge verifie).",
-    "controllerHandlers": ["createCheckoutSession", "handleWebhook", "getSessionStatus", "getPaymentResult", "getConfig", "getTransactionFees", "getPendingFeesCount"],
+    "controllerHandlers": [
+      "createCheckoutSession",
+      "handleWebhook",
+      "getSessionStatus",
+      "getPaymentResult",
+      "getConfig",
+      "getTransactionFees",
+      "getPendingFeesCount"
+    ],
     "note": "handleWebhook et getConfig gardent la signature (req,res) — appeles directement en test. app.js importe les fns frais depuis stripeFeeService.",
     "tests": "329 verts (p0=44, p1=279, integration=6) dont stripeControllerExtractionParity + stripeWebhookExtractionParity (+8). audit business 36, audit commissions 20.",
     "gate": "git grep constructEvent/payment_intent.succeeded/charge.refund.updated/handleRefundUpdatedEvent dans stripeController = aucune occurrence (logique deplacee). createCheckoutSession = delegateur mince uniquement.",
@@ -347,7 +424,10 @@
   "preReactF1CheckoutExtraction": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",
-    "reports": ["123_audit_pre_sprint_f1_checkout_extraction.md", "124_rapport_sprint_f1_checkout_extraction.md"],
+    "reports": [
+      "123_audit_pre_sprint_f1_checkout_extraction.md",
+      "124_rapport_sprint_f1_checkout_extraction.md"
+    ],
     "summary": "Extraction complete du domaine Checkout hors de clientController (3253 -> 1707 lignes, -47%). clientController = orchestrateur HTTP mince. ZERO changement fonctionnel/contrat API/statut HTTP/payload/pricing/refund/booking.",
     "servicesCreated": {
       "checkoutPersistenceService": "persistSale, runPostSaleSideEffects, buildSaleId, buildCustomerProfile, buildSaleEntry, validateAndBuildSelectedOptions, buildFormationEntryFromSale, buildSaleCommissionSnapshot, applySaleCommissionSnapshot, normalizeSnapshotItem, persistCartSnapshot, clearCartSnapshotBestEffort, rollbackSingleSale, assertZeroRemainingForFreeOrder. Base du DAG (n'importe aucun finaliseur).",
@@ -358,7 +438,14 @@
       "checkoutFacade": "finalizeFreeCheckout (HTTP) + point d'entree unique des consommateurs."
     },
     "dag": "facade -> finalization -> {persistence, bookingService} ; bookingService -> persistence ; validation/responseMapper feuilles. Branche gift-card du dispatcher = import dynamique giftCardController (pas de cycle).",
-    "consumersRepointed": ["stripeController (processCheckoutStatePurchase)", "serviceBookingController (runPostSaleSideEffects)", "giftCardController (persistSale/runPostSaleSideEffects/applySaleCommissionSnapshot ; serializePurchasePayload reste de clientController)", "clientRouter (finalizeFreeCheckout)", "clientController mockPay/saveCartSnapshot", "8 fichiers de test (import depuis checkoutFacade)"],
+    "consumersRepointed": [
+      "stripeController (processCheckoutStatePurchase)",
+      "serviceBookingController (runPostSaleSideEffects)",
+      "giftCardController (persistSale/runPostSaleSideEffects/applySaleCommissionSnapshot ; serializePurchasePayload reste de clientController)",
+      "clientRouter (finalizeFreeCheckout)",
+      "clientController mockPay/saveCartSnapshot",
+      "8 fichiers de test (import depuis checkoutFacade)"
+    ],
     "tests": "321 verts (p0=44, p1=271, integration=6) dont checkoutExtractionParity (+4 : identite referentielle facade===sous-services + contrat HTTP 401/400/402). audit business 36, audit commissions 20.",
     "noLint": "Aucun script lint defini dans package.json (absence documentee).",
     "detteRestante": [
@@ -372,7 +459,11 @@
   "preReactE1E2": {
     "date": "2026-06-27",
     "branch": "phase-0-security-baseline",
-    "reports": ["120_audit_controller_refactor.md", "121_rapport_promotion_finalization.md", "122_rapport_refactor_backend.md"],
+    "reports": [
+      "120_audit_controller_refactor.md",
+      "121_rapport_promotion_finalization.md",
+      "122_rapport_refactor_backend.md"
+    ],
     "E1": "Promotion = source unique DEFINITIVE. Fallback legacy Service.promotion RETIRE du runtime: promotionService.resolveEffectiveServiceUnitPrice lit uniquement Promotion(targetType:service) (sinon prix plein). Tous chemins pricing/billing prestation lisent Promotion: checkoutPricingService.priceService, processServiceCheckoutStatePurchase, serviceBookingController.createBooking, serviceController.buildPublicPayload (async). computeEffectivePrice (lecture legacy) supprime. Service.promotion conserve pour compat DB mais VESTIGIAL (admin CRUD le persiste sans effet runtime) -> editeur Promotion(service) a venir (React). Migration scripts/migrateServicePromotionsToPromotionModel.js (--apply, idempotent) a executer une fois en prod.",
     "E2": "Debut refactor backend SEAM-FIRST, zero changement de comportement. Extraction REELLE: services/checkout/checkoutGiftCardService.js (planGiftCardUsage + finalizeGiftCardUsage + helpers carte cadeau) deplaces verbatim hors de clientController qui les re-importe; imports orphelins (argon2/GiftCardTransaction/giftCardReservationService helpers) supprimes du controller; aucune duplication. Seams re-export (zero logique deplacee): services/stripe/stripeInvoiceFacade.js (createStripeInvoiceForSale), services/stripe/stripeRefundFacade.js (triggerRefundExecution + eligibilites refund), services/mail/mailDispatcher.js (30 fonctions send*). clientController repointe vers ces facades.",
     "tests": "Suite 317 verts (p0=44, p1=267, integration=6), audit business 36, audit commissions 20. promotionSingleApplication + promotionMigrationService mis a jour (legacy ignore, Promotion fait foi).",
@@ -386,7 +477,13 @@
   "preReactD1D4": {
     "date": "2026-06",
     "branch": "phase-0-security-baseline",
-    "reports": ["115_audit_pre_react_d1_d4.md", "116_rapport_migration_promotions.md", "117_rapport_factures_recus_carte_cadeau.md", "118_rapport_acomptes_v1.md", "119_rapport_cleanup_business_history.md"],
+    "reports": [
+      "115_audit_pre_react_d1_d4.md",
+      "116_rapport_migration_promotions.md",
+      "117_rapport_factures_recus_carte_cadeau.md",
+      "118_rapport_acomptes_v1.md",
+      "119_rapport_cleanup_business_history.md"
+    ],
     "D1": "Promotion = source unique. Promotion.targetType += service. promotionService.resolveEffectiveServiceUnitPrice (Promotion(service) prioritaire, fallback Service.promotion legacy, jamais les deux). checkoutPricingService.priceService + processServiceCheckoutStatePurchase l'utilisent. Script scripts/migrateServicePromotionsToPromotionModel.js (dry-run/--apply, idempotent). Service.promotion = legacy/deprecated.",
     "D2": "Facture officielle = Stripe (client + commission). Invoice.documentKind += gift_card_usage_receipt. Commande 100% carte cadeau -> recu interne NON fiscal; 0 EUR Stripe -> pas de facture officielle. PDF interne affiche la carte cadeau en ligne de reglement (buildGiftCardReceiptInfo). resolveOfficialInvoiceRef. Label 293B conserve.",
     "D3": "Acompte V1: Service.balanceSettlementMode (none|pay_on_site). Acompte autorise uniquement si pay_on_site (sinon bloque A7 OFFER_BALANCE_UNSUPPORTED). ServiceBooking.totalSoldAmount/balanceDueAmount/balanceSettlementMode/balancePaidAt. Acompte encaisse en ligne (facture Stripe); solde regle sur place via POST /api/gestion/bookings/:bookingId/balance-paid (markBalancePaidOnSite). Remboursement cape a l'acompte (Sale.totalAmount=depositAmount). Pas de paiement Stripe du solde en V1.",
@@ -402,7 +499,10 @@
   "promotionsGiftCardCommissionBase": {
     "date": "2026-06",
     "branch": "phase-0-security-baseline",
-    "reports": ["113_audit_promotions_giftcard_commission_base.md", "114_rapport_promotions_giftcard_commission_base.md"],
+    "reports": [
+      "113_audit_promotions_giftcard_commission_base.md",
+      "114_rapport_promotions_giftcard_commission_base.md"
+    ],
     "regles": [
       "Promotion: une seule par ligne (pas de cumul). Promotion (product/formation) et Service.promotion (prestation) = cibles disjointes -> aucun cumul possible. pickSinglePromotion retient la meilleure reduction. soldPrice = catalog - promo (plancher 0). Promo expiree ignoree. Service.promotion = source legacy prestation",
       "Carte cadeau = MOYEN DE PAIEMENT, jamais une remise: ne reduit ni soldPrice ni la base de commission; capee au prix vendu et au solde; ligne de reglement (negative) sur la facture officielle Stripe; stripePayment = sold - giftCard",
@@ -425,7 +525,14 @@
   "preReactC1C6": {
     "date": "2026-06",
     "branch": "phase-0-security-baseline",
-    "reports": ["107_audit_pre_corrections_c1_c5.md", "108_audit_promotions_unification_usage.md", "109_audit_acomptes_usage_blocage.md", "110_audit_refactor_client_stripe_controllers.md", "111_roadmap_refactor_maintenabilite_10_10.md", "112_rapport_corrections_c1_c3_audits_c4_c6.md"],
+    "reports": [
+      "107_audit_pre_corrections_c1_c5.md",
+      "108_audit_promotions_unification_usage.md",
+      "109_audit_acomptes_usage_blocage.md",
+      "110_audit_refactor_client_stripe_controllers.md",
+      "111_roadmap_refactor_maintenabilite_10_10.md",
+      "112_rapport_corrections_c1_c3_audits_c4_c6.md"
+    ],
     "corrections": [
       "C1 reprise recredit carte cadeau: services/giftCardRecreditRecoveryService.js + automatisme/giftCardRecreditRecoveryJob.js (scheduler 15min). Cible giftCardRefundStatus=rollback_needed, idempotent (claim atomique claimGiftCardRecredit, jamais double-credit), limite giftCardRecreditAttempts=5. Events gift_card.recredit_recovered/failed",
       "C2 facture officielle = Stripe: Invoice.documentKind(internal_snapshot|stripe_official)+official(bool). PDF interne = snapshot non fiscal (official:false); facture Stripe (client) / Stripe Dev (commission) = officielle. Helper invoiceService.resolveOfficialInvoiceRef. 0 EUR -> pas de facture officielle. Label 293B conserve",
@@ -447,7 +554,11 @@
   "commissionCorrection": {
     "date": "2026-06",
     "branch": "phase-0-security-baseline",
-    "reports": ["104_audit_pre_correction_commissions.md", "105_rapport_correction_commissions.md", "106_audit_documentation_post_commissions.md"],
+    "reports": [
+      "104_audit_pre_correction_commissions.md",
+      "105_rapport_correction_commissions.md",
+      "106_audit_documentation_post_commissions.md"
+    ],
     "regleMetier": "Commission sur prix reellement paye (carte cadeau incluse, promo incluse). Remboursement = deduction sur la facture du mois courant (ligne negative refundId+saleId). Deductions > commissions -> facture 0 EUR + report negatif (negativeCarryOverAmount) sur le mois suivant. CommissionTransaction = ledger d'audit seulement.",
     "scope": [
       "Source unique: commissionPaymentService.computeCommissionsForPeriod expose gross/refundDeduction; buildMonthlyComputation calcule netAmountDue + carry-over. getCommissionPayments calcule les mois SEQUENTIELLEMENT (carry-over ordre-dependant)",
@@ -493,7 +604,10 @@
   "sprintPreReactB1B2": {
     "date": "2026-06",
     "branch": "phase-0-security-baseline",
-    "reports": ["97_audit_b1_b2_v1_no_tva_server_amount.md", "98_rapport_b1_b2_v1_no_tva_server_amount.md"],
+    "reports": [
+      "97_audit_b1_b2_v1_no_tva_server_amount.md",
+      "98_rapport_b1_b2_v1_no_tva_server_amount.md"
+    ],
     "decisionProduit": "V1 strictement sans TVA (franchise en base 293 B) + serveur unique source de verite du montant a payer",
     "scope": [
       "B1 V1 sans TVA: constants/tax.js (TAX_MODE=vat_exempt_franchise_base, VAT_RATE=0, VAT_LEGAL_LABEL, buildTaxSnapshot HT=TTC vatAmount=0). Sale.taxSnapshot renseigne dans persistSale + vente prestation. invoiceService + stripeInvoiceService sourcent le label central (plus de chaine en dur). Aucun moteur TVA; chemin futur documente",
@@ -530,7 +644,10 @@
   "sprintPreReactA4A7": {
     "date": "2026-06",
     "branch": "phase-0-security-baseline",
-    "reports": ["87_audit_sprint_pre_react_a4_a7.md", "88_rapport_sprint_pre_react_a4_a7.md"],
+    "reports": [
+      "87_audit_sprint_pre_react_a4_a7.md",
+      "88_rapport_sprint_pre_react_a4_a7.md"
+    ],
     "scope": [
       "A4 gouvernance admin: salesController.updateRefundStatus emet refund.succeeded/failed/requested (emitRefundEvent) avec actorId admin + reason, raison persistee dans RefundRequest.meta.notes. serviceBookingController.cancelBookingByAdmin enrichit booking.cancelled (actorId + reason). Aucun remboursement/annulation silencieux",
       "A5 commissions: commissionPaymentService.computeCommissionsForPeriod capture tous les remboursements regles (Stripe OU carte cadeau OU statut succeeded), date stripeRefundConfirmedAt||refundedAt||processedAt. Corrige le trou 100% carte cadeau. Deduction proportionnelle au montant total rembourse, independante du moyen (commission au catalogue). refundService emet commission.adjusted (provision), commission.reversal_required (vente d'un CommissionPayment deja succeeded -> claw-back manuelle), commission.cancelled (provision annulee)",
@@ -543,7 +660,10 @@
   "sprintPreReactA1A3": {
     "date": "2026-06",
     "branch": "phase-0-security-baseline",
-    "reports": ["85_audit_sprint_pre_react_a1_a3.md", "86_rapport_sprint_pre_react_a1_a3.md"],
+    "reports": [
+      "85_audit_sprint_pre_react_a1_a3.md",
+      "86_rapport_sprint_pre_react_a1_a3.md"
+    ],
     "scope": [
       "A1 consentement legal serveur: services/legalConsentService.js (deriveLegalRequirements depuis le catalogue, validateCheckoutLegalConsents -> code LEGAL_CONSENT_REQUIRED, buildLegalConsentSnapshot version 1.0-a1)",
       "A1 enforcement aux portails: stripeController.createCheckoutSession + clientController.finalizeFreeCheckout refusent les achats incomplets. Finaliseurs post-paiement ne rejettent jamais (charge encaissee), ils snapshotent",
@@ -632,14 +752,31 @@
     "date": "2026-06",
     "tenancy": "single-tenant",
     "frontend": "vanilla-js (React migration not started)",
-    "tests": { "total": 130, "p0": 44, "p1": 80, "integration": 6, "files": 33, "harness": "vitest + mongodb-memory-server" },
-    "counts": { "models": 51, "controllers": 40, "routers": 44, "services": 26, "jobs": 11 },
+    "tests": {
+      "total": 130,
+      "p0": 44,
+      "p1": 80,
+      "integration": 6,
+      "files": 33,
+      "harness": "vitest + mongodb-memory-server"
+    },
+    "counts": {
+      "models": 51,
+      "controllers": 40,
+      "routers": 44,
+      "services": 26,
+      "jobs": 11
+    },
     "IntegratedApi": {
       "purpose": "mono-tenant credential vault registry for third-party providers",
       "model": "models/IntegratedApi.js",
       "service": "services/integratedApiCredentialService.js (getCredential/getCredentials/setIntegratedApiMode, fail-loud, env fallback gated by ALLOW_ENV_CREDENTIAL_FALLBACK)",
       "seeder": "seeders/seedIntegratedApisFromEnv.js (boot, idempotent)",
-      "integrations": ["stripe-institut (dual)", "stripe-dev (dual)", "brevo (single)"]
+      "integrations": [
+        "stripe-institut (dual)",
+        "stripe-dev (dual)",
+        "brevo (single)"
+      ]
     },
     "CredentialVault": {
       "file": "utils/credentialVault.js",
@@ -651,20 +788,58 @@
       "model": "models/SendLog.js",
       "service": "services/sendLogService.js",
       "privacy": "recipientHash SHA-256 only, never email/secret",
-      "statuses": ["queued", "sent", "delivered", "opened", "bounced", "failed"],
+      "statuses": [
+        "queued",
+        "sent",
+        "delivered",
+        "opened",
+        "bounced",
+        "failed"
+      ],
       "webhook": "controllers/brevoWebhookController.js + routers/brevoWebhookRouter.js (POST /api/webhooks/brevo)",
       "diagnostic": "GET /api/gestion/dev/send-logs (requireStrictDev)"
     },
-    "EventCatalog": { "file": "constants/eventCatalog.js", "events": "~24 frozen, v1", "domains": ["sale", "booking", "refund", "gift_card", "commission", "email", "job"] },
-    "EventBus": { "file": "services/eventBusService.js", "behaviour": "emitEvent always persists EventLog + notifies in-process subscribers; subscriber failure never breaks business action; payload redaction; no auto-trigger (audit broadcast V1)" },
-    "EventLog": { "file": "models/EventLog.js", "privacy": "payloadSafe redacted (no email/secret/token)", "diagnostic": "GET /api/gestion/dev/events (requireStrictDev)", "emittedToday": "only email.* (from SendLog); other domains catalogued but not yet emitted" },
+    "EventCatalog": {
+      "file": "constants/eventCatalog.js",
+      "events": "~24 frozen, v1",
+      "domains": [
+        "sale",
+        "booking",
+        "refund",
+        "gift_card",
+        "commission",
+        "email",
+        "job"
+      ]
+    },
+    "EventBus": {
+      "file": "services/eventBusService.js",
+      "behaviour": "emitEvent always persists EventLog + notifies in-process subscribers; subscriber failure never breaks business action; payload redaction; no auto-trigger (audit broadcast V1)"
+    },
+    "EventLog": {
+      "file": "models/EventLog.js",
+      "privacy": "payloadSafe redacted (no email/secret/token)",
+      "diagnostic": "GET /api/gestion/dev/events (requireStrictDev)",
+      "emittedToday": "only email.* (from SendLog); other domains catalogued but not yet emitted"
+    },
     "keyFiles": [
-      "models/IntegratedApi.js", "utils/credentialVault.js", "services/integratedApiCredentialService.js",
-      "seeders/seedIntegratedApisFromEnv.js", "scripts/rotateCredentialVaultKey.js",
-      "models/SendLog.js", "services/sendLogService.js", "controllers/brevoWebhookController.js",
-      "constants/eventCatalog.js", "models/EventLog.js", "services/eventBusService.js",
-      "controllers/devDiagnosticController.js", "routers/devDiagnosticRouter.js",
-      "controllers/stripeController.js", "utils/stripeDevClient.js", "services/mailService.js", "app.js"
+      "models/IntegratedApi.js",
+      "utils/credentialVault.js",
+      "services/integratedApiCredentialService.js",
+      "seeders/seedIntegratedApisFromEnv.js",
+      "scripts/rotateCredentialVaultKey.js",
+      "models/SendLog.js",
+      "services/sendLogService.js",
+      "controllers/brevoWebhookController.js",
+      "constants/eventCatalog.js",
+      "models/EventLog.js",
+      "services/eventBusService.js",
+      "controllers/devDiagnosticController.js",
+      "routers/devDiagnosticRouter.js",
+      "controllers/stripeController.js",
+      "utils/stripeDevClient.js",
+      "services/mailService.js",
+      "app.js"
     ],
     "architectureStatus": "documented (architecture.md section 'Etat du projet au commit 180054c')",
     "securityStatus": "P0+P1 closed; vault live; manual action open = revoke orphan live Stripe key (report 52)",
@@ -9947,8 +10122,31 @@
     "service": "services/notificationTargetService.js — resolveNotificationTargetRole(type,payload), normalizeNotificationTargetRole(input), canReadNotification / assertCanReadNotification (code FORBIDDEN_NOTIFICATION_AUDIENCE).",
     "triggerNotification": "services/notificationService.js — 3e arg optionnel options.targetRole; targetRole TOUJOURS persiste (options>variables>eventConfig>resolver). Anciens appelants inchanges.",
     "mapping": {
-      "admin": ["new_sale","booking_created","booking_cancelled","booking_cancelled_client","booking_rescheduled_client","no_show_recorded","refund_requested","refund_succeeded","commission_available","new_client","formation_session_cancelled","formation_distancielle_purchased","formation_presentielle_purchased","formation_participation_cancelled"],
-      "dev": ["contract_payment_failed","webhook_failure","integrated_api_error","commission_paid_to_platform","job_failed","system_error","email_identity_verification_failed"],
+      "admin": [
+        "new_sale",
+        "booking_created",
+        "booking_cancelled",
+        "booking_cancelled_client",
+        "booking_rescheduled_client",
+        "no_show_recorded",
+        "refund_requested",
+        "refund_succeeded",
+        "commission_available",
+        "new_client",
+        "formation_session_cancelled",
+        "formation_distancielle_purchased",
+        "formation_presentielle_purchased",
+        "formation_participation_cancelled"
+      ],
+      "dev": [
+        "contract_payment_failed",
+        "webhook_failure",
+        "integrated_api_error",
+        "commission_paid_to_platform",
+        "job_failed",
+        "system_error",
+        "email_identity_verification_failed"
+      ],
       "unknown": "admin (sauf createdFromDevContext:true)"
     },
     "endpoints": {
@@ -10221,6 +10419,30 @@
     ],
     "limits": "champs practitionerId non supprimes (legacy nullable, cleanup futur) ; pas d'endpoint report admin (UI preparee) ; paiements participants formation non exposes ; checkout prod garde practitionerId (=institut), chemin global teste en parallele.",
     "next": "M11 — cleanup volontaire practitionerId (migration + index {startAt} global) + brancher le checkout prod sur createGlobalServiceBooking ; ou endpoint report admin teste ; ou vue mois + drag-to-reschedule."
+  },
+  "m11aCheckoutGlobalBooking": {
+    "description": "M11A (2026-06-29) — Checkout PROD branche sur le calendrier GLOBAL institut. Toute nouvelle ServiceBooking (webhook Stripe + finalize-free + route directe legacy) passe par createGlobalServiceBooking (entite institut unique). practitionerId reste legacy nullable : accepte mais IGNORE/ecrase par l'institut. Additif & non destructif.",
+    "reports": [
+      "Rapports/version 1/199_audit_pre_m11a_checkout_global_booking.md",
+      "Rapports/version 1/200_rapport_m11a_checkout_global_booking.md"
+    ],
+    "globalAssert": "services/calendar/globalAvailabilityService.js : assertGlobalServiceSlotBookable({serviceId,startAt,endAt,...}) resout l'institut puis delegue a assertServiceSlotBookable (aucun practitionerId requis). INSTITUTE_NOT_CONFIGURED (409) si aucun profil.",
+    "finalizer": "services/checkout/checkoutBookingService.js processServiceCheckoutStatePurchase cree la booking via createGlobalServiceBooking (practitionerId legacy ecrase par institut) ; PRACTITIONER_NOT_FOUND supprime ; regles paiement/acompte/carte cadeau/commission INCHANGEES.",
+    "validation": "stripe/stripeCheckoutService.js (Elements + hosted U2) et checkout/unified/unifiedCheckoutValidationService.js valident le creneau via assertGlobalServiceSlotBookable (practitionerId du front ignore).",
+    "legacyDirect": "controllers/serviceBookingController.js createBooking (POST /api/client/bookings) : practitionerId non requis ni valide (legacy, ignore) ; institut resolu serveur ; creation via createGlobalServiceBooking.",
+    "availability": "controllers/availabilityController.js getAvailableSlots : practitionerId query LEGACY sans effet ; creneaux institut. getAvailableDays inchange. Contrat API inchange.",
+    "front": "React @bs/api-client/checkout : service.practitionerId documente legacy (ignore serveur), buildServiceCheckoutState le transmet en ??null ; availability practitionerId? sans effet. Vanilla checkoutModule.js envoie encore practitionerId : accepte/ignore. Aucun nouveau texte prestataire.",
+    "notTouched": "Modeles/index/slot-locks/PractitionerProfile CONSERVES (aucune suppression DB). Flux reschedule/refund inchanges (cible institut via snapshot) -> conversion reportee M11B. Planning manager inchange.",
+    "tests": [
+      "tests/p1/checkoutGlobalBookingProduction.test.js",
+      "tests/p1/checkoutGlobalBookingLegacyPayload.test.js",
+      "tests/p1/globalBookingAvailabilityOfficial.test.js",
+      "tests/p1/globalBookingNoPractitionerRegression.test.js",
+      "frontend-react/packages/api-client/src/checkout/checkout.test.ts"
+    ],
+    "suites": "p0 44, p1 589, integration 6, audits 36+20 ; React 165 + lint + build. Secret scan RAS.",
+    "limits": "practitionerId non supprime physiquement (cleanup M11B) ; reschedule remboursement encore via createServiceBookingWithProtection (cible institut) ; pas d'endpoint report admin.",
+    "next": "M11B — cleanup practitionerId (migration + index {startAt} global), conversion reschedule vers global, endpoint report admin."
   },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",

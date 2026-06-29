@@ -29,10 +29,9 @@ import {
   SESSION_CANCELLATION_TOKEN_TTL_DAYS
 } from '../services/sessionCancellationFlowService.js';
 import { triggerNotification } from '../services/notificationService.js';
-import {
-  createServiceBookingWithProtection,
-  releaseServiceBookingSlotLocks
-} from '../services/serviceAvailabilityService.js';
+import { releaseServiceBookingSlotLocks } from '../services/serviceAvailabilityService.js';
+import { createGlobalServiceBooking } from '../services/calendar/globalAvailabilityService.js';
+import { resolveInstitutePractitionerProfile } from '../services/calendar/instituteCalendarContext.js';
 import { resolveEffectiveServiceUnitPrice } from '../services/promotionService.js';
 
 function formatDateFR(date) {
@@ -119,18 +118,21 @@ export async function createBooking(req, res) {
       });
     }
 
+    // M11A — entité institut unique. `practitionerId` reste accepté en legacy mais sa valeur est
+    // IGNORÉE : la réservation est créée via le chemin GLOBAL (institut résolu serveur). practitionerId
+    // n'est plus requis et n'est plus validé.
     const {
       serviceId,
-      practitionerId,
       startAt,
       selectedOptions = []
     } = req.body;
+    const rawPractitionerId = req.body?.practitionerId || null; // legacy — ignoré
 
-    if (!serviceId || !practitionerId || !startAt) {
-      return res.status(400).json({ ok: false, error: 'serviceId, practitionerId et startAt sont requis.' });
+    if (!serviceId || !startAt) {
+      return res.status(400).json({ ok: false, error: 'serviceId et startAt sont requis.' });
     }
 
-    if (!validateObjectId(serviceId) || !validateObjectId(practitionerId)) {
+    if (!validateObjectId(serviceId)) {
       return res.status(400).json({ ok: false, error: 'Identifiants invalides.' });
     }
 
@@ -139,13 +141,10 @@ export async function createBooking(req, res) {
       return res.status(404).json({ ok: false, error: 'Prestation introuvable ou non réservable.' });
     }
 
-    const practitioner = await PractitionerProfile.findById(practitionerId).lean();
-    if (!practitioner || !practitioner.isActive) {
-      return res.status(404).json({ ok: false, error: 'Praticienne introuvable.' });
-    }
-
-    if (!practitioner.serviceIds?.some(id => String(id) === String(serviceId))) {
-      return res.status(400).json({ ok: false, error: 'Cette praticienne ne propose pas cette prestation.' });
+    // L'entité de planification est TOUJOURS l'institut (plus de sélection prestataire).
+    const practitioner = await resolveInstitutePractitionerProfile();
+    if (!practitioner) {
+      return res.status(409).json({ ok: false, code: 'INSTITUTE_NOT_CONFIGURED', error: 'Institut non configuré.' });
     }
 
     const startDate = new Date(startAt);
@@ -189,10 +188,12 @@ export async function createBooking(req, res) {
       return null;
     })();
 
-    const { booking } = await createServiceBookingWithProtection({
+    // M11A — création via le chemin GLOBAL institut. Le `practitionerId` legacy transmis est
+    // écrasé par l'id institut dans createGlobalServiceBooking.
+    const { booking } = await createGlobalServiceBooking({
       bookingData: {
         serviceId: service._id,
-        practitionerId: practitioner._id,
+        practitionerId: rawPractitionerId, // legacy — ignoré/écrasé par l'institut
         clientId: userId,
         bookingId: buildBookingId(),
         startAt: startDate,
@@ -210,7 +211,6 @@ export async function createBooking(req, res) {
           waiverAcceptedAt: null
         }
       },
-      service,
       now
     });
 

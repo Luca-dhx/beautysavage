@@ -336,3 +336,12 @@ persistent/action) **sans scope/targetRole** ; le moteur choisit le scope. Front
 `@bs/api-client/manager/notification*` + feature dev-only `apps/manager/src/features/notificationTemplates/`
 (studio + catégories, preview front toast/centre, mobile-first, tokens `--bs-*`). Notification existant
 inchangé. Suite : **M8** (câblage moteur + centre).
+
+
+## Sprint M11A — Checkout prod branche sur le calendrier global institut (rapports 199-200)
+
+Fermeture de l ecart M10 : le checkout de PRODUCTION cree toute nouvelle ServiceBooking via le chemin GLOBAL institut (`createGlobalServiceBooking`). practitionerId reste legacy nullable, accepte mais IGNORE.
+- Backend : `assertGlobalServiceSlotBookable` (globalAvailabilityService) ; finaliseur `processServiceCheckoutStatePurchase` -> createGlobalServiceBooking ; validations pre-paiement (stripeCheckoutService Elements/hosted + unifiedCheckoutValidationService) -> assertGlobalServiceSlotBookable ; route directe `createBooking` neutralisee ; `getAvailableSlots` ignore le practitionerId query.
+- Regles paiement/remboursement/commission INCHANGEES ; aucune suppression DB.
+
+**Front** : api-client checkout/booking annotes legacy (practitionerId ignore) ; Vanilla checkoutModule.js encore emetteur mais ignore. Tests +4 backend (tests/p1/checkoutGlobalBooking*, globalBooking*) ; React +1 (checkout.test.ts non-dependance). Prochaine : M11B.

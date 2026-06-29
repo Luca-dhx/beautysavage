@@ -115,3 +115,10 @@ L'apparence de la vitrine (couleurs, police, arrondis, ombres, espacements, logo
 désormais pilotable depuis le Theme Studio réservé au dev, avec aperçu en direct. Rien ne change pour
 le visiteur tant qu'un nouveau thème n'est pas activé ; en l'absence de configuration, la vitrine
 garde son thème par défaut.
+
+
+## Sprint M11A — Checkout global booking (rapports 199-200)
+
+Le checkout de production est officiellement branche sur le calendrier global de l institut : toute reservation passe par l entite unique, le prestataire n existe plus cote serveur (un ancien identifiant est accepte mais ignore). La disponibilite est calculee globalement. Aucun changement pour le paiement, le remboursement ou le planning. Limites : suppression definitive du champ prestataire reportee a M11B.
+
+Cote vitrine React : le panier et le paiement n ont plus besoin de selectionner une prestataire ; le creneau choisi suffit. Le champ technique `practitionerId` subsiste pour compat ascendante mais est vide/ignore.

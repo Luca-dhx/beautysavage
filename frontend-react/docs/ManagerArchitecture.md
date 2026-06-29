@@ -365,3 +365,12 @@ sans envoi), categories studio (CRUD + aperçu), versions (publish/rollback/arch
 priority low/normal/high/critical (prépare tri/push/badges) ; persistent (reste jusqu'au traitement) ;
 action **métier** (jamais une URL). Notification Center : préparé (Notification.category → slug →
 icône/couleur/badge). Suite : **M8** (câblage moteur + refonte centre).
+
+
+## Sprint M11A — Checkout prod branche sur le calendrier global institut (rapports 199-200)
+
+Fermeture de l ecart M10 : le checkout de PRODUCTION cree toute nouvelle ServiceBooking via le chemin GLOBAL institut (`createGlobalServiceBooking`). practitionerId reste legacy nullable, accepte mais IGNORE.
+- Backend : `assertGlobalServiceSlotBookable` (globalAvailabilityService) ; finaliseur `processServiceCheckoutStatePurchase` -> createGlobalServiceBooking ; validations pre-paiement (stripeCheckoutService Elements/hosted + unifiedCheckoutValidationService) -> assertGlobalServiceSlotBookable ; route directe `createBooking` neutralisee ; `getAvailableSlots` ignore le practitionerId query.
+- Regles paiement/remboursement/commission INCHANGEES ; aucune suppression DB.
+
+**Manager** : le planning M10 (GET /api/gestion/calendar/items) recoit desormais les bookings crees par le checkout prod (chemin global) sans changement. practitionerId = institut.

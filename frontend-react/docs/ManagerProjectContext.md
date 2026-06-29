@@ -229,3 +229,10 @@ et rollback, et un **aperçu** (toast et centre de notifications) sans rien envo
 centre. Le template **ne décide jamais** qui reçoit la notification (admin/dev/both) : c'est le moteur
 qui choisit, à l'envoi. Dev-only, mobile-first. Suite (M8) : brancher le moteur sur ces templates et
 moderniser le centre de notifications.
+
+
+## Sprint M11A — Checkout global booking (rapports 199-200)
+
+Le checkout de production est officiellement branche sur le calendrier global de l institut : toute reservation passe par l entite unique, le prestataire n existe plus cote serveur (un ancien identifiant est accepte mais ignore). La disponibilite est calculee globalement. Aucun changement pour le paiement, le remboursement ou le planning. Limites : suppression definitive du champ prestataire reportee a M11B.
+
+Pour le manager : le planning affiche les nouvelles reservations issues du checkout, toutes rattachees a l institut (entite unique). Rien a configurer.

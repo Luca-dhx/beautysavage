@@ -243,3 +243,8 @@ Pour le manager : le planning affiche les nouvelles reservations issues du check
 Le report (decalage) d un creneau est desormais possible directement depuis le planning, pour les admins. La reservation reste la meme (paiement inchange, aucun remboursement declenche), seul l horaire change. Toutes les creations de reservation passent par l institut unique ; le prestataire n existe plus cote serveur (un ancien identifiant est accepte mais ignore). Un script volontaire (jamais automatique) permet de consolider/archiver l heritage. Limites : suppression definitive des champs legacy reportee a une migration ulterieure ; pas de glisser-deposer ni de vue mois.
 
 Pour le manager : depuis le drawer de detail d une reservation, un bouton « Reporter le creneau » ouvre un mini-formulaire (date + heure + motif) ; au succes le planning se rafraichit. Mobile-first, anime, sans tableau.
+
+
+## Sprint M12 — Customer 360 (rapports 203-204)
+
+Pour le personnel : on ouvre un client et on voit tout (resume + KPIs + timeline historique + sections repliables + carte financiere) et on declenche les actions courantes. Mobile-first, anime, cards, sans tableau. La recherche (nom/e-mail) ouvre la fiche. Confidentialite : reserve admin/dev ; aucune donnee technique sensible exposee.

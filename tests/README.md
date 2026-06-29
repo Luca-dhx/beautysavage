@@ -752,3 +752,8 @@ Quatre fichiers `tests/p1/` couvrent le branchement du checkout prod sur le cale
 ## M11B — Finalisation calendrier global (rapports 201-202)
 
 Cinq fichiers tests/p1/ : adminBookingRescheduleGlobal (HTTP admin -> 200 + deplacement EN PLACE + locks deplaces + 409/400/404 ; verifie le correctif mount-order M3A), refundRescheduleGlobalBooking (applyFlowServiceRescheduleDecision -> booking global, sans practitionerId, double-booking 409), practitionerLegacyCleanup (dry-run sans ecriture / --apply consolide+archive sans delete / idempotent / --create-global-index), globalBookingIndexes (index {startAt,status} + unique {practitionerId,startAt} + double-booking global + index global unique slotStartAt), noRuntimePractitionerDependency (dispo/assert/create/checkout/reschedule sans practitionerId). Front : calendarApiReschedule.test.ts + planningReschedule.test.tsx (UI report mobile, loading/error/success, pas de table, pas de texte prestataire/praticienne).
+
+
+## M12 — Customer 360 (rapports 203-204)
+
+Cinq fichiers tests/p1/ : customer360Service (agregation toutes sections + KPIs + 404/400), customer360Timeline (fusion multi-types + tri desc + cap + curation EventLog), customer360Financial (totalSpent/acomptes/soldes/cartes/remboursements/facture/impayees), customer360Route (HTTP admin -> 200, verifie le mount-order M3A ; recherche ; 404/400 ; client refuse), customer360Privacy (aucun secret/PII ; communications sans e-mail/hash ; identite du client expose sur sa propre fiche). Front : customer360Api.test.ts + customer360.test.tsx (recherche/navigation, hero/KPIs/quick/timeline, onglets/accordions/finances, aucune table, drawer) + noHardcodedHex.test.ts.

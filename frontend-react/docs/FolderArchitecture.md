@@ -353,3 +353,8 @@ Finalisation : endpoint report admin GLOBAL + reschedule remboursement global + 
 - **Backend** : POST /api/gestion/bookings/:id/reschedule (rescheduleBookingByAdmin -> rescheduleGlobalServiceBooking, deplacement EN PLACE, validation+slot-lock globaux, audit booking.rescheduled + booking.confirmed). Reschedule remboursement (sessionCancellationFlowService) -> createGlobalServiceBooking. Mount-order corrige (gestionBookingRouter avant broad-mounts dev-only, M3A). scripts/cleanupPractitionerLegacy.js (dry-run/apply/force-prod, consolidation+archivage, index global opt-in). Index ServiceBooking {startAt,status}.
 
 **Front** : api-client manager/calendar rescheduleBooking reel (POST reschedule) + RESCHEDULE_SUPPORTED=true ; feature planning RescheduleForm. Tests +5 backend / +2 front. Prochaine : migration drop legacy, drag-to-reschedule.
+
+
+## Sprint M12 — Customer 360 (Client Hub) (rapports 203-204)
+
+Fiche client agregee, point d entree du travail quotidien. Backend services/customer360/ (service+mapper+timelineBuilder) + endpoints GET /api/gestion/customers[?search=] et /:id/360 (admin/dev, monte avant broad-mounts dev-only). Front feature apps/manager/src/features/customer360/ (pages /clients + /clients/:id), api-client manager/customer360.ts. Mobile-first, cards, zero table, Motion Guideline + reduced-motion, drawer, TanStack Query. Tests +5 backend / +3 front. Limites : phone/photo absents (null), Quick Actions = liens.

@@ -270,3 +270,8 @@ Portee transverse (backend + front + Vanilla). Suite M11B : nettoyage definitif 
 Le report (decalage) d un creneau est desormais possible directement depuis le planning, pour les admins. La reservation reste la meme (paiement inchange, aucun remboursement declenche), seul l horaire change. Toutes les creations de reservation passent par l institut unique ; le prestataire n existe plus cote serveur (un ancien identifiant est accepte mais ignore). Un script volontaire (jamais automatique) permet de consolider/archiver l heritage. Limites : suppression definitive des champs legacy reportee a une migration ulterieure ; pas de glisser-deposer ni de vue mois.
 
 Portee transverse (backend + manager front). Le checkout (M11A) et le calendrier (M10) restent la source officielle ; M11B ferme la boucle report + cleanup.
+
+
+## Sprint M12 — Customer 360 (rapports 203-204)
+
+Un ecran unique pour tout savoir et tout faire sur un client (identite, achats, prestations, formations, produits, cartes cadeaux, remboursements, factures, documents, communications, notifications, timeline, finances) sans changer de page. Pense telephone, fluide, organise par cartes, sans tableau. Recherche rapide -> fiche. Limites : telephone/photo non encore stockes ; actions rapides = raccourcis vers les ecrans existants.

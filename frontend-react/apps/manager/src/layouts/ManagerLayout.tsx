@@ -5,6 +5,7 @@ import { NotificationBell, NotificationMotionProvider } from '../features/notifi
 
 const MANAGER_NAV = [
   { to: '/', label: 'Tableau de bord' },
+  { to: '/clients', label: 'Clients' },
   { to: '/planning', label: 'Planning' },
   { to: '/reservations', label: 'Réservations' },
   { to: '/prestations', label: 'Prestations' },

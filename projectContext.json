@@ -41,7 +41,8 @@
     "m1CommunicationIdentity": "completed",
     "m2MailEventDispatch": "completed",
     "m11aCheckoutGlobalBooking": "completed",
-    "m11bGlobalCalendarFinalization": "completed"
+    "m11bGlobalCalendarFinalization": "completed",
+    "m12Customer360": "completed"
   },
   "m2MailEventDispatch": {
     "date": "2026-06-28",
@@ -10470,6 +10471,31 @@
     "suites": "p0 44, p1 608, integration 6, audits 36+20 ; React 173 + lint + build. Secret scan RAS.",
     "limits": "practitionerId non supprime physiquement (drop = migration future separee) ; report admin valide la dispo institut (plus strict) ; pas de drag-to-reschedule ni vue mois ; paiements participants formation non modelises.",
     "next": "Migration drop des champs/index legacy practitionerId (script separe dry-run apres observation) ; drag-to-reschedule + vue mois ; paiements participants formation au niveau session."
+  },
+  "m12Customer360": {
+    "description": "M12 (2026-06-30) — Customer 360 (Client Hub) : point d'entree du travail quotidien. Fiche client React mobile-first (cards, zero table, Motion Guideline, drawer, skeleton/empty/error, TanStack Query) agregeant identite/achats/prestations/formations/produits/cartes cadeaux/remboursements/factures/documents/communications/notifications/timeline/financier. Additif : aucun modele backend modifie.",
+    "reports": [
+      "Rapports/version 1/203_audit_customer360.md",
+      "Rapports/version 1/204_customer360.md"
+    ],
+    "backend": "services/customer360/ : customer360Service (buildCustomer360 agregation parallele Sale/ServiceBooking/Purchase/GiftCard/RefundRequest puis Formation/Product/Invoice/Notification/SendLog/EventLog ; searchCustomers), customer360Mapper (SAFE : jamais passwordHash/sessionTokenHash/recipientHash/e-mail d'autrui ; buildSummary/buildFinancial/buildDocuments), customer360TimelineBuilder (fusion chronologique + EventLog cure, tri desc, cap 200).",
+    "endpoints": "GET /api/gestion/customers?search= (recherche + cartes resume) ; GET /api/gestion/customers/:customerId/360 (agregat complet). Admin/dev (requireAdminOrDev + requireMode gestion). customer360Router monte AVANT les broad-mounts dev-only (sinon shadow 403 admin, cf. M3A/M11B).",
+    "client": "Un client = User role 'client' (pas de modele Customer). phone/photo absents -> null. Reutilise hashRecipient(sendLogService) pour matcher SendLog.",
+    "timeline": "types : achat/reservation/formation/produit/carte_cadeau/remboursement/document/email/notification/solde_paye/report/annulation. item { id,date,icon,title,subtitle,type,action,refId }.",
+    "financial": "totalSpent, depositsPaid, balanceDue (+ pendingBalances), giftCardsBalance, refundsTotal, lastInvoice, unpaidInvoices (officielles non payees).",
+    "react": "apps/manager/src/features/customer360/ : pages /clients (ClientsListPage recherche+cartes) + /clients/:id (Customer360Page). Composants CustomerHeader/HeroCard/SummaryCards/FinancialCard/Timeline/TimelineCard/{Booking,Sale,Formation,Product,GiftCard,Refund,Documents,Communications,Notification}Section/QuickActions/CustomerDrawer/MobileBottomActions/CustomerSkeleton/CustomerEmptyState/CustomerTabs/Accordion/ClientSearchCard. Hooks useCustomer360/useCustomerSearch (TanStack Query). api-client manager/customer360.ts. CSS c3- tokens --bs-*, aucun hex .tsx, Motion + prefers-reduced-motion. Nav 'Clients'. UX : Hero->KPIs->QuickActions->onglets(Activite/Details/Finances)->bottom bar sticky mobile.",
+    "tests": [
+      "tests/p1/customer360Service.test.js",
+      "tests/p1/customer360Timeline.test.js",
+      "tests/p1/customer360Financial.test.js",
+      "tests/p1/customer360Route.test.js",
+      "tests/p1/customer360Privacy.test.js",
+      "frontend-react/packages/api-client/src/manager/customer360Api.test.ts",
+      "frontend-react/apps/manager/src/features/customer360/customer360.test.tsx"
+    ],
+    "suites": "p0 44, p1 622, integration 6, audits 36+20 ; React 182 + lint + build. Secret scan RAS.",
+    "limits": "phone/photo absents du modele User (null) ; documents = factures+avoirs+consentements (pas de GED) ; Quick Actions = liens vers ecrans existants (pas de creation inline) ; timeline cap 200.",
+    "next": "Actions inline dans la fiche (reservation/vente/carte/remboursement sans quitter le Customer360), enrichir User (phone/photo/notes), filtres timeline, export PDF."
   },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",

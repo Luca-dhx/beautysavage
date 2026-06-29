@@ -65,6 +65,7 @@ import serviceRouter from './routers/serviceRouter.js';
 import practitionerRouter from './routers/practitionerRouter.js';
 import availabilityRouter from './routers/availabilityRouter.js';
 import gestionBookingRouter from './routers/gestionBookingRouter.js';
+import customer360Router from './routers/customer360Router.js';
 import calendarRouter from './routers/calendarRouter.js';
 import serviceSettingsRouter from './routers/serviceSettingsRouter.js';
 import vitrineServiceRouter, { vitrineAvailabilityRouter } from './routers/vitrineServiceRouter.js';
@@ -424,6 +425,9 @@ app.use('/api/gestion/calendar', calendarRouter);
 // AVANT les routeurs dev-only broad-mount sur '/api/gestion' (ex. commissionRouter requireStrictDev)
 // qui sinon shadowent '/api/gestion/bookings/*' et renvoient 403 aux admins (cf. M3A).
 app.use('/api/gestion', gestionBookingRouter);
+// M12 — Customer 360 (Client Hub, admin/dev). Monté ICI, AVANT les broad-mounts dev-only sur
+// '/api/gestion' (sinon shadow 403 admins, cf. M3A/M11B).
+app.use('/api/gestion/customers', customer360Router);
 // M3E — Supervision mail dev (mail-deliveries + send-logs stats), strict dev — AVANT /api/gestion/dev générique.
 app.use('/api/gestion/dev', mailSupervisionDevRouter);
 // M7 — Notification Studio dev (templates + catégories), strict dev — AVANT /api/gestion/dev générique.

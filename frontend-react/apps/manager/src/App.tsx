@@ -34,6 +34,7 @@ import {
   NotificationCategoriesPage,
 } from './features/notificationTemplates';
 import { PlanningPage } from './features/planning';
+import { ClientsListPage, Customer360Page } from './features/customer360';
 
 // Routing manager R0 — placeholders + guards rôle (cf. rapport 147).
 // Manager = admin ou dev. /dev/* = dev uniquement. /login public.
@@ -49,6 +50,9 @@ export function App() {
           {/* M10 — Planning global institut (calendrier unique, mobile-first) */}
           <Route path="planning" element={<PlanningPage />} />
           <Route path="planning/:date" element={<PlanningPage />} />
+          {/* M12 — Customer 360 (Client Hub) : recherche + fiche client complète */}
+          <Route path="clients" element={<ClientsListPage />} />
+          <Route path="clients/:id" element={<Customer360Page />} />
           <Route path="reservations" element={<Placeholder title="Réservations" description="Réservations de prestations." />} />
           <Route path="prestations" element={<Placeholder title="Prestations" description="Gestion des prestations." />} />
           <Route path="formations" element={<Placeholder title="Formations" description="Gestion des formations." />} />

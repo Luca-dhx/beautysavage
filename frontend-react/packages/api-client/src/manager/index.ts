@@ -8,3 +8,4 @@ export * from './notificationCategories';
 export * from './notificationTemplates';
 export * from './notifications';
 export * from './calendar';
+export * from './customer360';

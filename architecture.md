@@ -4012,3 +4012,14 @@ Endpoint report admin + reschedule remboursement global + neutralisation practit
 - **React** : RESCHEDULE_SUPPORTED=true, rescheduleBooking(id,payload), usePlanning.reschedule, RescheduleForm mobile-first, mapServiceBookingToCalendarItem reschedule=true. Pas de drag-to-reschedule.
 - Tests +5 backend / +2 front. Suites : p0 44, p1 608, integration 6, audits 36+20 ; React 173 + lint + build. Secret scan RAS.
 - Limites : practitionerId non supprime physiquement (drop = migration future) ; pas de drag-to-reschedule ni vue mois.
+
+
+## Sprint M12 — Customer 360 (Client Hub) (rapports 203-204)
+
+Point d entree du travail quotidien : fiche client agregee, additive (aucun modele modifie).
+- **services/customer360/** : customer360Service (buildCustomer360 agregation PARALLELE Sale/ServiceBooking/Purchase/GiftCard/RefundRequest puis Formation/Product/Invoice/Notification/SendLog/EventLog par ids/recipientHash ; searchCustomers), customer360Mapper (serialisation SAFE — jamais passwordHash/passwordSalt/sessionTokenHash/stripeCustomerId/giftCard.passwordHash/recipientHash brut/e-mail d autrui ; buildSummary/buildFinancial/buildDocuments), customer360TimelineBuilder (fusion chronologique + EventLog cure, tri desc, cap 200).
+- **Endpoints** : GET /api/gestion/customers?search= (recherche rapide + cartes) ; GET /api/gestion/customers/:customerId/360 (agregat complet). Admin/dev (requireAdminOrDev). customer360Router monte AVANT les broad-mounts dev-only (sinon shadow 403 admin, cf. M3A/M11B). controllers/customer360Controller.js.
+- **Client** = User role client (pas de modele Customer) ; phone/photo absents -> null.
+- **Privacy** : endpoint admin/dev only ; le mapper expose l identite du client consulte (sa fiche) mais aucun secret/PII technique ; SendLog -> jamais e-mail ni recipientHash.
+- Tests +5 backend (customer360Service/Timeline/Financial/Route/Privacy). Suites : p0 44, p1 622, integration 6, audits 36+20. Secret scan RAS.
+- Limites : phone/photo absents (null) ; documents = factures+avoirs+consentements (pas de GED) ; Quick Actions = liens vers ecrans existants ; timeline cap 200.

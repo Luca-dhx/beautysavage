@@ -427,6 +427,16 @@ Backend (+25 → **467**), aucun vrai e-mail (Brevo mocké getCredential+fetch) 
 - `tests/p1/mailRoleResolverIntegration.test.js` (3) — commerciale→client (sender/to corrects), support→commerciale, aucun fallback hardcodé (identity_missing → aucun envoi).
 - SendLog/EventLog **non modifiés** (enum strict) ; statuts M2 sur le ledger `MailEventDelivery`.
 
+## Sprint M3A — Notification Target Engine admin/dev (rapports 175-176)
+
+Backend (+35), notifications in-app uniquement (aucun e-mail) :
+- `tests/p1/notificationTargetModel.test.js` (5) — `Notification.targetRole` default admin, enum admin|dev, rejet `client`/`practitioner`.
+- `tests/p1/notificationTargetService.test.js` (13) — mapping admin/dev, défaut admin, override explicite, `createdFromDevContext`, `normalizeNotificationTargetRole`, `canReadNotification`/`assertCanReadNotification` (client jamais, dev seul lit dev) + `triggerNotification` (ancien appelant → résolu, type technique → dev, options.targetRole prioritaire).
+- `tests/p1/notificationTargetRoutes.test.js` (9) — manager n'expose pas dev, dev n'expose pas admin, admin interdit sur `/dev` (403), client/non-auth interdits, dev voit le panel manager, mark-read respecte l'audience, payload safe (aucun e-mail/secret, `variables` non sérialisées).
+- `tests/p1/notificationTargetBackfill.test.js` (4) — dry-run no-op, `--apply` remplit + mapping correct, idempotence, aucune suppression. Inserts legacy via collection brute (notificationId unique).
+- `tests/p1/notificationEventSubscriberTargetRole.test.js` (4) — subscriber crée `targetRole='admin'` (new_sale, no_show_recorded), aucune notif dev, pas de fuite e-mail client.
+- **Fix d'ordre de montage** : `notificationRouter` remonté AVANT les routeurs dev-only broad-mount sur `/api/gestion` (ex. `commissionRouter requireStrictDev`) qui shadowaient `/api/gestion/notifications` (403 admins, pré-existant). Manager filtre `targetRole {$ne:'dev'}` (legacy-safe), dev filtre `targetRole 'dev'` (requireStrictDev).
+
 ## Sprint U3 — UnifiedCheckout plateforme Stripe Dev (rapports 154-155)
 
 - `platformCheckoutFeatureFlag.test.js` (+2) — `PLATFORM_CHECKOUT_HOSTED` false → clientSecret (Dev) ; true → url hosted (commission).

@@ -9937,6 +9937,36 @@
     }
   },
   "lastNotificationSystemUpdate": "2026-04-05c",
+  "notificationTargetEngine": {
+    "description": "Notification Target Engine admin/dev (M3A - 2026-06-29). targetRole = cible metier/audience.",
+    "reports": [
+      "Rapports/version 1/175_audit_pre_m3a_notification_target_engine.md",
+      "Rapports/version 1/176_rapport_m3a_notification_target_engine.md"
+    ],
+    "model": "models/Notification.js — targetRole enum ['admin','dev'] default 'admin' index. Indexes ajoutes: {targetRole,createdAt}, {targetRole,expiresAt}. targetType reste la granularite de livraison.",
+    "service": "services/notificationTargetService.js — resolveNotificationTargetRole(type,payload), normalizeNotificationTargetRole(input), canReadNotification / assertCanReadNotification (code FORBIDDEN_NOTIFICATION_AUDIENCE).",
+    "triggerNotification": "services/notificationService.js — 3e arg optionnel options.targetRole; targetRole TOUJOURS persiste (options>variables>eventConfig>resolver). Anciens appelants inchanges.",
+    "mapping": {
+      "admin": ["new_sale","booking_created","booking_cancelled","booking_cancelled_client","booking_rescheduled_client","no_show_recorded","refund_requested","refund_succeeded","commission_available","new_client","formation_session_cancelled","formation_distancielle_purchased","formation_presentielle_purchased","formation_participation_cancelled"],
+      "dev": ["contract_payment_failed","webhook_failure","integrated_api_error","commission_paid_to_platform","job_failed","system_error","email_identity_verification_failed"],
+      "unknown": "admin (sauf createdFromDevContext:true)"
+    },
+    "endpoints": {
+      "manager": "GET/PATCH/DELETE /api/gestion/notifications (notificationRouter, requireGestionRole) — audience admin = targetRole {$ne:'dev'} (legacy-safe). Accessible admin ET dev.",
+      "dev": "GET/PATCH/DELETE /api/gestion/dev/notifications (notificationDevRouter, requireStrictDev) — audience targetRole 'dev'. Admin/client => 403/401."
+    },
+    "mountOrderFix": "notificationRouter remonte AVANT les routeurs dev-only broad-mount sur /api/gestion (ex. commissionRouter requireStrictDev) qui sinon shadowent /api/gestion/notifications => 403 admins (bug pre-existant).",
+    "backfill": "scripts/backfillNotificationTargetRole.js — dry-run defaut, --apply obligatoire, cible targetRole hors {admin,dev}, mappe par type, ne supprime jamais, idempotent.",
+    "tests": [
+      "tests/p1/notificationTargetModel.test.js",
+      "tests/p1/notificationTargetService.test.js",
+      "tests/p1/notificationTargetRoutes.test.js",
+      "tests/p1/notificationTargetBackfill.test.js",
+      "tests/p1/notificationEventSubscriberTargetRole.test.js"
+    ],
+    "outOfScope": "UI React complete, migration emails, envoi mail depuis notifications, push/WebSocket. Types dev mappes mais pas encore emis.",
+    "next": "M3B — enrichissement contexte event des notifications."
+  },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",
     "problem": "applyFlowServiceRescheduleDecision creait ServiceBooking sans verifier disponibilite",

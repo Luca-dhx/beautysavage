@@ -131,3 +131,20 @@ Un **Mail Event Dispatch Engine** backend route les e-mails par rôle au moment 
 - Flag `MAIL_ROLE_RESOLVER_ENABLED` (défaut off) ; en shadow tant qu'un envoi direct existe (anti-doublon).
 - La future UI Dev pourra : visualiser/éditer les règles, voir le journal `MailEventDelivery`, et —
   avec les identités M1 — piloter entièrement « qui envoie quoi à qui ». **client** reste non configurable.
+
+## Sprint M3A — Notification Target Engine admin/dev (backend, rapports 175-176)
+
+Les notifications in-app ont désormais une **cible métier** `targetRole ∈ {admin, dev}` (audience/panel),
+côté backend. L'app React manager consommera deux flux distincts :
+
+- **Audience admin** — `GET /api/gestion/notifications` (+ `PATCH /:id/read`, `/read-all`, `DELETE /:id`).
+  Renvoie l'audience admin (`targetRole != 'dev'`, legacy-safe). Accessible admin ET dev.
+- **Audience dev** — `GET /api/gestion/dev/notifications` (+ mêmes actions sous `/api/gestion/dev/notifications`).
+  **Strictement dev** (`requireStrictDev`) : un admin reçoit 403. À brancher dans la section `/dev`.
+
+Réponse `GET` : `{ ok, notifications: [{ id, notificationId, title, message, category, targetRole,
+link, linkLabel, eventType, isRead, createdAt }], unreadCount }`. Le champ `variables` n'est jamais
+sérialisé (pas de fuite de payload). **Aucune UI React livrée en M3A** (hors périmètre) — la section
+Notifications du Manager devra séparer visuellement Admin vs Dev. Mapping type→audience et règles :
+voir `Rapports/version 1/176_rapport_m3a_notification_target_engine.md`. Suite : **M3B** (enrichissement
+du contexte event).

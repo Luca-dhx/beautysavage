@@ -38,6 +38,7 @@ import mailTemplateRouter from './routers/mailTemplateRouter.js';
 import passwordResetRouter from './routers/passwordResetRouter.js';
 import invoiceRouter from './routers/invoiceRouter.js';
 import notificationRouter from './routers/notificationRouter.js';
+import notificationDevRouter from './routers/notificationDevRouter.js';
 import { startCommissionReminderJob } from './automatisme/commissionReminderJob.js';
 import { runBookingRemindersJob } from './automatisme/bookingRemindersJob.js';
 import { runEmailTemplateCategoryMigration } from './automatisme/emailTemplateCategoryMigration.js';
@@ -403,6 +404,12 @@ app.use('/api/gestion', requireGestionRole());
 // M1 — Identités de communication (mont AVANT le routeur /dev générique pour la spécificité du chemin).
 app.use('/api/gestion/dev/communication-identities', communicationIdentityDevRouter);
 app.use('/api/gestion/communication-identities', communicationIdentityRouter);
+// M3A — Notifications dev (audience 'dev', strict dev) — AVANT le routeur /dev générique.
+app.use('/api/gestion/dev/notifications', notificationDevRouter);
+// M3A — Notifications manager (audience 'admin'). Monté ICI, AVANT les routeurs
+// dev-only montés en masse sur '/api/gestion' (ex. commissionRouter avec
+// requireStrictDev), qui sinon shadowent ce chemin et renvoient 403 aux admins.
+app.use('/api/gestion/notifications', notificationRouter);
 app.use('/api/gestion/dev', devDiagnosticRouter);
 app.use('/api/gestion/vitrine', vitrineGestionRouter);
 app.use('/api/gestion/business', businessGestionRouter);
@@ -440,7 +447,7 @@ app.use('/api/gestion/practitioners', practitionerRouter);
 app.use('/api/gestion/availability', availabilityRouter);
 app.use('/api/gestion', gestionBookingRouter);
 app.use('/api/gestion/service-settings', serviceSettingsRouter);
-app.use('/api/gestion/notifications', notificationRouter);
+// (notificationRouter monté plus haut, AVANT les routeurs dev-only broad-mount — voir M3A.)
 app.use('/api/vitrine/availability', vitrineAvailabilityRouter);
 app.use('/api/vitrine/services', vitrineServiceRouter);
 

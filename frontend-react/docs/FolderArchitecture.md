@@ -214,3 +214,15 @@ SendLog, **idempotent** (`models/MailEventDelivery.js`). Flag `MAIL_ROLE_RESOLVE
 doublons). SendLog/EventLog **inchangés** (rôles tracés via `metadata.tags`). **Aucune UI React** — un
 futur écran Manager/Dev affichera les règles + le journal `MailEventDelivery`. Rien ne change pour la
 vitrine/client React.
+
+## Sprint M3A — Notification Target Engine admin/dev (backend, rapports 175-176)
+
+Même principe que M2 (mail dispatch) appliqué aux **notifications in-app** : `Notification.targetRole`
+devient une **cible métier** `admin|dev` (enum, default admin, indexé) — l'audience/panel. `targetType`
+(all/role/user) reste la granularité de livraison. Service `services/notificationTargetService.js`
+(resolve/normalize/assert) + mapping type→audience. `triggerNotification(type, vars, options?)` persiste
+toujours `targetRole` (3e arg optionnel, anciens appelants intacts). Deux endpoints filtrés :
+`/api/gestion/notifications` (admin, legacy-safe `{$ne:'dev'}`) et `/api/gestion/dev/notifications`
+(dev-only `requireStrictDev`). Backfill `scripts/backfillNotificationTargetRole.js` (dry-run/--apply,
+non destructif). **Aucune UI React** en M3A. Règles mail M2 inchangées. Rien ne change pour la
+vitrine/client. Suite : **M3B** (enrichissement contexte event).

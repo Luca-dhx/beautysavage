@@ -95,3 +95,15 @@ le template. La gérante/le dev pourront, à terme, consulter ces règles et le 
 depuis le Manager, et comprendre exactement quel e-mail part de quel rôle vers quel rôle. En M2 c'est
 encore en coulisses (mode shadow, aucun changement visible pour les clients) ; l'objectif est une
 communication fiable, traçable et pilotable côté interne.
+
+## Sprint M3A — Notifications ciblées admin/dev (rapports 175-176)
+
+Une notification interne n'est plus « globale sans destinataire » : elle vise soit l'**institut**
+(admin → panel Manager), soit la **plateforme** (dev → espace Dev). Concrètement, la gérante ne verra
+que ses notifications métier (ventes, réservations, no-show, remboursements, formations), et le dev ne
+verra que les notifications techniques (échecs webhook/contrat/job, erreurs système, vérification
+d'identité e-mail…). Cela évite que des alertes techniques polluent le panel de la gérante, et que des
+alertes métier noient l'espace dev. Côté produit M3A pose uniquement le **moteur de ciblage backend** et
+deux endpoints filtrés ; l'écran React (séparation visuelle Admin/Dev) viendra ensuite. Compatibilité
+totale : aucune notification existante n'est perdue (anciennes notifs traitées comme audience admin).
+Prochaine étape **M3B** : enrichir le contexte des événements pour des notifications plus parlantes.

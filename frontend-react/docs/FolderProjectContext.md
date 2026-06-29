@@ -147,3 +147,14 @@ n'envoie pas en double : les e-mails directs actuels restent la source), mais la
 et journalisée (idempotente). Cela prépare une plateforme de communication unifiée et une UI de
 pilotage côté Manager/Dev (règles + journal d'envois), tout en gardant le comportement de prod
 inchangé tant que le flag n'est pas activé.
+
+## Sprint M3A — Notifications ciblées admin/dev (rapports 175-176)
+
+Après les e-mails (M1/M2), on applique le même principe de ciblage aux **notifications internes** :
+chacune a maintenant une cible claire — **institut (admin)** ou **plateforme (dev)**. Le panel de la
+gérante n'affiche que les notifications métier ; l'espace dev n'affiche que les notifications techniques.
+On ne mélange plus les deux mondes, et on ne fuite jamais une alerte dev vers l'admin (ni l'inverse), ni
+quoi que ce soit vers le client. M3A est encore **en coulisses** (moteur backend + endpoints filtrés +
+migration non destructive des anciennes notifications) ; l'interface React dédiée viendra plus tard.
+Objectif : des notifications fiables, pertinentes pour chaque rôle, sans bruit. Suite **M3B** :
+enrichir le contexte des événements pour rendre chaque notification plus précise.

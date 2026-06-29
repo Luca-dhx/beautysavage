@@ -2279,7 +2279,7 @@ Pour date D, service duree `D_min`, granularite `G_min` :
 ## STEP 21 — Systeme de notifications in-app (2026-04-05)
 
 ### Modeles
-- `models/Notification.js` : document par notification. Champs : `notificationId` (NOTIF-xxx), `title`, `message`, `category` (enum prestations/formations/ventes/systeme/remboursements/clients), `targetType` (all/role/user), `targetRole`, `targetUserId`, `link`, `linkLabel`, `eventType`, `variables` (Mixed), `readBy[]` (ObjectId[]), `expiresAt` (TTL sparse). Index : `{ targetType, targetRole, targetUserId, createdAt }`.
+- `models/Notification.js` : document par notification. Champs : `notificationId` (NOTIF-xxx), `title`, `message`, `category` (enum prestations/formations/ventes/systeme/remboursements/clients), `targetType` (all/role/user), `targetRole` (**M3A : enum admin|dev, default admin — audience/panel**), `targetUserId`, `link`, `linkLabel`, `eventType`, `variables` (Mixed), `readBy[]` (ObjectId[]), `expiresAt` (TTL sparse). Index : `{ targetType, targetRole, targetUserId, createdAt }`, `{ targetRole, createdAt }`, `{ targetRole, expiresAt }`.
 - `models/NotificationConfig.js` : singleton. Champs : `widgetPosition` (top-left/top-right/bottom-left/bottom-right), `pollingIntervalSeconds`, `notificationLifetimeDays`, `events[]` (eventType, label, isActive, category, targetType, targetRole, titleTemplate, messageTemplate, availableVariables[]).
 
 ### Service
@@ -2287,11 +2287,56 @@ Pour date D, service duree `D_min`, granularite `G_min` :
 
 ### Controller et routes
 - `controllers/notificationController.js` + `routers/notificationRouter.js` montes sur `/api/gestion/notifications` (protege par requireGestionRole).
-  - `GET /` : liste paginee (limit, unreadOnly), filtre targetType/targetRole/targetUserId, exclut expirées, retourne `{ notifications, unreadCount }`.
+  - `GET /` : liste paginee (limit, unreadOnly), filtre par audience (M3A) + targetType/targetUserId, exclut expirées, retourne `{ notifications, unreadCount }`.
   - `PATCH /:notificationId/read` : ajoute userId dans readBy[].
   - `PATCH /read-all` : updateMany readBy.
   - `DELETE /:notificationId` : suppression.
   - `GET /config` + `PUT /config` : lecture/ecriture config singleton.
+
+## STEP 22 — Notification Target Engine admin/dev (M3A — 2026-06-29)
+
+### Principe
+`Notification.targetRole` est elevé au rang de **cible métier / audience** : `admin` (panel
+Manager/Admin) ou `dev` (espace Dev). Une notification n'est plus "globale sans cible".
+`targetType` (all/role/user) reste la **granularité de livraison** intra-audience.
+Voir rapports `175_audit_pre_m3a_notification_target_engine.md` et `176_rapport_m3a_notification_target_engine.md`.
+
+### Modèle
+- `models/Notification.js` : `targetRole` devient enum `['admin','dev']`, default `'admin'`, indexé.
+  Index ajoutés : `{ targetRole, createdAt }`, `{ targetRole, expiresAt }`. Jamais de cible client ici.
+
+### Service de ciblage
+- `services/notificationTargetService.js` :
+  - `resolveNotificationTargetRole(type, payload)` → `admin|dev` (mapping par type, défaut admin ;
+    override explicite via `payload.targetRole` ; `createdFromDevContext:true` → dev pour type inconnu).
+  - `normalizeNotificationTargetRole(input)` → `admin|dev|null` (alias/casse tolérants).
+  - `canReadNotification(user, notification)` / `assertCanReadNotification(...)` (code `FORBIDDEN_NOTIFICATION_AUDIENCE`).
+  - Mapping **admin** : new_sale, booking_created, booking_cancelled(_client), booking_rescheduled_client,
+    no_show_recorded, refund_requested, refund_succeeded, commission_available, new_client,
+    formation_session_cancelled, formation_distancielle_purchased, formation_presentielle_purchased,
+    formation_participation_cancelled. Mapping **dev** : contract_payment_failed, webhook_failure,
+    integrated_api_error, commission_paid_to_platform, job_failed, system_error, email_identity_verification_failed.
+- `services/notificationService.js` : `triggerNotification(eventType, variables, options?)` persiste
+  TOUJOURS `targetRole` (priorité : options.targetRole → variables.targetRole/__targetRole → eventConfig.targetRole
+  → resolver). 3e argument optionnel : anciens appelants inchangés.
+
+### Endpoints filtrés
+- **Manager** (`/api/gestion/notifications`, `notificationRouter`) : audience `admin` =
+  `targetRole: { $ne: 'dev' }` (legacy-safe : inclut admin + anciennes notifs null). Accessible admin ET dev.
+- **Dev** (`/api/gestion/dev/notifications`, `notificationDevRouter`, `router.use(requireStrictDev)`) :
+  audience `targetRole: 'dev'`. Admin/client → 403/401.
+- **Fix d'ordre de montage** : `notificationRouter` est désormais monté AVANT les routeurs dev-only
+  broad-mount sur `/api/gestion` (ex. `commissionRouter` avec `requireStrictDev`), qui sinon shadowent
+  `/api/gestion/notifications` et renvoient 403 aux admins.
+
+### Backfill
+- `scripts/backfillNotificationTargetRole.js` : dry-run par défaut, `--apply` obligatoire. Cible les
+  notifs `targetRole ∉ {admin,dev}` (null/legacy), mappe par type, logue les compteurs, ne supprime jamais.
+  Exécutable programmatiquement `backfillNotificationTargetRole({ apply, logger })` (tests).
+
+### Limites & suite
+M3A ne fait PAS : UI React complète, migration emails, envoi mail depuis notifications, push/WebSocket.
+Prochaine étape **M3B** : enrichissement du contexte event des notifications.
 
 ### Migration
 - `automatisme/notificationConfigMigration.js` : `runNotificationConfigMigration()` -- cree le singleton config si absent avec 8 evenements preconfigures. Appelee au boot dans `app.js`.

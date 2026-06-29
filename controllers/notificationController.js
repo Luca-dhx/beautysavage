@@ -5,26 +5,26 @@ import { getSessionUserId } from '../utils/session.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function buildUserFilter(userId, userRole) {
-  const now = new Date();
-  return {
-    $or: [
-      { targetType: 'all' },
-      { targetType: 'role', targetRole: userRole },
-      { targetType: 'user', targetUserId: new mongoose.Types.ObjectId(String(userId)) }
-    ],
-    $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }]
-  };
+// M3A — clause d'audience (panel) :
+//   - 'dev'   → strictement targetRole === 'dev'.
+//   - 'admin' → tout SAUF 'dev' (legacy-safe : inclut 'admin' + anciennes notifs
+//               null / valeurs non-dev, donc aucune notif existante ne disparaît).
+function audienceClause(audience) {
+  return audience === 'dev' ? { targetRole: 'dev' } : { targetRole: { $ne: 'dev' } };
 }
 
-function buildAccessFilter(userId, userRole) {
+// Filtre d'accès : audience (panel) + granularité de livraison intra-audience
+// (all / role / user-nominatif) + non expirée. Le clause "role" ne dépend plus de
+// targetRole (devenu l'audience) : tout role-broadcast est visible dans son audience.
+function buildAccessFilter(userId, audience) {
   const now = new Date();
   return {
     $and: [
+      audienceClause(audience),
       {
         $or: [
           { targetType: 'all' },
-          { targetType: 'role', targetRole: userRole },
+          { targetType: 'role' },
           { targetType: 'user', targetUserId: new mongoose.Types.ObjectId(String(userId)) }
         ]
       },
@@ -35,17 +35,16 @@ function buildAccessFilter(userId, userRole) {
   };
 }
 
-// ─── GET /api/gestion/notifications ───────────────────────────────────────────
+// ─── Coeurs paramétrés par audience (admin | dev) ─────────────────────────────
 
-export async function listNotifications(req, res) {
+async function listNotificationsCore(req, res, audience) {
   const userId = getSessionUserId(req);
-  const userRole = req.sessionUser?.role || 'admin';
 
   try {
     const limit = Math.min(parseInt(req.query.limit || '50', 10), 200);
     const unreadOnly = req.query.unreadOnly === 'true';
 
-    const filter = buildAccessFilter(userId, userRole);
+    const filter = buildAccessFilter(userId, audience);
     if (unreadOnly) {
       filter.$and.push({ readBy: { $ne: new mongoose.Types.ObjectId(String(userId)) } });
     }
@@ -56,7 +55,7 @@ export async function listNotifications(req, res) {
       .lean();
 
     const unreadCount = await Notification.countDocuments({
-      ...buildAccessFilter(userId, userRole),
+      ...buildAccessFilter(userId, audience),
       readBy: { $ne: new mongoose.Types.ObjectId(String(userId)) }
     });
 
@@ -66,6 +65,7 @@ export async function listNotifications(req, res) {
       title: n.title,
       message: n.message,
       category: n.category,
+      targetRole: n.targetRole || 'admin',
       link: n.link,
       linkLabel: n.linkLabel,
       eventType: n.eventType,
@@ -80,17 +80,14 @@ export async function listNotifications(req, res) {
   }
 }
 
-// ─── PATCH /api/gestion/notifications/:notificationId/read ────────────────────
-
-export async function markAsRead(req, res) {
+async function markAsReadCore(req, res, audience) {
   const userId = getSessionUserId(req);
-  const userRole = req.sessionUser?.role || 'admin';
 
   try {
     const { notificationId } = req.params;
     const filter = {
       notificationId,
-      ...buildAccessFilter(userId, userRole)
+      ...buildAccessFilter(userId, audience)
     };
 
     const notif = await Notification.findOne(filter);
@@ -109,17 +106,14 @@ export async function markAsRead(req, res) {
   }
 }
 
-// ─── PATCH /api/gestion/notifications/read-all ────────────────────────────────
-
-export async function markAllAsRead(req, res) {
+async function markAllAsReadCore(req, res, audience) {
   const userId = getSessionUserId(req);
-  const userRole = req.sessionUser?.role || 'admin';
 
   try {
     const oid = new mongoose.Types.ObjectId(String(userId));
     await Notification.updateMany(
       {
-        ...buildAccessFilter(userId, userRole),
+        ...buildAccessFilter(userId, audience),
         readBy: { $ne: oid }
       },
       { $push: { readBy: oid } }
@@ -132,17 +126,14 @@ export async function markAllAsRead(req, res) {
   }
 }
 
-// ─── DELETE /api/gestion/notifications/:notificationId ────────────────────────
-
-export async function deleteNotification(req, res) {
+async function deleteNotificationCore(req, res, audience) {
   const userId = getSessionUserId(req);
-  const userRole = req.sessionUser?.role || 'admin';
 
   try {
     const { notificationId } = req.params;
     const result = await Notification.deleteOne({
       notificationId,
-      ...buildAccessFilter(userId, userRole)
+      ...buildAccessFilter(userId, audience)
     });
 
     if (!result.deletedCount) {
@@ -155,6 +146,22 @@ export async function deleteNotification(req, res) {
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
   }
 }
+
+// ─── Manager/Admin (audience 'admin') ─────────────────────────────────────────
+// GET/PATCH/DELETE /api/gestion/notifications  — accessible admin ET dev (gestionRoleGuard).
+
+export function listNotifications(req, res) { return listNotificationsCore(req, res, 'admin'); }
+export function markAsRead(req, res) { return markAsReadCore(req, res, 'admin'); }
+export function markAllAsRead(req, res) { return markAllAsReadCore(req, res, 'admin'); }
+export function deleteNotification(req, res) { return deleteNotificationCore(req, res, 'admin'); }
+
+// ─── Dev (audience 'dev') ─────────────────────────────────────────────────────
+// /api/gestion/dev/notifications — STRICTEMENT dev (requireStrictDev). Admin/client → 403.
+
+export function listDevNotifications(req, res) { return listNotificationsCore(req, res, 'dev'); }
+export function markDevNotificationAsRead(req, res) { return markAsReadCore(req, res, 'dev'); }
+export function markAllDevNotificationsAsRead(req, res) { return markAllAsReadCore(req, res, 'dev'); }
+export function deleteDevNotification(req, res) { return deleteNotificationCore(req, res, 'dev'); }
 
 // ─── GET /api/gestion/notifications/config ────────────────────────────────────
 

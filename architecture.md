@@ -2556,6 +2556,41 @@ Communication Center M4). Aperçu sans envoi (iframe sandbox sans scripts). Vari
 ### Suite
 **M7** : endpoint backend de preview/rendu fidèle, ou migration des flux comptables, ou extension Theme.
 
+## STEP 30 — Notification Studio React + Categories (M7 — 2026-06-29)
+
+### Principe
+Studio de notifications **dev-only** (app manager) : templates (contenu) + catégories (modèle métier).
+Le template ne connaît **pas** le scope (admin/dev/both) — le moteur (`triggerNotification`, M3A) le
+choisit. **Backend additif** (rien de cassé). Rapports `191` (audit) + `192`.
+
+### Modèles (backend)
+- `models/NotificationCategory.js` : name/slug(unique)/icon/color/description/sortOrder/active. Source
+  unique des couleurs du centre (aucune couleur dans le template).
+- `models/NotificationTemplate.js` : templateKey/title/body/categoryId/variables[]/priority
+  (low|normal|high|critical)/persistent/action + versioning (1 publié/clé via index unique partiel).
+  JAMAIS targetRole/scope/email.
+
+### Services / endpoints (dev-only)
+- `services/notificationCategoryService.js`, `services/notificationTemplateVersioningService.js`
+  (miroir email M5A).
+- `routers/notificationCategoryRouter.js` (`/api/gestion/dev/notification-categories`, CRUD),
+  `routers/notificationTemplateStudioRouter.js` (`/api/gestion/dev/notification-templates` : list/get/
+  versions/create/draft/publish/archive/rollback). `requireStrictDev`.
+- `automatisme/notificationCategoryMigration.js` : seed 8 catégories si collection vide (additif).
+
+### Front
+Routes dev-only `/dev/notification-templates[/:templateKey[/versions]]`, `/dev/notification-categories`.
+api-client `manager/notification{Categories,Templates}.ts` (CRUD + versioning + previewNotificationTemplate
+front + constantes priorités/actions/variables). Feature `apps/manager/src/features/notificationTemplates/`
+(studio + catégories, preview toast/centre sans envoi, mobile-first, tokens `--bs-*`).
+
+### Notification Center (préparé)
+`Notification.category` → slug → `NotificationCategory` (icône/couleur/badge). Pas de refonte d'écran.
+
+### Suite
+**M8** : câbler le NotificationEngine sur les NotificationTemplate (scope choisi par le moteur) +
+refonte du centre de notifications.
+
 ### Migration
 - `automatisme/notificationConfigMigration.js` : `runNotificationConfigMigration()` -- cree le singleton config si absent avec 8 evenements preconfigures. Appelee au boot dans `app.js`.
 

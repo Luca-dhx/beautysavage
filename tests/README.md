@@ -437,6 +437,14 @@ Backend (+35), notifications in-app uniquement (aucun e-mail) :
 - `tests/p1/notificationEventSubscriberTargetRole.test.js` (4) — subscriber crée `targetRole='admin'` (new_sale, no_show_recorded), aucune notif dev, pas de fuite e-mail client.
 - **Fix d'ordre de montage** : `notificationRouter` remonté AVANT les routeurs dev-only broad-mount sur `/api/gestion` (ex. `commissionRouter requireStrictDev`) qui shadowaient `/api/gestion/notifications` (403 admins, pré-existant). Manager filtre `targetRole {$ne:'dev'}` (legacy-safe), dev filtre `targetRole 'dev'` (requireStrictDev).
 
+## Sprint M7 — Notification Studio React + Categories (rapports 191-192)
+
+Backend (+4) + frontend (+9 → **132 tests / 31 fichiers**).
+- `tests/p1/notificationTemplateStudioApi.test.js` (4) — catégories CRUD (slug auto) ; template create→draft→publish→rollback (1 publié/clé) ; liste 1 ligne/clé ; admin interdit (403) ; **aucun scope/targetRole** dans le payload.
+- `packages/api-client/src/manager/notificationStudioApi.test.ts` (3) — catégories CRUD + templates endpoints + `previewNotificationTemplate` (front, variables inconnues) + body sans scope/targetRole.
+- `apps/manager/src/features/notificationTemplates/notificationStudio.test.tsx` (5) — liste cards (pas de table), blocage admin (dev-only), catégories CRUD (création POST), éditeur (sélecteurs priorité/persistent/action, preview, save→draft sans targetRole), aucune fuite e-mail.
+- `apps/manager/src/features/notificationTemplates/noHardcodedHex.test.ts` (1) — aucun hex dans les `.tsx`.
+
 ## Sprint M6 — Mail Template Studio React (rapports 189-190)
 
 Frontend (+11 → **123 tests / 28 fichiers**) ; **backend inchangé**.

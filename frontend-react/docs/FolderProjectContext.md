@@ -220,3 +220,11 @@ construite depuis M1 : les modèles décrivent le message et les variables ; les
 qui) restent gérées ailleurs, par rôle. Toujours mobile-first, dev-only, sans toucher au moteur
 d'envoi ni aux règles. Suite (M7) : rendu serveur fidèle pour l'aperçu, ou migration des e-mails
 comptables.
+
+## Sprint M7 — Notification Studio + Catégories (rapports 191-192)
+
+Symétrique du Mail Template Studio (M6), pour les notifications : édition du contenu, des catégories
+(vrai modèle métier avec icône/couleur), de la priorité, de la persistance et d'une action métier —
+versions/publication/rollback et aperçu sans envoi. Principe d'architecture clé : le template décrit le
+message ; c'est le moteur qui décide du destinataire (admin/dev/both). Cohérent avec toute la lignée
+communication. Dev-only, mobile-first. Suite (M8) : exploitation runtime + centre de notifications.

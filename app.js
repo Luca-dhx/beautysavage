@@ -41,6 +41,9 @@ import notificationRouter from './routers/notificationRouter.js';
 import notificationDevRouter from './routers/notificationDevRouter.js';
 import mailSupervisionDevRouter from './routers/mailSupervisionDevRouter.js';
 import { mailDeliveriesAdminRouter, sendLogsAdminRouter } from './routers/mailSupervisionRouter.js';
+import notificationCategoryRouter from './routers/notificationCategoryRouter.js';
+import notificationTemplateStudioRouter from './routers/notificationTemplateStudioRouter.js';
+import { runNotificationCategoryMigration } from './automatisme/notificationCategoryMigration.js';
 import { startCommissionReminderJob } from './automatisme/commissionReminderJob.js';
 import { runBookingRemindersJob } from './automatisme/bookingRemindersJob.js';
 import { runEmailTemplateCategoryMigration } from './automatisme/emailTemplateCategoryMigration.js';
@@ -332,6 +335,7 @@ await runEmailTemplateCategoryMigration();
 await runServicePagesMigration();
 await migrateRefundRequestedTemplate();
 await runNotificationConfigMigration();
+await runNotificationCategoryMigration();
 await Invoice.syncIndexes();
 // Drop legacy non-sparse indexes on ContractCheckoutIntent before syncIndexes
 for (const idx of ['stripePaymentIntentId_1', 'stripeSetupIntentId_1']) {
@@ -414,6 +418,9 @@ app.use('/api/gestion/dev/notifications', notificationDevRouter);
 app.use('/api/gestion/notifications', notificationRouter);
 // M3E — Supervision mail dev (mail-deliveries + send-logs stats), strict dev — AVANT /api/gestion/dev générique.
 app.use('/api/gestion/dev', mailSupervisionDevRouter);
+// M7 — Notification Studio dev (templates + catégories), strict dev — AVANT /api/gestion/dev générique.
+app.use('/api/gestion/dev/notification-templates', notificationTemplateStudioRouter);
+app.use('/api/gestion/dev/notification-categories', notificationCategoryRouter);
 // M3E — Supervision mail admin (roleView=admin, institut/client). Monté AVANT les routeurs
 // dev-only broad-mount sur '/api/gestion' (ex. commissionRouter requireStrictDev).
 app.use('/api/gestion/mail-deliveries', mailDeliveriesAdminRouter);

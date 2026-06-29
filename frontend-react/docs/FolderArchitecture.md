@@ -294,3 +294,13 @@ Versioning via endpoints existants (`/api/gestion/mails`, dev-only) : draft/publ
 Aperçu **front** (iframe sandbox, mobile/desktop, aucun envoi). Templates = **rôles** (from/to),
 **aucune adresse** (identités → Communication Center M4). **Backend inchangé.** Tokens `--bs-*` (aucun
 hex .tsx). Suite : **M7**.
+
+## Sprint M7 — Notification Studio React + Categories (rapports 191-192)
+
+Backend additif : `models/NotificationCategory.js` + `models/NotificationTemplate.js` (versioning),
+services + controllers + routers dev-only (`/api/gestion/dev/notification-categories` et
+`…/notification-templates`), seed migration. Le template = contenu pur (categoryId/variables/priority/
+persistent/action) **sans scope/targetRole** ; le moteur choisit le scope. Frontend : api-client
+`@bs/api-client/manager/notification*` + feature dev-only `apps/manager/src/features/notificationTemplates/`
+(studio + catégories, preview front toast/centre, mobile-first, tokens `--bs-*`). Notification existant
+inchangé. Suite : **M8** (câblage moteur + centre).

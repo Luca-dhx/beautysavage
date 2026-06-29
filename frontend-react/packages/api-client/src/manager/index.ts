@@ -4,3 +4,5 @@ export * from './mailSupervision';
 export * from './communicationIdentities';
 export * from './themeStudio';
 export * from './mailTemplates';
+export * from './notificationCategories';
+export * from './notificationTemplates';

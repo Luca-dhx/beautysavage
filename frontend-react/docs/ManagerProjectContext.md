@@ -181,3 +181,14 @@ de destinataire sont affichés (commerciale/support/client) mais **jamais d'adre
 adresses se gèrent dans le Communication Center. C'est volontairement simple (pas d'éditeur
 drag-and-drop, pas d'envoi de test réel) et réservé au dev. Suite : preview serveur fidèle ou migration
 des e-mails comptables (M7).
+
+## Sprint M7 — Notification Studio + Catégories (rapports 191-192)
+
+Le dev dispose désormais d'un vrai studio de **notifications**, à l'image de celui des e-mails : il
+édite le **contenu** des notifications (titre, message), leur **catégorie**, leur **priorité**, leur
+caractère **persistant** et une **action métier** (ce qu'on ouvre au clic) — avec versions, publication
+et rollback, et un **aperçu** (toast et centre de notifications) sans rien envoyer. Nouveauté clé : les
+**catégories** deviennent un vrai référentiel (nom, icône, couleur), source unique des couleurs du
+centre. Le template **ne décide jamais** qui reçoit la notification (admin/dev/both) : c'est le moteur
+qui choisit, à l'envoi. Dev-only, mobile-first. Suite (M8) : brancher le moteur sur ces templates et
+moderniser le centre de notifications.

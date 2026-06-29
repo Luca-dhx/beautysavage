@@ -26,6 +26,13 @@ import {
   MailTemplateEditorPage,
   TemplateVersionsPage,
 } from './features/mailTemplates';
+import {
+  NotificationStudioLayout,
+  NotificationTemplateDashboard,
+  NotificationTemplateEditorPage,
+  NotificationTemplateVersionsPage,
+  NotificationCategoriesPage,
+} from './features/notificationTemplates';
 
 // Routing manager R0 — placeholders + guards rôle (cf. rapport 147).
 // Manager = admin ou dev. /dev/* = dev uniquement. /login public.
@@ -68,6 +75,16 @@ export function App() {
                 <Route index element={<MailTemplateStudioDashboard />} />
                 <Route path=":templateKey" element={<MailTemplateEditorPage />} />
                 <Route path=":templateKey/versions" element={<TemplateVersionsPage />} />
+              </Route>
+
+              {/* M7 — Notification Studio (dev uniquement) : templates + catégories */}
+              <Route path="notification-templates" element={<NotificationStudioLayout />}>
+                <Route index element={<NotificationTemplateDashboard />} />
+                <Route path=":templateKey" element={<NotificationTemplateEditorPage />} />
+                <Route path=":templateKey/versions" element={<NotificationTemplateVersionsPage />} />
+              </Route>
+              <Route path="notification-categories" element={<NotificationStudioLayout />}>
+                <Route index element={<NotificationCategoriesPage />} />
               </Route>
               <Route path="send-logs" element={<Placeholder title="Logs d'envoi" description="Journal des envois." />} />
               <Route path="event-logs" element={<Placeholder title="Logs d'événements" description="Journal des événements." />} />

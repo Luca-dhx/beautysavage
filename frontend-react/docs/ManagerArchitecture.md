@@ -275,3 +275,33 @@ publishMailTemplateDraft/archiveMailTemplateDraft/rollbackMailTemplate/previewMa
 Les templates ne contiennent **aucune adresse** ; expéditeur/destinataire sont des **rôles** résolus à
 l'envoi. Les adresses sont gérées dans le **Communication Center** (M4). Mobile-first, dev-only.
 Suite : **M7**.
+
+## Sprint M7 — Notification Studio React + Categories (rapports 191-192)
+
+Studio de notifications **dev-only** (app manager) : templates (contenu) + catégories (modèle métier).
+**Le template ne connaît PAS le scope** (admin/dev/both) — le moteur (`triggerNotification`, M3A) le
+choisit. **Backend additif** (nouveaux modèles/services/routers, rien de cassé).
+
+### Modèles (backend)
+- `NotificationCategory` : name/slug/icon/color/description/sortOrder/active (source unique des
+  couleurs du centre — aucune couleur dans le template).
+- `NotificationTemplate` : templateKey/title/body/categoryId/variables[]/priority/persistent/action +
+  versioning (draft/published/archived, 1 publié par clé). **Jamais** targetRole/scope/email.
+
+### Routes (sous /dev, RequireRole dev)
+`/dev/notification-templates[/:templateKey[/versions]]`, `/dev/notification-categories`.
+
+### API client (`@bs/api-client/manager`)
+`notificationCategories.ts` (CRUD) + `notificationTemplates.ts` (list/get/versions/create/createDraft/
+publish/archive/rollback + previewNotificationTemplate front + NOTIFICATION_PRIORITIES/ACTIONS/
+KNOWN_VARIABLES). Endpoints `/api/gestion/dev/notification-templates` et `…/notification-categories`.
+
+### Feature `apps/manager/src/features/notificationTemplates/`
+Studio (éditeur title/body + catégorie/priorité/persistent/action + variables + preview toast/centre,
+sans envoi), categories studio (CRUD + aperçu), versions (publish/rollback/archive). CSS
+`notificationStudio.css` (tokens `--bs-*`, aucun hex .tsx ; couleur catégorie = donnée inline).
+
+### Priorité / persistent / action
+priority low/normal/high/critical (prépare tri/push/badges) ; persistent (reste jusqu'au traitement) ;
+action **métier** (jamais une URL). Notification Center : préparé (Notification.category → slug →
+icône/couleur/badge). Suite : **M8** (câblage moteur + refonte centre).

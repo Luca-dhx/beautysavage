@@ -8,6 +8,7 @@ const DEV_NAV = [
   { to: '/dev/communication', label: 'Communication' },
   { to: '/dev/theme-studio', label: 'Theme Studio' },
   { to: '/dev/email-templates', label: 'Templates email' },
+  { to: '/dev/notification-templates', label: 'Notifications' },
   { to: '/dev/send-logs', label: 'Logs d’envoi' },
   { to: '/dev/event-logs', label: 'Logs d’événements' },
   { to: '/dev/webhook-failures', label: 'Échecs webhook' },

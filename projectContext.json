@@ -10122,6 +10122,30 @@
     "limits": "pas d'envoi de test reel, preview front (pas d'endpoint backend dedie), pas de suppression definitive, pas d'edition mailDispatchRules, catalogue variables curate (miroir renderer, pas par-template), editeur HTML brut (pas de WYSIWYG). Verrou final backend.",
     "next": "M7 — endpoint backend de preview/rendu fidele, ou migration flux comptables (sale.finalized/commissions), ou extension Theme."
   },
+  "notificationStudioReact": {
+    "description": "M7 (2026-06-29) — Notification Studio dev-only (app manager) + vrai modele NotificationCategory. Le template ne connait PAS le scope (admin/dev/both) : le moteur le choisit. Backend ADDITIF.",
+    "reports": [
+      "Rapports/version 1/191_audit_notification_template_studio.md",
+      "Rapports/version 1/192_rapport_notification_template_studio.md"
+    ],
+    "models": "models/NotificationCategory.js (name/slug(unique)/icon/color/description/sortOrder/active — source unique des couleurs du centre) + models/NotificationTemplate.js (templateKey/title/body/categoryId/variables[]/priority(low|normal|high|critical)/persistent/action + versioning, 1 publie/cle via index partiel ; JAMAIS targetRole/scope/email). Notification (M3A) inchange : le scope y reste, choisi par le moteur.",
+    "services": "services/notificationCategoryService.js (CRUD + slug auto) + services/notificationTemplateVersioningService.js (miroir email M5A: getPublished/listVersions/createDraftFromPublished/publishDraft/archiveTemplate/rollbackToVersion/createTemplate).",
+    "endpoints": "dev-only (requireStrictDev) : /api/gestion/dev/notification-categories (GET/POST/PUT/DELETE) ; /api/gestion/dev/notification-templates (GET list, GET/:key, GET/:key/versions, POST/:key, POST/:key/draft, POST/drafts/:id/publish, POST/drafts/:id/archive, POST/:key/rollback/:version). Montes avant /api/gestion/dev generique.",
+    "seed": "automatisme/notificationCategoryMigration.js — 8 categories par defaut si collection vide (additif).",
+    "routes": "/dev/notification-templates[/:templateKey[/versions]], /dev/notification-categories (RequireRole dev).",
+    "apiClient": "packages/api-client/src/manager/notificationCategories.ts + notificationTemplates.ts (CRUD/versioning + previewNotificationTemplate FRONT + NOTIFICATION_PRIORITIES/ACTIONS/KNOWN_VARIABLES).",
+    "feature": "apps/manager/src/features/notificationTemplates/ — NotificationStudioLayout (onglets), NotificationTemplateDashboard+List, NotificationTemplateEditor (title/body + categorie/priorite/persistent/action + variables + preview toast/centre SANS envoi), NotificationCategoriesPage (CRUD+apercu), versions (publish/rollback/archive), badges/selectors. CSS notificationStudio.css (tokens --bs-*, aucun hex .tsx ; couleur categorie = donnee inline).",
+    "priorityPersistentAction": "priority low/normal/high/critical (prepare tri/push/badges/IA). persistent (reste jusqu'au traitement). action METIER (jamais une URL) : booking_details/refund_details/.../none.",
+    "notificationCenter": "Prepare seulement : Notification.category -> slug -> NotificationCategory (icone/couleur/badge). Pas de refonte d'ecran.",
+    "tests": [
+      "tests/p1/notificationTemplateStudioApi.test.js",
+      "frontend-react/packages/api-client/src/manager/notificationStudioApi.test.ts",
+      "frontend-react/apps/manager/src/features/notificationTemplates/notificationStudio.test.tsx",
+      "frontend-react/apps/manager/src/features/notificationTemplates/noHardcodedHex.test.ts"
+    ],
+    "limits": "le moteur (triggerNotification) ne consomme pas encore les NotificationTemplate (studio + modeles seulement, comme M6) ; centre non refait (prepare par slug) ; preview front ; catalogue variables curate ; pas de WYSIWYG. dev-only, verrou final backend.",
+    "next": "M8 — cabler le NotificationEngine sur les NotificationTemplate (le moteur choisit le scope admin/dev/both + applique categorie/priorite/persistent/action) + refonte du centre de notifications React."
+  },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",
     "problem": "applyFlowServiceRescheduleDecision creait ServiceBooking sans verifier disponibilite",

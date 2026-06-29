@@ -158,3 +158,13 @@ quoi que ce soit vers le client. M3A est encore **en coulisses** (moteur backend
 migration non destructive des anciennes notifications) ; l'interface React dédiée viendra plus tard.
 Objectif : des notifications fiables, pertinentes pour chaque rôle, sans bruit. Suite **M3B** :
 enrichir le contexte des événements pour rendre chaque notification plus précise.
+
+## Sprint M3B — Contexte d'événements enrichi (rapports 177-178)
+
+Après le ciblage des notifications (M3A), on enrichit les **événements** eux-mêmes : chaque événement
+métier porte désormais un contexte standard (acteurs, IDs liés, variables utiles) réutilisable par les
+mails, les notifications, l'audit, et demain l'IA et les automatisations. La règle d'or reste la
+protection des données : aucun e-mail ni secret n'est stocké dans le journal d'événements — l'e-mail
+est retrouvé à la demande via la base quand un envoi est nécessaire. C'est une fondation invisible
+pour l'utilisateur, mais décisive pour une plateforme fiable et traçable. Prochaine étape **M3C** :
+activer l'envoi e-mail réel par rôles (sortie du mode shadow) en s'appuyant sur ce contexte.

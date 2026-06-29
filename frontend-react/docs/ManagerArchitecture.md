@@ -148,3 +148,14 @@ sérialisé (pas de fuite de payload). **Aucune UI React livrée en M3A** (hors 
 Notifications du Manager devra séparer visuellement Admin vs Dev. Mapping type→audience et règles :
 voir `Rapports/version 1/176_rapport_m3a_notification_target_engine.md`. Suite : **M3B** (enrichissement
 du contexte event).
+
+## Sprint M3B — Event Context Enrichment (backend, rapports 177-178)
+
+Les événements métier portent désormais un **contexte standard** (`payloadSafe.context` :
+`related` IDs + `actors` + `variables` + `privacy`). Côté Manager/Dev, cela fiabilise les écrans
+d'audit/journal d'events à venir (`/api/gestion/dev/events`) : chaque event expose ses IDs liés
+(saleId, bookingId, refundId, commissionPaymentId, clientId…) et des variables safe (amount,
+clientName, bookingDate…). **Aucun e-mail** n'est stocké (résolu via DB par `mailEventContextResolver`).
+Les notifications gagnent `eventId/eventName/contextType/contextId` (corrélation event→notif, exposés
+par `GET /api/gestion/notifications`). `targetRole` (M3A) inchangé. **Aucune UI React livrée.**
+Détails : `Rapports/version 1/178_rapport_m3b_event_context_enrichment.md`. Suite : **M3C** (M2 en envoi réel).

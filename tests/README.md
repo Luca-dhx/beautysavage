@@ -437,6 +437,16 @@ Backend (+35), notifications in-app uniquement (aucun e-mail) :
 - `tests/p1/notificationEventSubscriberTargetRole.test.js` (4) — subscriber crée `targetRole='admin'` (new_sale, no_show_recorded), aucune notif dev, pas de fuite e-mail client.
 - **Fix d'ordre de montage** : `notificationRouter` remonté AVANT les routeurs dev-only broad-mount sur `/api/gestion` (ex. `commissionRouter requireStrictDev`) qui shadowaient `/api/gestion/notifications` (403 admins, pré-existant). Manager filtre `targetRole {$ne:'dev'}` (legacy-safe), dev filtre `targetRole 'dev'` (requireStrictDev).
 
+## Sprint M3B — Event Context Enrichment (rapports 177-178)
+
+Backend (+30), aucun vrai e-mail, EventLog non cassé (additif) :
+- `tests/p1/eventContextSchema.test.js` (4) — `createEventContext` (forme + defaults + stringify IDs), contextTypes connus, listes de clés (related/actors/sensitive).
+- `tests/p1/eventContextBuilder.test.js` (9) — builders sale/booking/refund/commission/gift_card produisent le contexte standard (related IDs + variables) ; `sanitizeEventContext` retire e-mail/secret/token/password/code ; `clientName` toléré + flaggé ; entrée null sûre.
+- `tests/p1/businessEventContextEnrichment.test.js` (6) — chaque emitter attache `payloadSafe.context` (related IDs + variables) ; EventLog sans e-mail/secret ; clés legacy conservées.
+- `tests/p1/mailEventContextResolver.test.js` (7) — `resolveClientForEvent` retrouve le client via sale (`Sale.customer`)/booking (`ServiceBooking.clientId`)/refund (`userId`/`saleId` fallback) ; `resolveCommercialeForEvent` via identité M1 ; introuvable → null ; `resolveMailContextForEvent` (pont M2). Aucun envoi.
+- `tests/p1/notificationContextEnrichment.test.js` (4) — `triggerNotification({event})` persiste `eventId/eventName/contextType/contextId` ; subscriber corrèle + garde `targetRole` admin ; replay → 1 seule notif ; aucun SendLog.
+- Ajustement : `businessEventPayloadSafety` inclut la clé `context` (vérifiée sans PII).
+
 ## Sprint U3 — UnifiedCheckout plateforme Stripe Dev (rapports 154-155)
 
 - `platformCheckoutFeatureFlag.test.js` (+2) — `PLATFORM_CHECKOUT_HOSTED` false → clientSecret (Dev) ; true → url hosted (commission).

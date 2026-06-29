@@ -31,8 +31,11 @@ describe('business event payload safety', () => {
     expect(raw).not.toContain('leak@example.com');
     expect(raw).not.toContain('203.0.113.9');
     expect(raw).not.toContain('sk_live_should_never_appear');
-    // only the safe keys are present
-    expect(Object.keys(ev.payloadSafe).sort()).toEqual(['giftCardCount', 'hasStripePayment', 'itemCount', 'saleId', 'totalAmount']);
+    // only the safe keys are present (M3B adds a safe `context` envelope — no PII/secret).
+    expect(Object.keys(ev.payloadSafe).sort()).toEqual(['context', 'giftCardCount', 'hasStripePayment', 'itemCount', 'saleId', 'totalAmount']);
+    // the M3B context itself carries IDs/variables but never an email.
+    expect(ev.payloadSafe.context.contextType).toBe('sale');
+    expect(JSON.stringify(ev.payloadSafe.context)).not.toContain('leak@example.com');
   });
 
   it('booking event drops populated client email', async () => {

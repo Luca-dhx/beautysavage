@@ -2338,6 +2338,44 @@ Voir rapports `175_audit_pre_m3a_notification_target_engine.md` et `176_rapport_
 M3A ne fait PAS : UI React complète, migration emails, envoi mail depuis notifications, push/WebSocket.
 Prochaine étape **M3B** : enrichissement du contexte event des notifications.
 
+## STEP 23 — Event Context Enrichment (M3B — 2026-06-29)
+
+### Principe
+Les événements métier portent désormais un **contexte standard, safe et réutilisable** (mails,
+notifications, audit, IA, automatisations, logs, webhooks). Rapports `177` (audit) + `178`.
+
+### Schéma standard — `constants/eventContextSchema.js`
+`{ contextType, contextId, related{saleId,bookingId,refundId,commissionPaymentId,giftCardId,clientId,
+userId,formationId,serviceId,productId,sessionId}, actors{clientId,adminId,devId,system}, variables{
+amount,itemName,clientName,bookingDate,refundAmount,commissionAmount,...}, privacy{containsPii,piiFields[]} }`.
+Exports : `EVENT_CONTEXT_TYPES`, `RELATED_ID_KEYS`, `ACTOR_KEYS`, `EVENT_CONTEXT_SENSITIVE_KEYS`,
+`EVENT_CONTEXT_PII_FIELDS`, `createEventContext()`. **PII** : e-mail jamais stocké (résolveurs DB) ;
+`clientName` toléré + flaggé (décision documentée) ; secrets/tokens/codes interdits.
+
+### Builders — `services/eventContextBuilderService.js`
+`buildSaleEventContext`, `buildBookingEventContext`, `buildRefundEventContext`,
+`buildCommissionEventContext`, `buildGiftCardEventContext`, `buildSystemEventContext`,
+`normalizeEventContext`, `sanitizeEventContext` (sanitize profond + recalcul privacy ; lit
+`Sale.customer.*`, jamais l'e-mail).
+
+### Emitters enrichis — `services/businessEventService.js`
+Chaque `emit*Event` attache `payloadSafe.context` (sanitizé). **Additif** : clés legacy conservées,
+noms d'events inchangés. `eventBusService.emitEvent` re-redacte (double filet PII).
+
+### Resolver mail — `services/mail/mailEventContextResolver.js`
+`resolveClientForEvent` (via IDs DB : sale/booking/refund/gift_card), `resolveCommercialeForEvent`,
+`resolveSupportForEvent` (identités M1), `resolveMailContextForEvent` (pont vers `dispatchMailForEvent`
+de M2). **Aucun envoi activé** — M2 reste en shadow.
+
+### Notifications enrichies
+`Notification` : champs SAFE `eventId/eventName/contextType/contextId`. `triggerNotification(type,
+vars, { event })` les persiste ; subscriber propage + enrichit `variables` depuis le contexte ;
+`targetRole` (M3A) inchangé.
+
+### Limites & suite
+M3B n'active aucun envoi, ne migre pas les envois directs, ne crée pas d'UI React. Prochaine étape
+**M3C** : passage de M2 en envoi réel (shadow→actif) en s'appuyant sur le resolver contextuel.
+
 ### Migration
 - `automatisme/notificationConfigMigration.js` : `runNotificationConfigMigration()` -- cree le singleton config si absent avec 8 evenements preconfigures. Appelee au boot dans `app.js`.
 

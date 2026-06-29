@@ -69,6 +69,9 @@ async function listNotificationsCore(req, res, audience) {
       link: n.link,
       linkLabel: n.linkLabel,
       eventType: n.eventType,
+      eventName: n.eventName || null,
+      contextType: n.contextType || null,
+      contextId: n.contextId || null,
       isRead: n.readBy?.some(id => String(id) === String(userId)) || false,
       createdAt: n.createdAt
     }));

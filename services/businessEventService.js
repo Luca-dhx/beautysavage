@@ -9,6 +9,14 @@
 // data, or a full Stripe payload. Only minimal, non-sensitive identifiers/amounts.
 
 import { emitEvent } from './eventBusService.js';
+import {
+  buildSaleEventContext,
+  buildBookingEventContext,
+  buildRefundEventContext,
+  buildGiftCardEventContext,
+  buildCommissionEventContext,
+  buildSystemEventContext
+} from './eventContextBuilderService.js';
 
 function idStr(v) {
   if (v == null) return null;
@@ -35,6 +43,9 @@ async function safeEmit(eventName, payload, { contextType = null, contextId = nu
   }
 }
 
+// M3B — chaque emitter attache un `context` standard (sanitizé, IDs + variables safe,
+// privacy flag) au payload. Additif : les clés existantes sont conservées. `extra` peut
+// surcharger ; un `context` fourni explicitement dans `extra` a priorité sur le builder.
 export async function emitSaleEvent(eventName, sale, { extra = {}, ...ctx } = {}) {
   return safeEmit(eventName, {
     saleId: sale?.saleId || null,
@@ -42,6 +53,7 @@ export async function emitSaleEvent(eventName, sale, { extra = {}, ...ctx } = {}
     itemCount: sale?.itemCount ?? (Array.isArray(sale?.items) ? sale.items.length : null),
     hasStripePayment: Boolean(sale?.stripePaymentIntentId),
     giftCardCount: Array.isArray(sale?.giftCardUsage) ? sale.giftCardUsage.length : 0,
+    context: buildSaleEventContext(sale),
     ...extra
   }, { contextType: 'sale', contextId: sale?.saleId || idStr(sale?._id), ...ctx });
 }
@@ -52,6 +64,7 @@ export async function emitBookingEvent(eventName, booking, { extra = {}, ...ctx 
     serviceId: idStr(booking?.serviceId),
     status: booking?.status || null,
     startAt: booking?.startAt ? new Date(booking.startAt).toISOString() : null,
+    context: buildBookingEventContext(booking),
     ...extra
   }, { contextType: 'service_booking', contextId: idStr(booking?._id), ...ctx });
 }
@@ -63,6 +76,7 @@ export async function emitRefundEvent(eventName, refundRequest, { extra = {}, ..
     itemType: refundRequest?.itemType || null,
     status: refundRequest?.status || null,
     amount: numberOrNull(refundRequest?.amount),
+    context: buildRefundEventContext(refundRequest),
     ...extra
   }, { contextType: 'refund_request', contextId: idStr(refundRequest?._id), ...ctx });
 }
@@ -70,6 +84,7 @@ export async function emitRefundEvent(eventName, refundRequest, { extra = {}, ..
 export async function emitGiftCardEvent(eventName, giftCard, { extra = {}, ...ctx } = {}) {
   return safeEmit(eventName, {
     giftCardId: idStr(giftCard?._id) || (giftCard?.giftCardId ? String(giftCard.giftCardId) : null),
+    context: buildGiftCardEventContext(giftCard),
     ...extra
   }, { contextType: 'gift_card', contextId: idStr(giftCard?._id), ...ctx });
 }
@@ -80,6 +95,7 @@ export async function emitCommissionEvent(eventName, commissionPayment, { extra 
     month: commissionPayment?.month ?? null,
     year: commissionPayment?.year ?? null,
     status: commissionPayment?.status || null,
+    context: buildCommissionEventContext(commissionPayment),
     ...extra
   }, { contextType: 'commission_payment', contextId: idStr(commissionPayment?._id), ...ctx });
 }
@@ -88,6 +104,11 @@ export async function emitFormationSessionEvent(eventName, session, { extra = {}
   return safeEmit(eventName, {
     sessionId: idStr(session?._id),
     formationId: idStr(session?.formationId),
+    context: buildSystemEventContext({
+      contextType: 'formation_session',
+      contextId: idStr(session?._id),
+      related: { sessionId: idStr(session?._id), formationId: idStr(session?.formationId) }
+    }),
     ...extra
   }, { contextType: 'formation_session', contextId: idStr(session?._id), ...ctx });
 }

@@ -9967,6 +9967,28 @@
     "outOfScope": "UI React complete, migration emails, envoi mail depuis notifications, push/WebSocket. Types dev mappes mais pas encore emis.",
     "next": "M3B — enrichissement contexte event des notifications."
   },
+  "eventContextEnrichment": {
+    "description": "Event Context Enrichment (M3B - 2026-06-29). Contexte standard safe et reutilisable (mails/notifications/audit/IA/logs/webhooks).",
+    "reports": [
+      "Rapports/version 1/177_audit_pre_m3b_event_context_enrichment.md",
+      "Rapports/version 1/178_rapport_m3b_event_context_enrichment.md"
+    ],
+    "schema": "constants/eventContextSchema.js — { contextType, contextId, related{IDs}, actors{clientId,adminId,devId,system}, variables{amount,itemName,clientName,bookingDate,refundAmount,commissionAmount}, privacy{containsPii,piiFields} }. Exports createEventContext, RELATED_ID_KEYS, ACTOR_KEYS, EVENT_CONTEXT_SENSITIVE_KEYS.",
+    "builders": "services/eventContextBuilderService.js — buildSale/Booking/Refund/Commission/GiftCard/SystemEventContext + normalizeEventContext + sanitizeEventContext (sanitize profond, recalcule privacy, lit Sale.customer.* sans e-mail).",
+    "emittersEnriched": "services/businessEventService.js — chaque emit*Event attache payloadSafe.context (sanitize). Additif : cles legacy conservees, noms d'events inchanges. eventBusService.emitEvent re-redacte.",
+    "mailResolver": "services/mail/mailEventContextResolver.js — resolveClientForEvent (IDs DB: sale/booking/refund/gift_card), resolveCommercialeForEvent, resolveSupportForEvent (identites M1), resolveMailContextForEvent (pont vers dispatchMailForEvent M2). N'active aucun envoi.",
+    "notificationFields": "Notification.eventId/eventName/contextType/contextId (SAFE). triggerNotification(type,vars,{event}) persiste; subscriber propage + enrichit variables. targetRole M3A inchange.",
+    "privacy": "E-mail JAMAIS dans EventLog (resolveurs DB). clientName tolere + flagge (decision documentee). secrets/tokens/codes interdits (sanitize).",
+    "tests": [
+      "tests/p1/eventContextSchema.test.js",
+      "tests/p1/eventContextBuilder.test.js",
+      "tests/p1/businessEventContextEnrichment.test.js",
+      "tests/p1/mailEventContextResolver.test.js",
+      "tests/p1/notificationContextEnrichment.test.js"
+    ],
+    "outOfScope": "Activation des envois (M2 reste shadow), migration envois directs, nouveaux mails reels, UI React, automatisations/webhooks externes.",
+    "next": "M3C — passage de M2 en envoi reel (shadow->actif) via mailEventContextResolver, parite stricte + anti-doublon."
+  },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",
     "problem": "applyFlowServiceRescheduleDecision creait ServiceBooking sans verifier disponibilite",

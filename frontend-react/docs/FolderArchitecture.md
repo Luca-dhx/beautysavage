@@ -226,3 +226,15 @@ toujours `targetRole` (3e arg optionnel, anciens appelants intacts). Deux endpoi
 (dev-only `requireStrictDev`). Backfill `scripts/backfillNotificationTargetRole.js` (dry-run/--apply,
 non destructif). **Aucune UI React** en M3A. Règles mail M2 inchangées. Rien ne change pour la
 vitrine/client. Suite : **M3B** (enrichissement contexte event).
+
+## Sprint M3B — Event Context Enrichment (backend, rapports 177-178)
+
+Les events deviennent une **source de contexte standard** : `constants/eventContextSchema.js`
+(`{contextType, contextId, related{IDs}, actors, variables, privacy}`),
+`services/eventContextBuilderService.js` (builders + `sanitizeEventContext`),
+`services/businessEventService.js` (chaque emitter attache `payloadSafe.context`, additif),
+`services/mail/mailEventContextResolver.js` (retrouve client/commerciale/support via IDs DB — jamais
+d'e-mail stocké ; pont vers M2, sans activer d'envoi). Notifications : `Notification` gagne
+`eventId/eventName/contextType/contextId` (SAFE). **PII** : e-mail jamais persisté, `clientName`
+toléré + flaggé, secrets/tokens interdits (sanitize + redaction EventLog). EventLog non cassé.
+**Aucune UI React.** Rien ne change pour la vitrine/client. Suite : **M3C** (M2 shadow→réel).

@@ -107,3 +107,13 @@ alertes métier noient l'espace dev. Côté produit M3A pose uniquement le **mot
 deux endpoints filtrés ; l'écran React (séparation visuelle Admin/Dev) viendra ensuite. Compatibilité
 totale : aucune notification existante n'est perdue (anciennes notifs traitées comme audience admin).
 Prochaine étape **M3B** : enrichir le contexte des événements pour des notifications plus parlantes.
+
+## Sprint M3B — Contexte d'événements enrichi (rapports 177-178)
+
+Chaque événement métier (vente, réservation, remboursement, commission, carte cadeau) transporte
+maintenant un **contexte clair et réutilisable** : qui (acteurs), quoi (IDs liés), combien/quand
+(variables). C'est la matière première d'une future expérience Manager/Dev plus riche : journaux
+d'audit lisibles, notifications corrélées à leur événement d'origine, et plus tard des automatisations
+et de l'IA — sans jamais exposer d'e-mail ou de secret (les e-mails sont retrouvés à la demande via la
+base, jamais stockés). M3B reste **en coulisses** (backend) ; rien ne change pour le client. Étape
+suivante **M3C** : activer l'envoi e-mail réel par rôles en s'appuyant sur ce contexte.

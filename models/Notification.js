@@ -48,6 +48,13 @@ const notificationSchema = new mongoose.Schema({
   eventType: { type: String, default: null },
   variables: { type: mongoose.Schema.Types.Mixed, default: {} },
 
+  // M3B — Corrélation event → notification (champs SAFE uniquement : IDs/noms, jamais
+  // d'e-mail/secret). Permet l'audit et la traçabilité event↔notification.
+  eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'EventLog', default: null },
+  eventName: { type: String, default: null },
+  contextType: { type: String, default: null },
+  contextId: { type: String, default: null },
+
   // Statuts de lecture
   readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 

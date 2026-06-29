@@ -131,7 +131,11 @@ export async function handleSaleFinalizedNotification(eventLog) {
     const { proceed } = await claimDelivery(key, eventLog._id, mode);
     if (!proceed) return; // shadow, or already delivered
 
-    await triggerNotification('new_sale', vars);
+    // M3B — enrichit avec les variables du contexte standard + corrélation event→notif.
+    const ctxVars = eventLog?.payloadSafe?.context?.variables || {};
+    await triggerNotification('new_sale', { ...ctxVars, ...vars }, {
+      event: { eventId: eventLog._id, eventName: eventLog.eventName, contextType: eventLog.contextType || 'sale', contextId: String(contextId) }
+    });
   } catch (err) {
     console.error('[notifSubscriber] sale.finalized handler error:', err?.message || err);
   }
@@ -152,7 +156,11 @@ export async function handleBookingNoShowNotification(eventLog) {
     const { proceed } = await claimDelivery(key, eventLog._id, mode);
     if (!proceed) return;
 
-    await triggerNotification('no_show_recorded', vars);
+    // M3B — enrichit avec les variables du contexte standard + corrélation event→notif.
+    const ctxVars = eventLog?.payloadSafe?.context?.variables || {};
+    await triggerNotification('no_show_recorded', { ...ctxVars, ...vars }, {
+      event: { eventId: eventLog._id, eventName: eventLog.eventName, contextType: eventLog.contextType || 'service_booking', contextId: String(contextId) }
+    });
   } catch (err) {
     console.error('[notifSubscriber] no_show handler error:', err?.message || err);
   }

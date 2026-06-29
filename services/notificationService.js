@@ -24,9 +24,12 @@ function interpolateTemplate(template, variables) {
  *   4. mapping par type via `resolveNotificationTargetRole`.
  * Anciens appelants `triggerNotification(type, vars)` non impactés (3e arg optionnel).
  *
+ * M3B — `options.event` (corrélation event→notification) : { eventId, eventName,
+ * contextType, contextId } persistés (champs SAFE). Aucun e-mail/secret.
+ *
  * @param {string} eventType
  * @param {object} [variables]
- * @param {{targetRole?: 'admin'|'dev'}} [options]
+ * @param {{targetRole?: 'admin'|'dev', event?: {eventId?: any, eventName?: string, contextType?: string, contextId?: any}}} [options]
  */
 export async function triggerNotification(eventType, variables = {}, options = {}) {
   try {
@@ -63,6 +66,13 @@ export async function triggerNotification(eventType, variables = {}, options = {
         ? new Date(Date.now() + config.notificationLifetimeDays * 24 * 60 * 60 * 1000)
         : null;
 
+    // M3B — corrélation event→notification (champs SAFE uniquement).
+    const ev = options?.event || {};
+    const eventId = ev.eventId ?? null;
+    const eventName = ev.eventName != null ? String(ev.eventName) : null;
+    const contextType = ev.contextType != null ? String(ev.contextType) : null;
+    const contextId = ev.contextId != null ? String(ev.contextId) : null;
+
     await Notification.create({
       title,
       message,
@@ -74,6 +84,10 @@ export async function triggerNotification(eventType, variables = {}, options = {
       linkLabel: variables.linkLabel || null,
       eventType,
       variables,
+      eventId,
+      eventName,
+      contextType,
+      contextId,
       expiresAt
     });
   } catch (err) {

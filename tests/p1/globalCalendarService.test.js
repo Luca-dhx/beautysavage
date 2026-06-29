@@ -72,7 +72,8 @@ describe('global calendar service (M10)', () => {
     expect(item.balanceDueAmount).toBe(70);
     expect(item.actionLinks.markBalancePaid).toBe(true);
     expect(item.actionLinks.cancel).toBe(true);
-    expect(item.actionLinks.reschedule).toBe(false);
+    // M11B — report admin global désormais disponible pour une réservation active.
+    expect(item.actionLinks.reschedule).toBe(true);
   });
 
   it('mapFormationSessionToCalendarItem produit un item par jour planifié', () => {

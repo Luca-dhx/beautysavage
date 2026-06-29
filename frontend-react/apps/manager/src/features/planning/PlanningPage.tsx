@@ -3,7 +3,7 @@
 // drawer de détail + actions. Calendrier GLOBAL (entité institut unique).
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { CalendarItem, CalendarItemType } from '@bs/api-client';
+import type { CalendarItem, CalendarItemType, RescheduleBookingPayload } from '@bs/api-client';
 import {
   usePlanning,
   planningRange,
@@ -57,7 +57,7 @@ export function PlanningPage() {
   const [selected, setSelected] = useState<CalendarItem | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const { items, isLoading, cancel, markPaid } = usePlanning({ date, view, type });
+  const { items, isLoading, cancel, markPaid, reschedule, refetch } = usePlanning({ date, view, type });
 
   const title = useMemo(() => {
     if (view === 'week') {
@@ -81,6 +81,13 @@ export function PlanningPage() {
   const onMarkPaid = async (item: CalendarItem) => {
     setBusy(true);
     try { await markPaid(item.id); setSelected(null); } finally { setBusy(false); }
+  };
+  // M11B — report : la mutation lève en cas d'échec (affiché par le formulaire) ; au succès on
+  // rafraîchit le planning et ferme le drawer.
+  const onReschedule = async (item: CalendarItem, payload: RescheduleBookingPayload) => {
+    await reschedule(item.id, payload);
+    refetch();
+    setSelected(null);
   };
 
   return (
@@ -107,6 +114,7 @@ export function PlanningPage() {
         onClose={() => setSelected(null)}
         onCancel={onCancel}
         onMarkPaid={onMarkPaid}
+        onReschedule={onReschedule}
         busy={busy}
       />
     </section>

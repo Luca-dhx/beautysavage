@@ -420,6 +420,10 @@ app.use('/api/gestion/notifications', notificationRouter);
 // M10 — Calendrier global institut (lecture seule, admin/dev). Monté ICI, AVANT les routeurs
 // dev-only broad-mount sur '/api/gestion' (qui sinon shadowent ce chemin et renvoient 403).
 app.use('/api/gestion/calendar', calendarRouter);
+// M11B — Actions admin sur les réservations (detail/cancel/balance-paid/reschedule). Monté ICI,
+// AVANT les routeurs dev-only broad-mount sur '/api/gestion' (ex. commissionRouter requireStrictDev)
+// qui sinon shadowent '/api/gestion/bookings/*' et renvoient 403 aux admins (cf. M3A).
+app.use('/api/gestion', gestionBookingRouter);
 // M3E — Supervision mail dev (mail-deliveries + send-logs stats), strict dev — AVANT /api/gestion/dev générique.
 app.use('/api/gestion/dev', mailSupervisionDevRouter);
 // M7 — Notification Studio dev (templates + catégories), strict dev — AVANT /api/gestion/dev générique.
@@ -464,7 +468,7 @@ app.use('/api/vitrine/editable-content', editableContentVitrineRouter);
 app.use('/api/gestion/services', serviceRouter);
 app.use('/api/gestion/practitioners', practitionerRouter);
 app.use('/api/gestion/availability', availabilityRouter);
-app.use('/api/gestion', gestionBookingRouter);
+// (gestionBookingRouter monté plus haut, AVANT les broad-mounts dev-only — voir M11B/M3A.)
 app.use('/api/gestion/service-settings', serviceSettingsRouter);
 // (notificationRouter monté plus haut, AVANT les routeurs dev-only broad-mount — voir M3A.)
 app.use('/api/vitrine/availability', vitrineAvailabilityRouter);

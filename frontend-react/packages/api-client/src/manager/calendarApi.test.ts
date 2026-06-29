@@ -45,8 +45,11 @@ describe('calendar api-client (M10)', () => {
     expect(calls[0].url).toContain('/api/gestion/bookings/BKG-2/balance-paid');
   });
 
-  it('rescheduleBooking lève (aucun endpoint admin)', async () => {
-    expect(RESCHEDULE_SUPPORTED).toBe(false);
-    await expect(rescheduleBooking()).rejects.toMatchObject({ code: 'RESCHEDULE_NOT_SUPPORTED' });
+  it('M11B — rescheduleBooking → POST /bookings/:id/reschedule (report admin global)', async () => {
+    installFetch();
+    expect(RESCHEDULE_SUPPORTED).toBe(true);
+    await rescheduleBooking('BKG-3', { newStartAt: '2026-07-01T14:00', newEndAt: '2026-07-01T15:00', reason: 'r' });
+    expect(calls[0]).toMatchObject({ method: 'POST' });
+    expect(calls[0].url).toContain('/api/gestion/bookings/BKG-3/reschedule');
   });
 });

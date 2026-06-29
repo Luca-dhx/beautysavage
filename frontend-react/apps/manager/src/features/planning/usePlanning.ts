@@ -5,8 +5,10 @@ import {
   listCalendarItems,
   cancelBooking,
   markBalancePaid,
+  rescheduleBooking,
   type CalendarItem,
   type CalendarItemType,
+  type RescheduleBookingPayload,
 } from '@bs/api-client';
 
 export type PlanningView = 'day' | 'week';
@@ -55,6 +57,7 @@ export interface UsePlanningResult {
   isError: boolean;
   cancel: (bookingId: string, reason?: string) => Promise<unknown>;
   markPaid: (bookingId: string) => Promise<unknown>;
+  reschedule: (bookingId: string, payload: RescheduleBookingPayload) => Promise<unknown>;
   refetch: () => void;
 }
 
@@ -87,6 +90,10 @@ export function usePlanning(params: {
     mutationFn: (id: string) => markBalancePaid(id),
     onSuccess: invalidate,
   });
+  const rescheduleMut = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: RescheduleBookingPayload }) => rescheduleBooking(id, payload),
+    onSuccess: invalidate,
+  });
 
   return {
     items: query.data ?? [],
@@ -94,6 +101,7 @@ export function usePlanning(params: {
     isError: query.isError,
     cancel: (id, reason) => cancelMut.mutateAsync({ id, reason }),
     markPaid: (id) => paidMut.mutateAsync(id),
+    reschedule: (id, payload) => rescheduleMut.mutateAsync({ id, payload }),
     refetch: () => void query.refetch(),
   };
 }

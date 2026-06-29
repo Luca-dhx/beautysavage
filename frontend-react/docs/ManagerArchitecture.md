@@ -374,3 +374,11 @@ Fermeture de l ecart M10 : le checkout de PRODUCTION cree toute nouvelle Service
 - Regles paiement/remboursement/commission INCHANGEES ; aucune suppression DB.
 
 **Manager** : le planning M10 (GET /api/gestion/calendar/items) recoit desormais les bookings crees par le checkout prod (chemin global) sans changement. practitionerId = institut.
+
+
+## Sprint M11B — Finalisation calendrier global institut (rapports 201-202)
+
+Finalisation : endpoint report admin GLOBAL + reschedule remboursement global + neutralisation runtime de practitionerId + script cleanup volontaire + index global. Aucune suppression DB ; paiement/remboursement inchanges.
+- **Backend** : POST /api/gestion/bookings/:id/reschedule (rescheduleBookingByAdmin -> rescheduleGlobalServiceBooking, deplacement EN PLACE, validation+slot-lock globaux, audit booking.rescheduled + booking.confirmed). Reschedule remboursement (sessionCancellationFlowService) -> createGlobalServiceBooking. Mount-order corrige (gestionBookingRouter avant broad-mounts dev-only, M3A). scripts/cleanupPractitionerLegacy.js (dry-run/apply/force-prod, consolidation+archivage, index global opt-in). Index ServiceBooking {startAt,status}.
+
+**Manager (planning)** : RESCHEDULE_SUPPORTED=true ; rescheduleBooking(id,{newStartAt,newEndAt,reason}) -> POST reschedule. usePlanning.reschedule (invalide au succes). RescheduleForm mobile-first (date+heure+motif, duree preservee, etats loading/error/success), BookingActionsPanel active si actionLinks.reschedule, PlanningPage onReschedule -> refetch+close. CSS pl-reschedule/pl-field tokens --bs-*. Aucun texte prestataire/praticienne. Pas de drag-to-reschedule.

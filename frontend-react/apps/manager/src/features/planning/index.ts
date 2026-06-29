@@ -6,6 +6,7 @@ export {
   CalendarItemDetailDrawer,
   CalendarFiltersDrawer,
   BookingActionsPanel,
+  RescheduleForm,
   BalanceDueBadge,
   PaymentStatusBadge,
   RefundStatusBadge,

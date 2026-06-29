@@ -29,7 +29,7 @@ import {
   findActiveRefundRequestForSaleItem
 } from './refundRequestService.js';
 import { createCompensationGiftCard } from './giftCardService.js';
-import { createServiceBookingWithProtection } from './serviceAvailabilityService.js';
+import { createGlobalServiceBooking } from './calendar/globalAvailabilityService.js';
 import { getPresentielWaiverExpectation } from '../utils/consumerWaiver.js';
 import { getAppBaseUrl } from '../utils/invoiceUrl.js';
 import {
@@ -1145,68 +1145,23 @@ export async function applyFlowServiceRescheduleDecision({
     throw Object.assign(new Error('Le créneau sélectionné est déjà passé.'), { status: 409 });
   }
 
+  // M11B — entité institut unique : un `practitionerId` legacy (payload ou snapshot) est conservé
+  // pour les notifications/e-mails mais N'EST PLUS utilisé pour valider/créer le booking. La
+  // disponibilité, le verrou anti-double-booking et la validation sont GLOBAUX (institut).
   const resolvedPractitionerId = practitionerId || flow.bookingSnapshot?.practitionerId;
-
-  // ── Validate slot availability ────────────────────────────────────────────
-  if (resolvedPractitionerId) {
-    // 1. Check for conflicting service bookings
-    const conflictingBooking = await ServiceBooking.findOne({
-      practitionerId: resolvedPractitionerId,
-      status: { $nin: ['cancelled', 'no_show'] },
-      $or: [{ startAt: { $lt: endDate }, endAt: { $gt: startDate } }]
-    }).lean();
-
-    if (conflictingBooking) {
-      throw Object.assign(new Error('SLOT_UNAVAILABLE'), { code: 'SLOT_UNAVAILABLE', status: 409 });
-    }
-
-    // 2. Check for conflicting formation sessions
-    const practitionerProfile = await PractitionerProfile.findById(resolvedPractitionerId)
-      .select('userId').lean();
-
-    if (practitionerProfile?.userId) {
-      const dateStr = localDateStr(startDate);
-      const formationSessions = await FormationSession.find(
-        buildActiveFormationSessionFilter({ instructorId: practitionerProfile.userId })
-      ).select({ startDate: 1, durationDays: 1, schedule: 1 }).lean();
-
-      const startMin = startDate.getHours() * 60 + startDate.getMinutes();
-      const endMin   = endDate.getHours()   * 60 + endDate.getMinutes();
-
-      for (const fs of formationSessions) {
-        const dur = Number(fs.durationDays) || 1;
-        for (let i = 0; i < dur; i++) {
-          const sessionDay = new Date(fs.startDate);
-          sessionDay.setDate(sessionDay.getDate() + i);
-          if (localDateStr(sessionDay) === dateStr) {
-            const dayIndex = i + 1;
-            const entry = (fs.schedule || []).find(s => s.dayIndex === dayIndex);
-            if (entry) {
-              const [sh, sm] = entry.startTime.split(':').map(Number);
-              const [eh, em] = entry.endTime.split(':').map(Number);
-              const fsStart = sh * 60 + sm;
-              const fsEnd   = eh * 60 + em;
-              if (startMin < fsEnd && endMin > fsStart) {
-                throw Object.assign(new Error('SLOT_UNAVAILABLE'), { code: 'SLOT_UNAVAILABLE', status: 409 });
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  // ── End slot validation ───────────────────────────────────────────────────
 
   // Build BookingId
   const crypto = await import('node:crypto');
   const bookingIdSuffix = crypto.default.randomUUID().split('-')[0];
   const newBookingId = `BKG-${Date.now()}-${bookingIdSuffix}`;
 
-  const { booking: newBooking } = await createServiceBookingWithProtection({
+  // Création GLOBALE : createGlobalServiceBooking résout l'institut, valide la disponibilité et pose
+  // les slot-locks globaux (SLOT_UNAVAILABLE 409 si conflit). practitionerId legacy ignoré/écrasé.
+  const { booking: newBooking } = await createGlobalServiceBooking({
     bookingData: {
       bookingId: newBookingId,
       serviceId: flow.serviceId,
-      practitionerId: resolvedPractitionerId,
+      practitionerId: resolvedPractitionerId, // legacy — ignoré/écrasé par l'institut
       clientId: flow.userId,
       startAt: startDate,
       endAt: endDate,
@@ -1220,7 +1175,6 @@ export async function applyFlowServiceRescheduleDecision({
       status: 'confirmed',
       saleId: sanitizeText(flow.saleId) || null
     },
-    service,
     now
   });
 

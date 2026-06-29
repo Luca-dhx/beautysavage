@@ -345,3 +345,11 @@ Fermeture de l ecart M10 : le checkout de PRODUCTION cree toute nouvelle Service
 - Regles paiement/remboursement/commission INCHANGEES ; aucune suppression DB.
 
 **Front** : api-client checkout/booking annotes legacy (practitionerId ignore) ; Vanilla checkoutModule.js encore emetteur mais ignore. Tests +4 backend (tests/p1/checkoutGlobalBooking*, globalBooking*) ; React +1 (checkout.test.ts non-dependance). Prochaine : M11B.
+
+
+## Sprint M11B — Finalisation calendrier global institut (rapports 201-202)
+
+Finalisation : endpoint report admin GLOBAL + reschedule remboursement global + neutralisation runtime de practitionerId + script cleanup volontaire + index global. Aucune suppression DB ; paiement/remboursement inchanges.
+- **Backend** : POST /api/gestion/bookings/:id/reschedule (rescheduleBookingByAdmin -> rescheduleGlobalServiceBooking, deplacement EN PLACE, validation+slot-lock globaux, audit booking.rescheduled + booking.confirmed). Reschedule remboursement (sessionCancellationFlowService) -> createGlobalServiceBooking. Mount-order corrige (gestionBookingRouter avant broad-mounts dev-only, M3A). scripts/cleanupPractitionerLegacy.js (dry-run/apply/force-prod, consolidation+archivage, index global opt-in). Index ServiceBooking {startAt,status}.
+
+**Front** : api-client manager/calendar rescheduleBooking reel (POST reschedule) + RESCHEDULE_SUPPORTED=true ; feature planning RescheduleForm. Tests +5 backend / +2 front. Prochaine : migration drop legacy, drag-to-reschedule.

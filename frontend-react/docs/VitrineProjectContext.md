@@ -122,3 +122,10 @@ garde son thème par défaut.
 Le checkout de production est officiellement branche sur le calendrier global de l institut : toute reservation passe par l entite unique, le prestataire n existe plus cote serveur (un ancien identifiant est accepte mais ignore). La disponibilite est calculee globalement. Aucun changement pour le paiement, le remboursement ou le planning. Limites : suppression definitive du champ prestataire reportee a M11B.
 
 Cote vitrine React : le panier et le paiement n ont plus besoin de selectionner une prestataire ; le creneau choisi suffit. Le champ technique `practitionerId` subsiste pour compat ascendante mais est vide/ignore.
+
+
+## Sprint M11B — Finalisation calendrier global (rapports 201-202)
+
+Le report (decalage) d un creneau est desormais possible directement depuis le planning, pour les admins. La reservation reste la meme (paiement inchange, aucun remboursement declenche), seul l horaire change. Toutes les creations de reservation passent par l institut unique ; le prestataire n existe plus cote serveur (un ancien identifiant est accepte mais ignore). Un script volontaire (jamais automatique) permet de consolider/archiver l heritage. Limites : suppression definitive des champs legacy reportee a une migration ulterieure ; pas de glisser-deposer ni de vue mois.
+
+Cote vitrine : inchange (le report est une action du manager). La reservation cote client passe toujours par l institut unique.

@@ -7,6 +7,7 @@ import {
   markCompleted,
   cancelBookingByAdmin,
   markBalancePaidOnSite,
+  rescheduleBookingByAdmin,
   simulateReminders
 } from '../controllers/serviceBookingController.js';
 
@@ -23,5 +24,7 @@ router.post('/bookings/:bookingId/no-show', markNoShow);
 router.post('/bookings/:bookingId/complete', markCompleted);
 router.post('/bookings/:bookingId/cancel', cancelBookingByAdmin);
 router.post('/bookings/:bookingId/balance-paid', markBalancePaidOnSite);
+// M11B — Report ADMIN du créneau (calendrier global institut).
+router.post('/bookings/:bookingId/reschedule', rescheduleBookingByAdmin);
 
 export default router;

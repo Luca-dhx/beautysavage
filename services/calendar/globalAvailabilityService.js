@@ -12,6 +12,7 @@ import {
   assertServiceSlotBookable,
   computeAvailableSlotsForPractitioner,
   createServiceBookingWithProtection,
+  rescheduleServiceBookingWithProtection,
   sortSlotsByStart
 } from '../serviceAvailabilityService.js';
 import { resolveInstitutePractitionerProfile } from './instituteCalendarContext.js';
@@ -116,8 +117,36 @@ export async function createGlobalServiceBooking({ bookingData = {}, now = new D
   return createServiceBookingWithProtection({ bookingData: normalized, service, now, session });
 }
 
+/**
+ * M11B — Report GLOBAL d'une réservation existante (entité institut). Résout l'institut puis
+ * déplace EN PLACE le booking via `rescheduleServiceBookingWithProtection` (validation +
+ * slot-lock GLOBAUX). Aucun `practitionerId` requis (legacy ignoré). Ne touche pas au paiement.
+ *
+ * @param {{ bookingId: string, newStartAt: any, newEndAt: any, now?: Date, session?: any }} params
+ * @returns {Promise<{ booking: object, service: object, practitioner: object }>}
+ */
+export async function rescheduleGlobalServiceBooking({
+  bookingId,
+  newStartAt,
+  newEndAt,
+  now = new Date(),
+  session = null
+} = {}) {
+  const institute = await resolveInstitutePractitionerProfile({ session });
+  if (!institute) throw instituteNotConfiguredError();
+  return rescheduleServiceBookingWithProtection({
+    bookingId,
+    practitionerId: institute._id,
+    newStartAt,
+    newEndAt,
+    now,
+    session
+  });
+}
+
 export default {
   getGlobalAvailableSlots,
   assertGlobalServiceSlotBookable,
-  createGlobalServiceBooking
+  createGlobalServiceBooking,
+  rescheduleGlobalServiceBooking
 };

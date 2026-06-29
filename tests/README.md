@@ -747,3 +747,8 @@ Quatre fichiers `tests/p1/` couvrent le branchement du checkout prod sur le cale
 - `checkoutGlobalBookingLegacyPayload.test.js` — practitionerId legacy bidon / absent dans le checkoutState : accepte mais IGNORE (rattachement institut).
 - `globalBookingAvailabilityOfficial.test.js` — GET availability/slots sans practitionerId, practitionerId legacy sans effet, double-booking global bloque (409).
 - `globalBookingNoPractitionerRegression.test.js` — route directe POST /api/client/bookings sans/avec practitionerId legacy, assertGlobalServiceSlotBookable sans practitionerId, regression acompte/remboursement (Sale = acompte, solde trace).
+
+
+## M11B — Finalisation calendrier global (rapports 201-202)
+
+Cinq fichiers tests/p1/ : adminBookingRescheduleGlobal (HTTP admin -> 200 + deplacement EN PLACE + locks deplaces + 409/400/404 ; verifie le correctif mount-order M3A), refundRescheduleGlobalBooking (applyFlowServiceRescheduleDecision -> booking global, sans practitionerId, double-booking 409), practitionerLegacyCleanup (dry-run sans ecriture / --apply consolide+archive sans delete / idempotent / --create-global-index), globalBookingIndexes (index {startAt,status} + unique {practitionerId,startAt} + double-booking global + index global unique slotStartAt), noRuntimePractitionerDependency (dispo/assert/create/checkout/reschedule sans practitionerId). Front : calendarApiReschedule.test.ts + planningReschedule.test.tsx (UI report mobile, loading/error/success, pas de table, pas de texte prestataire/praticienne).

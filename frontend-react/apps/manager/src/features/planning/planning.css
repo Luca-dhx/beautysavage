@@ -183,3 +183,24 @@
 @keyframes pl-sheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes pl-slide { from { transform: translateX(100%); } to { transform: translateX(0); } }
 @keyframes pl-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* M11B — Formulaire de report (mobile-first, tokens uniquement). */
+.pl-reschedule { display: flex; flex-direction: column; gap: var(--bs-space-2); }
+.pl-reschedule__actions { display: flex; flex-direction: column; gap: var(--bs-space-2); margin-top: var(--bs-space-1); }
+.pl-reschedule__err { color: var(--bs-color-danger); font-size: 0.85rem; margin: 0; }
+.pl-reschedule__ok { color: var(--bs-color-success); display: flex; align-items: center; gap: var(--bs-space-1); margin: 0; }
+.pl-field { display: flex; flex-direction: column; gap: 4px; }
+.pl-field__label { font-size: 0.8rem; color: var(--bs-color-muted); }
+.pl-field__input {
+  min-height: 44px;
+  border: 1px solid var(--bs-color-border);
+  border-radius: var(--bs-radius);
+  background: var(--bs-color-surface);
+  color: var(--bs-color-text);
+  padding: 0 var(--bs-space-2);
+  font: inherit;
+}
+.pl-field__input:focus-visible { outline: 2px solid var(--bs-color-accent); outline-offset: 1px; }
+@media (min-width: 768px) {
+  .pl-reschedule__actions { flex-direction: row; }
+}

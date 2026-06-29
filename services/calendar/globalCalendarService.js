@@ -77,7 +77,9 @@ export function mapServiceBookingToCalendarItem(booking, { service = null, clien
       detail: true,
       cancel: canCancel,
       markBalancePaid: canMarkBalancePaid,
-      reschedule: false // pas d'endpoint admin direct (cf. rapport 197) — UI préparée
+      // M11B — report admin GLOBAL disponible (POST /api/gestion/bookings/:id/reschedule) tant que
+      // la réservation n'est pas terminée/annulée/no-show.
+      reschedule: canCancel
     },
     sourceModel: 'ServiceBooking',
     sourceId: String(booking._id || '')

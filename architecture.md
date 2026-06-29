@@ -3998,3 +3998,17 @@ Le checkout de production cree desormais TOUTE nouvelle ServiceBooking via le ch
 - Vanilla `public/js/modules/checkoutModule.js` continue d envoyer service.practitionerId : accepte/ignore.
 - Tests +4 fichiers/11 cas (tests/p1/checkoutGlobalBooking{Production,LegacyPayload}, globalBooking{AvailabilityOfficial,NoPractitionerRegression}). Suites : p0 44, p1 589, integration 6, audits 36+20. Secret scan RAS.
 - Prochaine mission : M11B (cleanup practitionerId + index {startAt} global ; conversion reschedule ; endpoint report admin).
+
+
+## Sprint M11B — Finalisation calendrier global institut (rapports 201-202)
+
+Endpoint report admin + reschedule remboursement global + neutralisation practitionerId + cleanup + index.
+- **Mount-order (M3A)** : gestionBookingRouter remonte AVANT les broad-mounts dev-only (commissionRouter requireStrictDev shadowait /api/gestion/bookings/* -> 403 admins). Corrige cancel/balance-paid/reschedule pour les admins.
+- **Report admin** : POST /api/gestion/bookings/:bookingId/reschedule { newStartAt, newEndAt, reason } -> rescheduleBookingByAdmin -> rescheduleGlobalServiceBooking -> rescheduleServiceBookingWithProtection : DEPLACEMENT EN PLACE (meme booking/sale/paiement/statut), validation+slot-lock GLOBAUX (ignoreBookingId=self), PAS annulation+creation, PAS de remboursement auto. Audit booking.rescheduled + booking.confirmed (mail moteur M3D si flag). 400/404/409.
+- **Reschedule remboursement** : sessionCancellationFlowService.applyFlowServiceRescheduleDecision passe de createServiceBookingWithProtection au createGlobalServiceBooking (institut, slot-lock global). practitionerId legacy conserve pour notifs, plus utilise a la creation.
+- **Neutralisation** : tous les chemins runtime passent par globalAvailabilityService. createServiceBookingWithProtection/rescheduleServiceBookingWithProtection = moteur bas-niveau appele uniquement via les wrappers globaux. Restes practitionerId = lecture seule.
+- **Cleanup** scripts/cleanupPractitionerLegacy.js : dry-run defaut, --apply, --force-prod en prod, JAMAIS au boot, ne supprime jamais ; consolide practitionerId egare -> institut, archive profils orphelins (isActive=false+archivedAt), --create-global-index cree BookingSlotLock {slotStartAt} unique apres controle doublons.
+- **Index** : ServiceBooking + {startAt,status} (global non-unique) ; {practitionerId,startAt} unique conserve. BookingSlotLock {slotStartAt} laisse au script (unique global). PractitionerProfile + archivedAt/archivedReason.
+- **React** : RESCHEDULE_SUPPORTED=true, rescheduleBooking(id,payload), usePlanning.reschedule, RescheduleForm mobile-first, mapServiceBookingToCalendarItem reschedule=true. Pas de drag-to-reschedule.
+- Tests +5 backend / +2 front. Suites : p0 44, p1 608, integration 6, audits 36+20 ; React 173 + lint + build. Secret scan RAS.
+- Limites : practitionerId non supprime physiquement (drop = migration future) ; pas de drag-to-reschedule ni vue mois.

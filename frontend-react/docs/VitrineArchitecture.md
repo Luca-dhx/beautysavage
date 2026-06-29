@@ -218,3 +218,11 @@ Fermeture de l ecart M10 : le checkout de PRODUCTION cree toute nouvelle Service
 - Regles paiement/remboursement/commission INCHANGEES ; aucune suppression DB.
 
 **Vitrine (R2A/R2B)** : `@bs/api-client/checkout` — `service.practitionerId` documente LEGACY (ignore serveur), `buildServiceCheckoutState` le transmet en `?? null`. `@bs/api-client/booking/availability.getServiceAvailableSlots(practitionerId?)` tolere mais sans effet. React ne depend plus du prestataire ; aucun nouveau texte prestataire/praticienne. Tests R2A/R2B intacts + 1 test non-dependance.
+
+
+## Sprint M11B — Finalisation calendrier global institut (rapports 201-202)
+
+Finalisation : endpoint report admin GLOBAL + reschedule remboursement global + neutralisation runtime de practitionerId + script cleanup volontaire + index global. Aucune suppression DB ; paiement/remboursement inchanges.
+- **Backend** : POST /api/gestion/bookings/:id/reschedule (rescheduleBookingByAdmin -> rescheduleGlobalServiceBooking, deplacement EN PLACE, validation+slot-lock globaux, audit booking.rescheduled + booking.confirmed). Reschedule remboursement (sessionCancellationFlowService) -> createGlobalServiceBooking. Mount-order corrige (gestionBookingRouter avant broad-mounts dev-only, M3A). scripts/cleanupPractitionerLegacy.js (dry-run/apply/force-prod, consolidation+archivage, index global opt-in). Index ServiceBooking {startAt,status}.
+
+**Vitrine** : aucun impact direct (le report est une action manager). Le checkout reste branche au global (M11A) ; practitionerId legacy ignore.

@@ -30,7 +30,10 @@ import {
 } from '../services/sessionCancellationFlowService.js';
 import { triggerNotification } from '../services/notificationService.js';
 import { releaseServiceBookingSlotLocks } from '../services/serviceAvailabilityService.js';
-import { createGlobalServiceBooking } from '../services/calendar/globalAvailabilityService.js';
+import {
+  createGlobalServiceBooking,
+  rescheduleGlobalServiceBooking
+} from '../services/calendar/globalAvailabilityService.js';
 import { resolveInstitutePractitionerProfile } from '../services/calendar/instituteCalendarContext.js';
 import { resolveEffectiveServiceUnitPrice } from '../services/promotionService.js';
 
@@ -825,6 +828,79 @@ export async function cancelBookingByAdmin(req, res) {
     });
   } catch (error) {
     console.error('cancelBookingByAdmin error', error);
+    return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
+  }
+}
+
+// ─── POST /api/gestion/bookings/:bookingId/reschedule ──────────────────────
+// M11B — Report ADMIN d'un créneau (calendrier GLOBAL institut). Déplacement EN PLACE du même
+// booking (conserve bookingId/saleId/paiement/statut) : NI annulation NI remboursement auto.
+// Valide la disponibilité globale, déplace les slot-locks, émet booking.confirmed (→ mail moteur
+// M3D si flag actif). Admin/dev uniquement (router requireMode('gestion')).
+export async function rescheduleBookingByAdmin(req, res) {
+  try {
+    const { bookingId } = req.params;
+    const adminId = getSessionUserId(req);
+    const newStartAt = req.body?.newStartAt;
+    const newEndAt = req.body?.newEndAt;
+    const reason = String(req.body?.reason || '').trim().slice(0, 500);
+
+    if (!newStartAt || !newEndAt) {
+      return res.status(400).json({ ok: false, error: 'newStartAt et newEndAt sont requis.' });
+    }
+    const startDate = new Date(newStartAt);
+    const endDate = new Date(newEndAt);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || startDate >= endDate) {
+      return res.status(400).json({ ok: false, error: 'Créneau invalide.' });
+    }
+
+    const previous = await ServiceBooking.findOne({ bookingId }).select('startAt endAt status').lean();
+    if (!previous) return res.status(404).json({ ok: false, error: 'Réservation introuvable.' });
+
+    let result;
+    try {
+      result = await rescheduleGlobalServiceBooking({
+        bookingId,
+        newStartAt: startDate,
+        newEndAt: endDate,
+        now: new Date()
+      });
+    } catch (rescheduleError) {
+      const status = Number(rescheduleError?.status) || 400;
+      return res.status(status).json({
+        ok: false,
+        code: rescheduleError?.code || null,
+        error: rescheduleError?.message || 'Report impossible.'
+      });
+    }
+
+    const { booking } = result;
+
+    // Audit : report jamais silencieux (acteur + raison + ancien créneau).
+    await emitBookingEvent('booking.rescheduled', booking, {
+      actorType: adminId ? 'user' : 'system',
+      actorId: adminId ? String(adminId) : null,
+      extra: {
+        reason: reason || null,
+        previousStartAt: previous.startAt || null,
+        previousEndAt: previous.endAt || null
+      }
+    });
+    // M3D — le report équivaut à une nouvelle confirmation de créneau : on émet booking.confirmed
+    // (le subscriber mail envoie booking_confirmed si MAIL_ROLE_RESOLVER_ENABLED, sinon legacy direct).
+    await emitBookingEvent('booking.confirmed', booking);
+
+    return res.json({
+      ok: true,
+      booking: {
+        bookingId: booking.bookingId,
+        startAt: booking.startAt,
+        endAt: booking.endAt,
+        status: booking.status
+      }
+    });
+  } catch (error) {
+    console.error('rescheduleBookingByAdmin error', error);
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
   }
 }

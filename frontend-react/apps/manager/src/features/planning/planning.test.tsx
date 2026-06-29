@@ -19,7 +19,7 @@ const BOOKING: CalendarItem = {
   paymentStatus: 'deposit_paid', paymentType: 'deposit', refundStatus: null,
   totalAmount: 100, depositAmount: 30, amountPaidOnline: 30, balanceDueAmount: 70,
   balanceSettlementMode: 'pay_on_site',
-  actionLinks: { detail: true, cancel: true, markBalancePaid: true, reschedule: false },
+  actionLinks: { detail: true, cancel: true, markBalancePaid: true, reschedule: true },
   sourceModel: 'ServiceBooking', sourceId: 'x',
 };
 const FORMATION: CalendarItem = {
@@ -100,11 +100,13 @@ describe('Planning global (M10)', () => {
     await waitFor(() => expect(calls.some((c) => c.url.includes('type=formation_session'))).toBe(true));
   });
 
-  it('action report désactivée (aucun endpoint admin)', async () => {
+  it('action report ACTIVE (M11B) : ouvre le formulaire de report', async () => {
     installFetch();
     renderPage();
     fireEvent.click(await screen.findByText('Soin visage'));
-    const reportBtn = await screen.findByRole('button', { name: /Reporter le créneau/i });
-    expect(reportBtn).toBeDisabled();
+    const reportBtn = await screen.findByTestId('pl-reschedule-open');
+    expect(reportBtn).toBeEnabled();
+    fireEvent.click(reportBtn);
+    expect(await screen.findByTestId('pl-reschedule-form')).toBeInTheDocument();
   });
 });

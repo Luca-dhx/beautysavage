@@ -46,8 +46,8 @@ export interface CalendarFilters {
 const BASE = '/api/gestion/calendar';
 const BOOKINGS = '/api/gestion/bookings';
 
-// Le report/décalage admin n'a pas d'endpoint backend (cf. rapport 197) : UI préparée seulement.
-export const RESCHEDULE_SUPPORTED = false;
+// M11B — le report/décalage admin GLOBAL est désormais disponible côté backend.
+export const RESCHEDULE_SUPPORTED = true;
 
 export async function listCalendarItems(filters: CalendarFilters): Promise<CalendarItem[]> {
   const res = await apiGet<{ ok: boolean; items: CalendarItem[] }>(`${BASE}/items`, {
@@ -79,12 +79,30 @@ export async function markBalancePaid(bookingId: string): Promise<{ ok: boolean;
   return apiPost(`${BOOKINGS}/${encodeURIComponent(bookingId)}/balance-paid`, {});
 }
 
+export interface RescheduleBookingPayload {
+  /** Nouveau début ISO ("YYYY-MM-DDTHH:mm" ou ISO complet). */
+  newStartAt: string;
+  /** Nouvelle fin ISO. */
+  newEndAt: string;
+  reason?: string;
+}
+
+export interface RescheduleBookingResponse {
+  ok: boolean;
+  booking?: { bookingId: string; startAt: string; endAt: string; status: string };
+}
+
 /**
- * Report/décalage d'un créneau. AUCUN endpoint admin direct (cf. rapport 197) — le décalage
- * passe aujourd'hui par le flow client. Exposé pour l'UI (désactivée) ; lève si appelé.
+ * M11B — Report/décalage GLOBAL d'un créneau (déplacement EN PLACE du même booking, sans
+ * remboursement). POST /api/gestion/bookings/:id/reschedule. Admin/dev (backend).
  */
-export async function rescheduleBooking(): Promise<never> {
-  throw Object.assign(new Error('Report non disponible : aucun endpoint admin (cf. M10).'), {
-    code: 'RESCHEDULE_NOT_SUPPORTED',
+export async function rescheduleBooking(
+  bookingId: string,
+  payload: RescheduleBookingPayload,
+): Promise<RescheduleBookingResponse> {
+  return apiPost(`${BOOKINGS}/${encodeURIComponent(bookingId)}/reschedule`, {
+    newStartAt: payload.newStartAt,
+    newEndAt: payload.newEndAt,
+    ...(payload.reason ? { reason: payload.reason } : {}),
   });
 }

@@ -664,6 +664,93 @@ export async function createServiceBookingWithProtection({
   }
 }
 
+/**
+ * M11B — Déplacement EN PLACE d'une réservation existante vers un nouveau créneau, avec
+ * protection (validation + slot-locks). Conserve le MÊME booking (bookingId/saleId/paiement/
+ * statut) : seuls `startAt`/`endAt` changent. Le nouveau créneau est validé en IGNORANT la
+ * réservation elle-même (ignoreBookingId). Les anciens verrous sont relâchés puis les nouveaux
+ * posés (anti-double-booking via index unique). N'inventoine aucune logique de remboursement.
+ *
+ * @param {{ bookingId: string, practitionerId: any, newStartAt: any, newEndAt: any,
+ *           now?: Date, session?: any }} params
+ * @returns {Promise<{ booking: object, service: object, practitioner: object }>}
+ */
+export async function rescheduleServiceBookingWithProtection({
+  bookingId,
+  practitionerId,
+  newStartAt,
+  newEndAt,
+  now = new Date(),
+  session = null
+} = {}) {
+  const normalizedBookingId = String(bookingId || '').trim();
+  if (!normalizedBookingId) {
+    throw buildServiceSlotError('BOOKING_NOT_FOUND', 'Réservation introuvable.', 404);
+  }
+
+  let bookingQuery = ServiceBooking.findOne({ bookingId: normalizedBookingId });
+  if (session) bookingQuery = bookingQuery.session(session);
+  const booking = await bookingQuery;
+  if (!booking) {
+    throw buildServiceSlotError('BOOKING_NOT_FOUND', 'Réservation introuvable.', 404);
+  }
+  if (['cancelled', 'completed', 'no_show'].includes(booking.status)) {
+    throw buildServiceSlotError('BOOKING_NOT_RESCHEDULABLE', 'Cette réservation ne peut pas être reportée.', 409);
+  }
+
+  // Validation GLOBALE du nouveau créneau (en ignorant cette réservation : son propre créneau
+  // actuel ne doit pas compter comme un conflit).
+  const validation = await assertServiceSlotBookable({
+    practitionerId,
+    serviceId: booking.serviceId,
+    startAt: newStartAt,
+    endAt: newEndAt,
+    now,
+    ignoreBookingId: normalizedBookingId,
+    session
+  });
+
+  const occupiedEndAt = new Date(
+    validation.endAt.getTime() + Number(validation.service.bufferTime || 0) * MINUTE_IN_MS
+  );
+
+  // Relâche les anciens verrous PUIS pose les nouveaux. assertServiceSlotBookable a confirmé que
+  // le nouveau créneau est libre (hors cette réservation) → le seul détenteur possible des minutes
+  // chevauchantes était cette réservation elle-même (cas d'un petit décalage).
+  await releaseServiceBookingSlotLocks({ bookingId: normalizedBookingId, session });
+
+  const lockDocs = buildBookingSlotLockDocuments({
+    practitionerId,
+    bookingId: normalizedBookingId,
+    startAt: validation.startAt,
+    occupiedEndAt
+  });
+
+  try {
+    if (lockDocs.length) {
+      await BookingSlotLock.insertMany(lockDocs, {
+        ordered: true,
+        ...(session ? { session } : {})
+      });
+    }
+    booking.startAt = validation.startAt;
+    booking.endAt = validation.endAt;
+    booking.updatedAt = new Date();
+    await booking.save(session ? { session } : undefined);
+    return { booking, service: validation.service, practitioner: validation.practitioner };
+  } catch (error) {
+    await releaseServiceBookingSlotLocks({ bookingId: normalizedBookingId, session }).catch(() => {});
+    if (isDuplicateKeyError(error)) {
+      throw buildServiceSlotError(
+        SERVICE_SLOT_ERROR_CODES.SLOT_UNAVAILABLE,
+        'Ce creneau n est plus disponible.',
+        409
+      );
+    }
+    throw error;
+  }
+}
+
 export function sortSlotsByStart(slots = []) {
   return [...slots].sort((left, right) => left.start.localeCompare(right.start));
 }

@@ -40,7 +40,8 @@
     "reactR2CStripeReturnLogin": "completed",
     "m1CommunicationIdentity": "completed",
     "m2MailEventDispatch": "completed",
-    "m11aCheckoutGlobalBooking": "completed"
+    "m11aCheckoutGlobalBooking": "completed",
+    "m11bGlobalCalendarFinalization": "completed"
   },
   "m2MailEventDispatch": {
     "date": "2026-06-28",
@@ -10443,6 +10444,32 @@
     "suites": "p0 44, p1 589, integration 6, audits 36+20 ; React 165 + lint + build. Secret scan RAS.",
     "limits": "practitionerId non supprime physiquement (cleanup M11B) ; reschedule remboursement encore via createServiceBookingWithProtection (cible institut) ; pas d'endpoint report admin.",
     "next": "M11B — cleanup practitionerId (migration + index {startAt} global), conversion reschedule vers global, endpoint report admin."
+  },
+  "m11bGlobalCalendarFinalization": {
+    "description": "M11B (2026-06-30) — Finalisation du calendrier GLOBAL institut. Endpoint report admin (POST /api/gestion/bookings/:id/reschedule, deplacement EN PLACE), reschedule remboursement converti au global, logique practitionerId neutralisee au runtime, script cleanup volontaire (dry-run), index global prepare, planning React branche sur le report. Aucune suppression DB ; paiement/remboursement/Vanilla inchanges.",
+    "reports": [
+      "Rapports/version 1/201_audit_pre_m11b_global_calendar_finalization.md",
+      "Rapports/version 1/202_rapport_m11b_global_calendar_finalization.md"
+    ],
+    "mountOrderFix": "gestionBookingRouter remonte AVANT les broad-mounts dev-only (commissionRouter requireStrictDev shadowait /api/gestion/bookings/* -> 403 admins). Verifie empiriquement. Corrige cancel/balance-paid/reschedule pour les admins.",
+    "rescheduleEndpoint": "serviceBookingController.rescheduleBookingByAdmin -> rescheduleGlobalServiceBooking -> rescheduleServiceBookingWithProtection (serviceAvailabilityService) : deplacement EN PLACE (meme booking/sale/paiement/statut), validation+slot-lock GLOBAUX (ignoreBookingId=self), PAS d'annulation+creation, PAS de remboursement auto. Audit booking.rescheduled + booking.confirmed (mail moteur M3D si flag). 400/404/409.",
+    "refundReschedule": "sessionCancellationFlowService.applyFlowServiceRescheduleDecision : createServiceBookingWithProtection + bloc manuel remplaces par createGlobalServiceBooking (institut, slot-lock global, SLOT_UNAVAILABLE 409). practitionerId legacy conserve pour notifs mais plus utilise a la creation.",
+    "practitionerNeutralization": "Tous les chemins runtime de creation/deplacement passent par globalAvailabilityService (checkout M11A, createBooking M11A, reschedule remboursement M11B, report admin M11B). createServiceBookingWithProtection/rescheduleServiceBookingWithProtection = moteur bas-niveau appele UNIQUEMENT via les wrappers globaux. Restes practitionerId = lecture seule.",
+    "cleanupScript": "scripts/cleanupPractitionerLegacy.js : dry-run defaut, --apply, --force-prod en prod, JAMAIS au boot, ne supprime jamais. Consolide practitionerId egare -> institut ; archive (isActive=false+archivedAt) profils non-institut orphelins ; --create-global-index cree BookingSlotLock {slotStartAt} unique (global_slot_unique) apres controle doublons. Idempotent. Export programmatique testable.",
+    "indexes": "ServiceBooking: + index global non-unique {startAt,status} ; unique {practitionerId,startAt} conserve (global de facto). BookingSlotLock: pattern {slotStartAt} laisse au script (unique global) pour eviter conflit de cle au boot. PractitionerProfile: + archivedAt/archivedReason.",
+    "reactPlanning": "api-client RESCHEDULE_SUPPORTED=true + rescheduleBooking(id,{newStartAt,newEndAt,reason}) -> POST reschedule. usePlanning.reschedule (invalide au succes). RescheduleForm mobile-first (date+heure+motif, duree preservee, loading/error/success). BookingActionsPanel active si actionLinks.reschedule. PlanningPage onReschedule -> refetch+close. CSS pl-reschedule/pl-field tokens --bs-*. Pas de drag-to-reschedule. mapServiceBookingToCalendarItem: reschedule=true si actif.",
+    "tests": [
+      "tests/p1/adminBookingRescheduleGlobal.test.js",
+      "tests/p1/refundRescheduleGlobalBooking.test.js",
+      "tests/p1/practitionerLegacyCleanup.test.js",
+      "tests/p1/globalBookingIndexes.test.js",
+      "tests/p1/noRuntimePractitionerDependency.test.js",
+      "frontend-react/packages/api-client/src/manager/calendarApiReschedule.test.ts",
+      "frontend-react/apps/manager/src/features/planning/planningReschedule.test.tsx"
+    ],
+    "suites": "p0 44, p1 608, integration 6, audits 36+20 ; React 173 + lint + build. Secret scan RAS.",
+    "limits": "practitionerId non supprime physiquement (drop = migration future separee) ; report admin valide la dispo institut (plus strict) ; pas de drag-to-reschedule ni vue mois ; paiements participants formation non modelises.",
+    "next": "Migration drop des champs/index legacy practitionerId (script separe dry-run apres observation) ; drag-to-reschedule + vue mois ; paiements participants formation au niveau session."
   },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",

@@ -236,3 +236,10 @@ moderniser le centre de notifications.
 Le checkout de production est officiellement branche sur le calendrier global de l institut : toute reservation passe par l entite unique, le prestataire n existe plus cote serveur (un ancien identifiant est accepte mais ignore). La disponibilite est calculee globalement. Aucun changement pour le paiement, le remboursement ou le planning. Limites : suppression definitive du champ prestataire reportee a M11B.
 
 Pour le manager : le planning affiche les nouvelles reservations issues du checkout, toutes rattachees a l institut (entite unique). Rien a configurer.
+
+
+## Sprint M11B — Finalisation calendrier global (rapports 201-202)
+
+Le report (decalage) d un creneau est desormais possible directement depuis le planning, pour les admins. La reservation reste la meme (paiement inchange, aucun remboursement declenche), seul l horaire change. Toutes les creations de reservation passent par l institut unique ; le prestataire n existe plus cote serveur (un ancien identifiant est accepte mais ignore). Un script volontaire (jamais automatique) permet de consolider/archiver l heritage. Limites : suppression definitive des champs legacy reportee a une migration ulterieure ; pas de glisser-deposer ni de vue mois.
+
+Pour le manager : depuis le drawer de detail d une reservation, un bouton « Reporter le creneau » ouvre un mini-formulaire (date + heure + motif) ; au succes le planning se rafraichit. Mobile-first, anime, sans tableau.

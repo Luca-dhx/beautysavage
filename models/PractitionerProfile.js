@@ -20,6 +20,10 @@ const practitionerProfileSchema = new mongoose.Schema({
   serviceIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Service' }],
 
   isActive: { type: Boolean, default: true },
+  // M11B — archivage VOLONTAIRE (cleanup legacy multi-prestataire) : jamais de suppression, on
+  // désactive + horodate. Renseignés uniquement par scripts/cleanupPractitionerLegacy.js.
+  archivedAt: { type: Date, default: null },
+  archivedReason: { type: String, default: null },
   createdAt: { type: Date, default: Date.now }
 }, { collection: 'practitioner_profiles' });
 

@@ -84,6 +84,8 @@ const serviceBookingSchema = new mongoose.Schema({
 serviceBookingSchema.index({ bookingId: 1 }, { unique: true });
 serviceBookingSchema.index({ clientId: 1, startAt: -1 });
 serviceBookingSchema.index({ practitionerId: 1, startAt: -1 });
+// M10/M11 — `practitionerId` = entité institut UNIQUE : cet index unique partiel garantit déjà
+// l'anti-double-booking GLOBAL (une seule entité). Conservé legacy (cleanup futur via script).
 serviceBookingSchema.index(
   { practitionerId: 1, startAt: 1 },
   {
@@ -93,6 +95,9 @@ serviceBookingSchema.index(
     }
   }
 );
+// M11B — index GLOBAL (non-unique) pour les requêtes calendrier par plage de dates/statut,
+// indépendant du prestataire (entité institut unique). Safe à créer au boot.
+serviceBookingSchema.index({ startAt: 1, status: 1 });
 serviceBookingSchema.index({ serviceId: 1 });
 
 const ServiceBooking = mongoose.model('ServiceBooking', serviceBookingSchema);

@@ -263,3 +263,10 @@ communication. Dev-only, mobile-first. Suite (M8) : exploitation runtime + centr
 Le checkout de production est officiellement branche sur le calendrier global de l institut : toute reservation passe par l entite unique, le prestataire n existe plus cote serveur (un ancien identifiant est accepte mais ignore). La disponibilite est calculee globalement. Aucun changement pour le paiement, le remboursement ou le planning. Limites : suppression definitive du champ prestataire reportee a M11B.
 
 Portee transverse (backend + front + Vanilla). Suite M11B : nettoyage definitif du champ prestataire et endpoint de report admin.
+
+
+## Sprint M11B — Finalisation calendrier global (rapports 201-202)
+
+Le report (decalage) d un creneau est desormais possible directement depuis le planning, pour les admins. La reservation reste la meme (paiement inchange, aucun remboursement declenche), seul l horaire change. Toutes les creations de reservation passent par l institut unique ; le prestataire n existe plus cote serveur (un ancien identifiant est accepte mais ignore). Un script volontaire (jamais automatique) permet de consolider/archiver l heritage. Limites : suppression definitive des champs legacy reportee a une migration ulterieure ; pas de glisser-deposer ni de vue mois.
+
+Portee transverse (backend + manager front). Le checkout (M11A) et le calendrier (M10) restent la source officielle ; M11B ferme la boucle report + cleanup.

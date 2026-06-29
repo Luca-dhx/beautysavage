@@ -1,9 +1,14 @@
 // M10 — Composants présentiels du planning global (mobile-first, animés, accessibles).
 // Aucune couleur hex en dur : type/statut → classes CSS (tokens --bs-*).
-import { useEffect, type ReactNode } from 'react';
-import type { CalendarItem, CalendarItemType } from '@bs/api-client';
+import { useEffect, useState, type ReactNode } from 'react';
+import type { CalendarItem, CalendarItemType, RescheduleBookingPayload } from '@bs/api-client';
 
 function pad2(n: number) { return String(n).padStart(2, '0'); }
+function dateInputValue(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
 function fmtTime(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
@@ -137,14 +142,86 @@ export function CalendarFiltersDrawer({ value, onChange }: { value: CalendarItem
 }
 
 // ── Actions sur réservation ───────────────────────────────────────────────────
-export function BookingActionsPanel({ item, onCancel, onMarkPaid, busy }: {
+// ── Formulaire de report (mobile-first) ────────────────────────────────────────
+// M11B — Report du créneau : choix d'une date + heure ; la durée est préservée (déduite du
+// créneau actuel). États loading/error/success. Aucune notion de prestataire.
+export function RescheduleForm({ item, onReschedule, onDone }: {
+  item: CalendarItem;
+  onReschedule: (i: CalendarItem, payload: RescheduleBookingPayload) => Promise<void>;
+  onDone: () => void;
+}) {
+  const durationMs = Math.max(0, new Date(item.endAt).getTime() - new Date(item.startAt).getTime());
+  const [date, setDate] = useState(dateInputValue(item.startAt));
+  const [time, setTime] = useState(fmtTime(item.startAt));
+  const [reason, setReason] = useState('');
+  const [phase, setPhase] = useState<'idle' | 'submitting' | 'error' | 'success'>('idle');
+  const [error, setError] = useState('');
+
+  const submit = async () => {
+    if (!date || !time) { setPhase('error'); setError('Date et heure requises.'); return; }
+    const newStartAt = `${date}T${time}`;
+    const startMs = new Date(newStartAt).getTime();
+    if (Number.isNaN(startMs)) { setPhase('error'); setError('Créneau invalide.'); return; }
+    const newEndAt = new Date(startMs + durationMs).toISOString();
+    setPhase('submitting'); setError('');
+    try {
+      await onReschedule(item, { newStartAt, newEndAt, reason: reason.trim() || undefined });
+      setPhase('success');
+    } catch (e) {
+      setPhase('error');
+      setError(e instanceof Error && e.message ? e.message : 'Report impossible.');
+    }
+  };
+
+  if (phase === 'success') {
+    return (
+      <div className="pl-reschedule" data-testid="pl-reschedule-success" role="status">
+        <p className="pl-reschedule__ok"><i className="bi-check-circle" aria-hidden="true" /> Créneau reporté.</p>
+        <button type="button" className="pl-actionbtn pl-actionbtn--primary" onClick={onDone}>Fermer</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pl-reschedule" data-testid="pl-reschedule-form">
+      <label className="pl-field">
+        <span className="pl-field__label">Nouvelle date</span>
+        <input className="pl-field__input" type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Nouvelle date" />
+      </label>
+      <label className="pl-field">
+        <span className="pl-field__label">Nouvelle heure</span>
+        <input className="pl-field__input" type="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Nouvelle heure" />
+      </label>
+      <label className="pl-field">
+        <span className="pl-field__label">Motif (optionnel)</span>
+        <input className="pl-field__input" type="text" value={reason} maxLength={500} onChange={(e) => setReason(e.target.value)} aria-label="Motif du report" />
+      </label>
+      {phase === 'error' ? <p className="pl-reschedule__err" role="alert" data-testid="pl-reschedule-error">{error}</p> : null}
+      <div className="pl-reschedule__actions">
+        <button type="button" className="pl-actionbtn pl-actionbtn--primary" disabled={phase === 'submitting'} onClick={() => void submit()} data-testid="pl-reschedule-submit">
+          {phase === 'submitting' ? 'Report en cours…' : 'Confirmer le report'}
+        </button>
+        <button type="button" className="pl-actionbtn" disabled={phase === 'submitting'} onClick={onDone}>Annuler</button>
+      </div>
+    </div>
+  );
+}
+
+export function BookingActionsPanel({ item, onCancel, onMarkPaid, onReschedule, busy }: {
   item: CalendarItem;
   onCancel: (i: CalendarItem) => void;
   onMarkPaid: (i: CalendarItem) => void;
+  onReschedule: (i: CalendarItem, payload: RescheduleBookingPayload) => Promise<void>;
   busy?: boolean;
 }) {
+  const [showReschedule, setShowReschedule] = useState(false);
   if (item.type !== 'service_booking') return null;
   const a = item.actionLinks;
+
+  if (showReschedule) {
+    return <RescheduleForm item={item} onReschedule={onReschedule} onDone={() => setShowReschedule(false)} />;
+  }
+
   return (
     <div className="pl-actions" data-testid="pl-actions">
       {a.markBalancePaid ? (
@@ -152,9 +229,11 @@ export function BookingActionsPanel({ item, onCancel, onMarkPaid, busy }: {
           <i className="bi-cash-coin" aria-hidden="true" /> Marquer le solde payé sur place
         </button>
       ) : null}
-      <button type="button" className="pl-actionbtn" disabled title="Report indisponible (à venir)">
-        <i className="bi-arrow-left-right" aria-hidden="true" /> Reporter le créneau
-      </button>
+      {a.reschedule ? (
+        <button type="button" className="pl-actionbtn" disabled={busy} onClick={() => setShowReschedule(true)} data-testid="pl-reschedule-open">
+          <i className="bi-arrow-left-right" aria-hidden="true" /> Reporter le créneau
+        </button>
+      ) : null}
       {a.cancel ? (
         <button type="button" className="pl-actionbtn pl-actionbtn--danger" disabled={busy} onClick={() => onCancel(item)}>
           <i className="bi-x-circle" aria-hidden="true" /> Annuler (remboursement si éligible)
@@ -165,11 +244,12 @@ export function BookingActionsPanel({ item, onCancel, onMarkPaid, busy }: {
 }
 
 // ── Drawer détail ─────────────────────────────────────────────────────────────
-export function CalendarItemDetailDrawer({ item, onClose, onCancel, onMarkPaid, busy }: {
+export function CalendarItemDetailDrawer({ item, onClose, onCancel, onMarkPaid, onReschedule, busy }: {
   item: CalendarItem | null;
   onClose: () => void;
   onCancel: (i: CalendarItem) => void;
   onMarkPaid: (i: CalendarItem) => void;
+  onReschedule: (i: CalendarItem, payload: RescheduleBookingPayload) => Promise<void>;
   busy?: boolean;
 }) {
   useEffect(() => {
@@ -211,7 +291,7 @@ export function CalendarItemDetailDrawer({ item, onClose, onCancel, onMarkPaid, 
               <div className="pl-row"><span>Places restantes</span><strong>{item.participant.placesLeft}</strong></div>
             </div>
           ) : null}
-          <BookingActionsPanel item={item} onCancel={onCancel} onMarkPaid={onMarkPaid} busy={busy} />
+          <BookingActionsPanel item={item} onCancel={onCancel} onMarkPaid={onMarkPaid} onReschedule={onReschedule} busy={busy} />
         </div>
       </div>
     </>

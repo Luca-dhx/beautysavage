@@ -249,3 +249,12 @@ client+variables pour les règles actives ; `refundExecutionService` gate l'e-ma
 `!isMailRoleResolverEnabled()` (event toujours émis). Rollback = flag `MAIL_ROLE_RESOLVER_ENABLED=false`.
 Anti-doublon via ledger `MailEventDelivery`. Autres flux restent shadow. **Aucune UI React.** Rien ne
 change pour la vitrine/client. Suite : **M3D** (booking.confirmed).
+
+## Sprint M3D — Activation booking.confirmed (backend, rapports 181-182)
+
+2e flux migré : **booking.confirmed**. Alignement : le report de créneau
+(`sessionCancellationFlowService`) émet désormais l'event (le checkout l'émettait déjà) ; l'e-mail
+direct legacy y est gaté par `!isMailRoleResolverEnabled()`. Règle `mailDispatchRules` active ;
+`mailEventVariableBuilder.buildBookingConfirmedVariables` complété (parité legacy). Idempotence =
+`booking._id` + templateKey (report = nouveau booking = nouvelle confirmation ; replay = 1 e-mail).
+Rollback = flag false. **Aucune UI React.** Rien ne change pour la vitrine/client. Suite : **M3E**.

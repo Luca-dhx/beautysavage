@@ -2405,6 +2405,39 @@ Une seule voie active à la fois ; `MailEventDelivery` garantit 1 e-mail max par
 ### Suite
 **M3D** : aligner puis migrer `booking.confirmed`, étendre aux autres flux non comptables.
 
+## STEP 25 — Alignement & activation booking.confirmed (M3D — 2026-06-29)
+
+### Principe
+2e flux migré vers le moteur événementiel. Rapports `181` (audit) + `182`. L'event
+`booking.confirmed` est désormais émis par **tous** les chemins de confirmation prestation ; l'e-mail
+de confirmation part via le moteur (commerciale→client) quand `MAIL_ROLE_RESOLVER_ENABLED=true`.
+
+### Alignement de l'émission
+- Checkout prestation (`checkout/checkoutBookingService.js`) : émet `booking.confirmed` (déjà le cas).
+- Report de créneau (`sessionCancellationFlowService.js`) : **émet désormais** `booking.confirmed`
+  (nouveau booking) ; l'e-mail direct legacy `sendBookingConfirmedEmail` est gaté par
+  `if (!isMailRoleResolverEnabled())`.
+
+### Règle / variables / dispatch
+- `mailDispatchRules.js` : `booking.confirmed` → `directSenderExists:false, enabled:true, mode:'active'`.
+- `mailEventVariableBuilder.buildBookingConfirmedVariables` : parité complète (servicename, dates,
+  practitionername, cancellationdays, paymenttype, depositamount, remainingamount), client résolu via
+  `ServiceBooking.findById` ; aucun e-mail dans EventLog.
+- Subscriber M3C : dispatche les règles actives (résout client + variables).
+
+### Idempotence (choix documenté)
+Clé = `contextId (booking._id)` + `templateKey`. Le report crée un **nouveau** ServiceBooking
+(nouveau `_id`) → nouvelle confirmation légitime ; replay strict (même `_id`) → 1 e-mail. Pas besoin
+d'inclure la date.
+
+### Rollback / note doublon
+Flag false → report = direct legacy, checkout = pas de booking_confirmed (historique). Flag true →
+moteur pour les deux. Au checkout flag true : `vente` (shadow direct) **+** `booking_confirmed`
+(engine) = deux e-mails distincts (≠ doublon), alignement voulu.
+
+### Suite
+**M3E** : envisager `sale.finalized` (comptable, prudence) ou consolider la supervision du journal.
+
 ### Migration
 - `automatisme/notificationConfigMigration.js` : `runNotificationConfigMigration()` -- cree le singleton config si absent avec 8 evenements preconfigures. Appelee au boot dans `app.js`.
 

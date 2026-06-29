@@ -42,6 +42,8 @@ import {
 } from './mailService.js';
 import { triggerNotification } from './notificationService.js';
 import { isActiveRefundRequestStatus } from '../constants/refundRequest.js';
+import { emitBookingEvent } from './businessEventService.js';
+import { isMailRoleResolverEnabled } from '../constants/mailDispatchRules.js';
 
 export const SESSION_CANCELLATION_TOKEN_TTL_DAYS = 7;
 export const FLOW_DECISION_PENDING = 'pending';
@@ -1231,26 +1233,39 @@ export async function applyFlowServiceRescheduleDecision({
   });
   await flow.save();
 
-  // Email de confirmation — non bloquant
+  // M3D — Aligne le report de créneau avec le moteur événementiel : on émet TOUJOURS
+  // booking.confirmed (le checkout l'émettait déjà ; le report ne l'émettait pas). Quand
+  // MAIL_ROLE_RESOLVER_ENABLED=true, le subscriber mail envoie l'e-mail booking_confirmed
+  // (commerciale→client). L'e-mail direct legacy n'est conservé que flag=false (rollback,
+  // anti-doublon). contextId = nouveau booking._id → confirmation distincte de l'originale.
   try {
-    const [client, practitioner] = await Promise.all([
-      User.findById(flow.userId).select('email firstName lastName').lean(),
-      resolvedPractitionerId
-        ? PractitionerProfile.findById(resolvedPractitionerId).select('displayName').lean()
-        : Promise.resolve(null)
-    ]);
-    if (client?.email) {
-      await sendBookingConfirmedEmail({
-        booking: {
-          ...newBooking.toObject(),
-          serviceId: service,
-          practitionerId: practitioner,
-          clientId: client
-        }
-      });
+    await emitBookingEvent('booking.confirmed', newBooking);
+  } catch (eventErr) {
+    console.error('[ServiceReschedule] booking.confirmed emit failed:', eventErr?.message || eventErr);
+  }
+
+  // Email de confirmation direct (legacy) — gaté par le flag, non bloquant.
+  if (!isMailRoleResolverEnabled()) {
+    try {
+      const [client, practitioner] = await Promise.all([
+        User.findById(flow.userId).select('email firstName lastName').lean(),
+        resolvedPractitionerId
+          ? PractitionerProfile.findById(resolvedPractitionerId).select('displayName').lean()
+          : Promise.resolve(null)
+      ]);
+      if (client?.email) {
+        await sendBookingConfirmedEmail({
+          booking: {
+            ...newBooking.toObject(),
+            serviceId: service,
+            practitionerId: practitioner,
+            clientId: client
+          }
+        });
+      }
+    } catch (emailErr) {
+      console.error('[ServiceReschedule] Email confirmation failed:', emailErr.message);
     }
-  } catch (emailErr) {
-    console.error('[ServiceReschedule] Email confirmation failed:', emailErr.message);
   }
 
   // Notification praticienne — non bloquant

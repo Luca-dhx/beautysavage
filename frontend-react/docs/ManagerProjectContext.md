@@ -128,3 +128,13 @@ l'ancien e-mail direct reprend la main. Les flux comptables/sensibles et les e-m
 n'est pas encore aligné restent volontairement en attente. Objectif : fiabiliser pas à pas la
 communication, sans risque de doublon ni de perte d'e-mail. Suite **M3D** : préparer puis migrer la
 confirmation de réservation.
+
+## Sprint M3D — Confirmation prestation pilotée par rôles (rapports 181-182)
+
+Après le remboursement (M3C), c'est au tour de la **confirmation de réservation prestation** de passer
+au moteur par rôles. On a d'abord **aligné** l'événement : tout chemin qui confirme une prestation
+(achat OU report de créneau) émet le même événement, donc déclenche la même confirmation. L'e-mail part
+« de la commerciale au client », de façon traçable, et reste **réversible par un flag**. Un report de
+créneau envoie logiquement une nouvelle confirmation (la date a changé), sans jamais dupliquer un e-mail
+déjà envoyé. Les flux comptables (vente, commissions) restent en attente. Suite **M3E** : décider de la
+suite (vente, ou écran de supervision des envois).

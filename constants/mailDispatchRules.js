@@ -22,10 +22,12 @@ export const MAIL_DISPATCH_RULES = [
     toRole: 'client',
     contextType: 'service_booking',
     enabled: true,
-    mode: 'shadow',
-    // M3C : NON migré — l'event est émis au checkout (sans e-mail direct) alors que l'e-mail
-    // direct part au report de créneau (sans event). Misalignement → reste shadow. Voir rapport 179.
-    directSenderExists: true // sendBookingConfirmedEmail → shadow
+    // M3D — MIGRÉ : l'event booking.confirmed est désormais émis par TOUS les chemins de
+    // confirmation prestation (checkout + report de créneau). L'e-mail direct legacy (report)
+    // est gaté derrière !isMailRoleResolverEnabled() (rollback = flag false). Idempotence par
+    // booking._id : le report crée un nouveau booking → confirmation distincte. Voir rapport 182.
+    mode: 'active',
+    directSenderExists: false
   },
   {
     eventName: 'refund.succeeded',

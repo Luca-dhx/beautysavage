@@ -155,6 +155,13 @@ export async function buildBookingConfirmedVariables(eventLog) {
   const bookingDate = startAt ? startAt.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
   const bookingTime = startAt ? startAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
 
+  // Parité stricte avec le direct legacy sendBookingConfirmedEmail (mailDomainDispatchers).
+  const isDeposit = booking.paymentType === 'deposit';
+  const depositAmount = isDeposit && booking.depositAmount != null ? `${Number(booking.depositAmount).toFixed(2)} €` : '';
+  const remainingAmount = isDeposit && booking.totalPrice != null && booking.depositAmount != null
+    ? `${(Number(booking.totalPrice) - Number(booking.depositAmount)).toFixed(2)} €`
+    : '';
+
   const variables = {
     firstname: clientDoc.firstName || '',
     lastname: clientDoc.lastName || '',
@@ -164,7 +171,12 @@ export async function buildBookingConfirmedVariables(eventLog) {
     bookingtime: bookingTime,
     bookingdatetime: bookingDate && bookingTime ? `${bookingDate} à ${bookingTime}` : '',
     practitionername: booking.practitionerId?.displayName || '',
-    bookingid: booking.bookingId || ''
+    cancellationdays: String(booking.cancellationPolicySnapshot?.cancellationDays ?? 7),
+    timelabel: '', // confirmation (≠ rappel) → pas de "demain/dans X"
+    bookingid: booking.bookingId || '',
+    paymenttype: isDeposit ? 'Acompte' : 'Paiement complet',
+    depositamount: depositAmount,
+    remainingamount: remainingAmount
   };
   return { client, variables, templateKey: 'booking_confirmed' };
 }

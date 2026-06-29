@@ -178,3 +178,12 @@ un flag** (retour à l'envoi direct si besoin). On ne migre qu'un flux sûr à l
 risquer d'envoyer deux fois le même e-mail ni d'en perdre un. Les e-mails comptables et ceux dont
 l'événement n'est pas encore aligné restent en attente. C'est une avancée prudente vers une
 communication entièrement pilotable. Suite **M3D** : la confirmation de réservation.
+
+## Sprint M3D — Confirmation de réservation par rôles (rapports 181-182)
+
+Deuxième e-mail basculé en envoi réel via le moteur par rôles : la **confirmation de prestation**. On a
+d'abord rendu cohérents tous les chemins qui confirment une réservation, pour qu'ils déclenchent la même
+confirmation, puis migré l'e-mail (« de la commerciale au client »), avec rollback par flag et
+anti-doublon. Un report de créneau envoie une nouvelle confirmation (date modifiée), sans jamais doubler
+un e-mail. Les e-mails comptables restent volontairement en attente. C'est la suite logique de la
+migration prudente, flux par flux. Suite **M3E**.

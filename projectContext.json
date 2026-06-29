@@ -10012,6 +10012,28 @@
     ],
     "next": "M3D — aligner puis migrer booking.confirmed, etendre aux autres flux non comptables."
   },
+  "bookingConfirmedActivation": {
+    "description": "M3D (2026-06-29) — alignement + activation booking.confirmed vers le moteur evenementiel M2. Pilote par MAIL_ROLE_RESOLVER_ENABLED.",
+    "reports": [
+      "Rapports/version 1/181_audit_pre_m3d_booking_confirmed_alignment.md",
+      "Rapports/version 1/182_rapport_m3d_booking_confirmed_activation.md"
+    ],
+    "alignment": "booking.confirmed emis par TOUS les chemins de confirmation: checkout (checkoutBookingService, deja) + report de creneau (sessionCancellationFlowService, AJOUTE). contextType service_booking, contextId=booking._id.",
+    "rule": "mailDispatchRules booking.confirmed -> directSenderExists:false, enabled:true, mode:'active' (commerciale->client, templateKey booking_confirmed).",
+    "variables": "mailEventVariableBuilder.buildBookingConfirmedVariables complete (parite legacy: cancellationdays, paymenttype, depositamount, remainingamount, dates, practitionername). Client via ServiceBooking.findById. Aucun e-mail dans EventLog.",
+    "directGating": "sessionCancellationFlowService report: event toujours emis; e-mail direct sendBookingConfirmedEmail gate par if(!isMailRoleResolverEnabled()). Checkout: pas d'e-mail direct booking_confirmed (rien a gater).",
+    "idempotence": "cle = booking._id + templateKey. Report cree un NOUVEAU ServiceBooking (nouveau _id) -> nouvelle confirmation legitime; replay strict (meme _id) -> 1 e-mail. Pas besoin d'inclure la date.",
+    "rollback": "flag false -> report=direct legacy, checkout=pas de booking_confirmed (historique). flag true -> moteur pour les deux. Au checkout flag true: vente(shadow direct)+booking_confirmed(engine)=2 e-mails distincts (pas un doublon).",
+    "shadowRemaining": "sale.finalized, commission.available, commission.reminder_sent.",
+    "tests": [
+      "tests/p1/mailEventActivationBookingConfirmed.test.js",
+      "tests/p1/bookingConfirmedEventAlignment.test.js",
+      "tests/p1/mailEventBookingVariableParity.test.js",
+      "tests/p1/mailEventBookingIdempotence.test.js"
+    ],
+    "testNotes": "mailEventActivationBooking.test.js (M3C, booking shadow) supprime. mailEventDeliveryIdempotence repointe sur sale.finalized (regle shadow).",
+    "next": "M3E — envisager sale.finalized (comptable, prudence) ou consolider la supervision du journal MailEventDelivery/SendLog."
+  },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",
     "problem": "applyFlowServiceRescheduleDecision creait ServiceBooking sans verifier disponibilite",

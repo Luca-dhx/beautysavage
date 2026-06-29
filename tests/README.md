@@ -437,6 +437,16 @@ Backend (+35), notifications in-app uniquement (aucun e-mail) :
 - `tests/p1/notificationEventSubscriberTargetRole.test.js` (4) — subscriber crée `targetRole='admin'` (new_sale, no_show_recorded), aucune notif dev, pas de fuite e-mail client.
 - **Fix d'ordre de montage** : `notificationRouter` remonté AVANT les routeurs dev-only broad-mount sur `/api/gestion` (ex. `commissionRouter requireStrictDev`) qui shadowaient `/api/gestion/notifications` (403 admins, pré-existant). Manager filtre `targetRole {$ne:'dev'}` (legacy-safe), dev filtre `targetRole 'dev'` (requireStrictDev).
 
+## Sprint M3D — Alignement & activation booking.confirmed (rapports 181-182)
+
+Backend (13 nouveaux tests), Brevo mocké, aucun vrai e-mail. 2e flux migré (`booking.confirmed`),
+aligné sur tous les chemins de confirmation, piloté par `MAIL_ROLE_RESOLVER_ENABLED` :
+- `tests/p1/mailEventActivationBookingConfirmed.test.js` (4) — flag true → e-mail engine (SendLog `role-engine`/`from:commerciale`, ledger `sent`) ; flag false → moteur no-op ; commerciale absente → `identity_missing` ; client sans e-mail → `client_missing`.
+- `tests/p1/bookingConfirmedEventAlignment.test.js` (3) — règle active ; l'event porte contextType `service_booking` + related IDs (resolver-ready) ; deux bookings distincts (checkout + report) → deux confirmations (`contextId` discrimine).
+- `tests/p1/mailEventBookingVariableParity.test.js` (3) — `buildBookingConfirmedVariables` parité legacy (servicename, dates, practitionername, cancellationdays, paymenttype, depositamount, remainingamount), pas d'e-mail dans variables ; booking introuvable → null.
+- `tests/p1/mailEventBookingIdempotence.test.js` (3) — replay (même booking) → 1 e-mail ; report (nouveau booking) → 2 confirmations ; concurrent (même booking) → 1.
+- Maintenance : l'ancien `mailEventActivationBooking.test.js` (M3C, « booking reste shadow ») supprimé ; `mailEventDeliveryIdempotence.test.js` repointé sur `sale.finalized` (règle shadow, intention inchangée).
+
 ## Sprint M3C — Activation e-mail événementiel (rapports 179-180)
 
 Backend (+14), Brevo mocké (getCredential + fetch), aucun vrai e-mail. 1er flux migré

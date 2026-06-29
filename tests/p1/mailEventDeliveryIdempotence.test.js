@@ -15,18 +15,20 @@ describe('MailEventDelivery idempotence', () => {
   afterAll(async () => { await stopMemoryDb(); });
   beforeEach(async () => { await clearDatabase(); await MailEventDelivery.syncIndexes(); });
 
+  // NB : on utilise sale.finalized (règle SHADOW) pour tester l'idempotence du ledger sans
+  // déclencher d'envoi réel (booking.confirmed/refund.succeeded sont désormais ACTIVES — M3C/M3D).
   it('rejouer le même event (même contexte) → 1 seule entrée', async () => {
-    const evt = { eventName: 'booking.confirmed', contextType: 'service_booking', contextId: 'B1' };
+    const evt = { eventName: 'sale.finalized', contextType: 'sale', contextId: 'B1' };
     await dispatchMailForEvent(evt);
     await dispatchMailForEvent(evt);
     await dispatchMailForEvent(evt);
-    expect(await MailEventDelivery.countDocuments({ eventName: 'booking.confirmed', contextId: 'B1' })).toBe(1);
+    expect(await MailEventDelivery.countDocuments({ eventName: 'sale.finalized', contextId: 'B1' })).toBe(1);
   });
 
   it('contextes différents → entrées distinctes', async () => {
-    await dispatchMailForEvent({ eventName: 'booking.confirmed', contextType: 'service_booking', contextId: 'B1' });
-    await dispatchMailForEvent({ eventName: 'booking.confirmed', contextType: 'service_booking', contextId: 'B2' });
-    expect(await MailEventDelivery.countDocuments({ eventName: 'booking.confirmed' })).toBe(2);
+    await dispatchMailForEvent({ eventName: 'sale.finalized', contextType: 'sale', contextId: 'B1' });
+    await dispatchMailForEvent({ eventName: 'sale.finalized', contextType: 'sale', contextId: 'B2' });
+    expect(await MailEventDelivery.countDocuments({ eventName: 'sale.finalized' })).toBe(2);
   });
 
   it('index unique appliqué (insertion directe en double → E11000)', async () => {
@@ -36,8 +38,8 @@ describe('MailEventDelivery idempotence', () => {
   });
 
   it('dispatch concurrent du même event → 1 seule entrée', async () => {
-    const evt = { eventName: 'booking.confirmed', contextType: 'service_booking', contextId: 'BC' };
+    const evt = { eventName: 'sale.finalized', contextType: 'sale', contextId: 'BC' };
     await Promise.all([dispatchMailForEvent(evt), dispatchMailForEvent(evt), dispatchMailForEvent(evt)]);
-    expect(await MailEventDelivery.countDocuments({ eventName: 'booking.confirmed', contextId: 'BC' })).toBe(1);
+    expect(await MailEventDelivery.countDocuments({ eventName: 'sale.finalized', contextId: 'BC' })).toBe(1);
   });
 });

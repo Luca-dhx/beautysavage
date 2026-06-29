@@ -170,3 +170,14 @@ journal `SendLog` les tags `from:commerciale`/`to:client`/`role-engine`. Les aut
 (`booking.confirmed`, `sale.finalized`, `commission.*`) **restent en shadow**. Anti-doublon garanti
 (une seule voie active selon le flag + ledger idempotent). **Aucune UI React.** Détails :
 `Rapports/version 1/180_rapport_m3c_mail_event_activation.md`. Suite : **M3D** (aligner+migrer booking.confirmed).
+
+## Sprint M3D — Activation booking.confirmed (backend, rapports 181-182)
+
+2e flux migré vers le moteur événementiel M2 : **booking.confirmed** (confirmation prestation). L'event
+est désormais émis par TOUS les chemins (checkout + report de créneau) ; quand
+`MAIL_ROLE_RESOLVER_ENABLED=true`, l'e-mail part via `commerciale→client` (sinon e-mail direct legacy
+au report — rollback). Journaux internes : `MailEventDelivery` (statut `sent`/`identity_missing`/
+`client_missing`), `SendLog` (tags `from:commerciale`/`to:client`/`role-engine`). Idempotence par
+`booking._id` : un report crée un nouveau booking → nouvelle confirmation ; replay → 1 e-mail. À noter :
+au checkout flag true, le client reçoit l'e-mail « vente » (shadow) **et** la confirmation prestation
+(engine) — deux e-mails distincts. **Aucune UI React.** Détails : `Rapports/version 1/182_rapport_m3d_booking_confirmed_activation.md`. Suite : **M3E**.

@@ -182,6 +182,17 @@ adresses se gèrent dans le Communication Center. C'est volontairement simple (p
 drag-and-drop, pas d'envoi de test réel) et réservé au dev. Suite : preview serveur fidèle ou migration
 des e-mails comptables (M7).
 
+## Sprint M8 — Le moteur consomme les templates (rapports 193-194)
+
+Le moteur d'envoi des notifications utilise désormais **réellement** les templates publiés dans le
+studio M7 (contenu, catégorie, priorité, persistance, action) ainsi que les catégories (icône/couleur).
+Tant qu'un type d'événement n'a pas de template publié, le comportement reste **identique** à avant
+(aucune régression). Le template **ne décide toujours jamais** qui reçoit la notification : c'est le
+moteur qui choisit (admin/dev). Côté React, seul un **type** partagé est ajouté (`RuntimeNotification`,
+helpers couleur/icône depuis la catégorie) pour préparer la refonte du centre — **aucun écran modifié**.
+Un interrupteur de sécurité permet de revenir à l'ancien comportement instantanément. Suite (M9) :
+refonte du centre de notifications.
+
 ## Sprint M7 — Notification Studio + Catégories (rapports 191-192)
 
 Le dev dispose désormais d'un vrai studio de **notifications**, à l'image de celui des e-mails : il

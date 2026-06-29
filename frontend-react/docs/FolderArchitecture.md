@@ -295,6 +295,16 @@ Aperçu **front** (iframe sandbox, mobile/desktop, aucun envoi). Templates = **r
 **aucune adresse** (identités → Communication Center M4). **Backend inchangé.** Tokens `--bs-*` (aucun
 hex .tsx). Suite : **M7**.
 
+## Sprint M8 — NotificationEngine branché sur les templates (rapports 193-194)
+
+Backend additif : `services/notificationTemplateRuntimeService.js` (render/snapshot/sanitize/buildPayload)
++ `services/notificationService.js` (template-first → fallback legacy, flag `NOTIFICATION_TEMPLATE_RUNTIME_ENABLED`,
+défaut ON) + `models/Notification.js` enrichi (templateKey/categoryId/categorySnapshot/priority/persistent/
+action/templateRuntimeStatus/variablesSnapshot ; l'enum legacy `category` jamais alimentée par un slug) +
+subscriber (passe `templateKey`). Le moteur garde le choix de la cible (M3A). Frontend : `@bs/api-client/
+manager/notifications.ts` (types-only : `RuntimeNotification` + helpers couleur/icône). Aucun écran modifié.
+Suite : **M9** (refonte centre de notifications).
+
 ## Sprint M7 — Notification Studio React + Categories (rapports 191-192)
 
 Backend additif : `models/NotificationCategory.js` + `models/NotificationTemplate.js` (versioning),

@@ -437,6 +437,17 @@ Backend (+35), notifications in-app uniquement (aucun e-mail) :
 - `tests/p1/notificationEventSubscriberTargetRole.test.js` (4) — subscriber crée `targetRole='admin'` (new_sale, no_show_recorded), aucune notif dev, pas de fuite e-mail client.
 - **Fix d'ordre de montage** : `notificationRouter` remonté AVANT les routeurs dev-only broad-mount sur `/api/gestion` (ex. `commissionRouter requireStrictDev`) qui shadowaient `/api/gestion/notifications` (403 admins, pré-existant). Manager filtre `targetRole {$ne:'dev'}` (legacy-safe), dev filtre `targetRole 'dev'` (requireStrictDev).
 
+## Sprint M8 — NotificationEngine branché sur les templates (rapports 193-194)
+
+Backend (+6 fichiers / 14 cas) + frontend (+1 fichier / 2 cas → **134 tests**). Additif & non destructif.
+- `tests/p1/notificationTemplateRuntime.test.js` — service runtime : render `{{var}}` + strip HTML, `sanitizeVariablesSnapshot` (drop email/secret/token), `getPublishedNotificationTemplate`, `getCategorySnapshot` (name/slug/icon/color only), `buildNotificationPayloadFromTemplate`.
+- `tests/p1/notificationRuntimeFallback.test.js` — sans template publié → legacy identique (`fallback_template_missing`) ; flag OFF → `legacy_runtime_disabled` ; ni template ni eventConfig → aucune notif.
+- `tests/p1/notificationRuntimeTrigger.test.js` — template publié prioritaire sur la config legacy (title/priority/persistent/action) ; enum legacy `category` non corrompue par le slug ; `targetRole` toujours choisi par le moteur (M3A : dev pour type dev).
+- `tests/p1/notificationRuntimeCategorySnapshot.test.js` — snapshot catégorie figé après modif de la catégorie ; template sans catégorie → snapshot null, pas d'échec validation.
+- `tests/p1/notificationRuntimeSubscriber.test.js` — `sale.finalized` → notif rendue depuis le template, corrélée (M3B), cible admin (M3A), sans doublon, aucune fuite e-mail.
+- `tests/p1/notificationRuntimePrivacy.test.js` — `variablesSnapshot` sanitizé (ni e-mail ni secret).
+- `frontend-react/packages/api-client/src/manager/notifications.test.ts` (2) — helpers `notificationDisplayColor`/`Icon` (source = snapshot, défaut `bi-bell`).
+
 ## Sprint M7 — Notification Studio React + Categories (rapports 191-192)
 
 Backend (+4) + frontend (+9 → **132 tests / 31 fichiers**).

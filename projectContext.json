@@ -10146,6 +10146,29 @@
     "limits": "le moteur (triggerNotification) ne consomme pas encore les NotificationTemplate (studio + modeles seulement, comme M6) ; centre non refait (prepare par slug) ; preview front ; catalogue variables curate ; pas de WYSIWYG. dev-only, verrou final backend.",
     "next": "M8 — cabler le NotificationEngine sur les NotificationTemplate (le moteur choisit le scope admin/dev/both + applique categorie/priorite/persistent/action) + refonte du centre de notifications React."
   },
+  "notificationEngineTemplateRuntime": {
+    "description": "M8 (2026-06-29) — Le moteur triggerNotification consomme les NotificationTemplate PUBLIES (M7) + NotificationCategory. Additif & non destructif : sans template publie -> legacy NotificationConfig identique. Le template ne choisit JAMAIS la cible : targetRole reste resolu par le moteur (M3A).",
+    "reports": [
+      "Rapports/version 1/193_audit_pre_m8_notification_template_runtime.md",
+      "Rapports/version 1/194_rapport_m8_notification_template_runtime.md"
+    ],
+    "runtimeService": "services/notificationTemplateRuntimeService.js — getPublishedNotificationTemplate, resolveNotificationTemplateForType, renderNotificationTemplate ({{var}} + strip HTML), getCategorySnapshot (name/slug/icon/color), sanitizeVariablesSnapshot (drop email/secret/token + valeur email), buildNotificationPayloadFromTemplate (null si aucun publie, best-effort sans throw).",
+    "engine": "services/notificationService.js — template-first puis fallback legacy eventConfig. Flag NOTIFICATION_TEMPLATE_RUNTIME_ENABLED (defaut ON ; false/0/off/no = legacy pur, rollback instantane). targetRole (M3A) + correlation event (M3B) preserves.",
+    "subscriber": "subscribers/notificationEventSubscriber.js — passe options.templateKey (= type) pour sale.finalized (new_sale) et booking.no_show_marked (no_show_recorded). Ledger idempotent inchange.",
+    "model": "models/Notification.js ADDITIF : templateKey, templateVersion, categoryId(ref), categorySnapshot{name,slug,icon,color}, priority(low|normal|high|critical), persistent, action, templateRuntimeStatus(template|fallback_template_missing|legacy_runtime_disabled), variablesSnapshot(sanitize). L'enum legacy `category` n'est JAMAIS alimentee par un slug M7 (validation) : le slug va dans categoryId/categorySnapshot.",
+    "apiClient": "frontend-react/packages/api-client/src/manager/notifications.ts (types-only) — RuntimeNotification, NotificationCategorySnapshot, helpers notificationDisplayColor/Icon (source = snapshot, defaut bi-bell). Centre React non refait (= M9).",
+    "tests": [
+      "tests/p1/notificationTemplateRuntime.test.js",
+      "tests/p1/notificationRuntimeFallback.test.js",
+      "tests/p1/notificationRuntimeTrigger.test.js",
+      "tests/p1/notificationRuntimeCategorySnapshot.test.js",
+      "tests/p1/notificationRuntimeSubscriber.test.js",
+      "tests/p1/notificationRuntimePrivacy.test.js",
+      "frontend-react/packages/api-client/src/manager/notifications.test.ts"
+    ],
+    "limits": "centre de notifications React non refait (notifications.ts = types-only, prepare M9) ; pas de seed auto de templates par type (un type sans template publie reste en legacy, volontaire).",
+    "next": "M9 — refonte du centre de notifications React (consomme categorySnapshot/priority/persistent/action) + eventuel endpoint manager de liste."
+  },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",
     "problem": "applyFlowServiceRescheduleDecision creait ServiceBooking sans verifier disponibilite",

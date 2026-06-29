@@ -55,6 +55,37 @@ const notificationSchema = new mongoose.Schema({
   contextType: { type: String, default: null },
   contextId: { type: String, default: null },
 
+  // M8 — Provenance « template runtime ». Le moteur (triggerNotification) consomme
+  // désormais les NotificationTemplate publiés (M7). Champs ADDITIFS : une notification
+  // créée par le chemin legacy (NotificationConfig) les laisse à leur défaut.
+  // INVARIANT : le template ne porte JAMAIS de scope/targetRole — la cible reste M3A.
+  templateKey: { type: String, default: null },
+  templateVersion: { type: Number, default: null },
+  // Catégorie M7 (vrai modèle). NE PAS confondre avec `category` (enum legacy ci-dessus) :
+  // le slug d'une NotificationCategory n'appartient pas à l'enum, on le stocke ici.
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'NotificationCategory', default: null },
+  // Snapshot immuable de la catégorie au moment de l'envoi (centre = icône/couleur stables).
+  categorySnapshot: {
+    name: { type: String, default: null },
+    slug: { type: String, default: null },
+    icon: { type: String, default: null },
+    color: { type: String, default: null }
+  },
+  priority: {
+    type: String,
+    enum: ['low', 'normal', 'high', 'critical'],
+    default: 'normal'
+  },
+  persistent: { type: Boolean, default: false },
+  // Action MÉTIER (jamais une URL/route) : ex. booking_details, refund_details, none.
+  action: { type: String, default: null },
+  // Traçabilité : 'template' (rendu depuis un NotificationTemplate publié),
+  // 'fallback_template_missing' (legacy car aucun template publié),
+  // 'legacy_runtime_disabled' (flag runtime OFF), null (chemin historique non instrumenté).
+  templateRuntimeStatus: { type: String, default: null },
+  // Copie SANITIZÉE des variables (jamais e-mail client complet / secret / token).
+  variablesSnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
+
   // Statuts de lecture
   readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 

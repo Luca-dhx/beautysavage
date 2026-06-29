@@ -276,6 +276,16 @@ Les templates ne contiennent **aucune adresse** ; expéditeur/destinataire sont 
 l'envoi. Les adresses sont gérées dans le **Communication Center** (M4). Mobile-first, dev-only.
 Suite : **M7**.
 
+## Sprint M8 — NotificationEngine branché sur les templates (rapports 193-194)
+
+Le moteur backend (`triggerNotification`) consomme les `NotificationTemplate` publiés (M7) +
+`NotificationCategory`. **Additif & non destructif** : sans template publié → legacy identique. Le
+template ne choisit jamais la cible (`targetRole` reste M3A). Flag `NOTIFICATION_TEMPLATE_RUNTIME_ENABLED`
+(défaut ON ; rollback instantané). Côté React : `@bs/api-client/manager` ajoute un module **types-only**
+`notifications.ts` (`RuntimeNotification`, `NotificationCategorySnapshot`, helpers
+`notificationDisplayColor`/`Icon` — source = snapshot de catégorie, défaut `bi-bell`). **Aucun écran
+modifié** (centre de notifications non refait → M9).
+
 ## Sprint M7 — Notification Studio React + Categories (rapports 191-192)
 
 Studio de notifications **dev-only** (app manager) : templates (contenu) + catégories (modèle métier).

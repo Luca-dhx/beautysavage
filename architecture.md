@@ -2283,7 +2283,7 @@ Pour date D, service duree `D_min`, granularite `G_min` :
 - `models/NotificationConfig.js` : singleton. Champs : `widgetPosition` (top-left/top-right/bottom-left/bottom-right), `pollingIntervalSeconds`, `notificationLifetimeDays`, `events[]` (eventType, label, isActive, category, targetType, targetRole, titleTemplate, messageTemplate, availableVariables[]).
 
 ### Service
-- `services/notificationService.js` : `triggerNotification(eventType, variables)` -- charge la config, trouve l'eventConfig actif, interpole les templates `{{variable}}`, resout le destinataire (user_concerned -> targetUserId = variables.userId), calcule expiresAt, cree le document Notification. Toujours appele avec `void`, erreurs silencieuses.
+- `services/notificationService.js` : `triggerNotification(eventType, variables, options)` -- **M8** : tente d'abord un `NotificationTemplate` publié (clé = `options.templateKey` ou type) via `notificationTemplateRuntimeService`, sinon retombe sur l'eventConfig legacy (`NotificationConfig`). Interpole `{{variable}}`, résout le destinataire (user_concerned -> targetUserId), calcule expiresAt, applique categorySnapshot/priority/persistent/action + `templateRuntimeStatus`, persiste `targetRole` (M3A, **choisi par le moteur, jamais le template**) et la corrélation event (M3B). Flag `NOTIFICATION_TEMPLATE_RUNTIME_ENABLED` (défaut ON). Toujours appelé avec `void`, erreurs silencieuses.
 
 ### Controller et routes
 - `controllers/notificationController.js` + `routers/notificationRouter.js` montes sur `/api/gestion/notifications` (protege par requireGestionRole).
@@ -2590,6 +2590,46 @@ front + constantes priorités/actions/variables). Feature `apps/manager/src/feat
 ### Suite
 **M8** : câbler le NotificationEngine sur les NotificationTemplate (scope choisi par le moteur) +
 refonte du centre de notifications.
+
+## STEP 31 — NotificationEngine branché sur les templates + catégories (M8 — 2026-06-29)
+
+### Principe
+Le moteur d'envoi (`triggerNotification`) consomme désormais les `NotificationTemplate`
+**publiés** (M7) + `NotificationCategory`. **Additif & non destructif** : sans template
+publié pour la clé → comportement legacy (`NotificationConfig`) strictement identique.
+**Le template ne choisit jamais la cible** : `targetRole` reste résolu par le moteur (M3A).
+Rapports `193` (audit) + `194`.
+
+### Runtime
+- `services/notificationTemplateRuntimeService.js` (NOUVEAU) : `getPublishedNotificationTemplate`,
+  `resolveNotificationTemplateForType`, `renderNotificationTemplate` ({{var}}, strip HTML),
+  `getCategorySnapshot` (name/slug/icon/color), `sanitizeVariablesSnapshot` (drop email/secret/token),
+  `buildNotificationPayloadFromTemplate` (→ null si aucun publié, best-effort sans throw).
+- `services/notificationService.js` : template-first → fallback legacy. Flag
+  `NOTIFICATION_TEMPLATE_RUNTIME_ENABLED` (**défaut ON** ; false/0/off/no = legacy pur, rollback instantané).
+- `subscribers/notificationEventSubscriber.js` : passe `options.templateKey` (= type),
+  conserve la corrélation M3B + l'idempotence (ledger inchangé).
+
+### Modèle `Notification` (additif)
+templateKey, templateVersion, categoryId(ref), categorySnapshot{name,slug,icon,color},
+priority(low|normal|high|critical), persistent, action, templateRuntimeStatus
+(`template`|`fallback_template_missing`|`legacy_runtime_disabled`), variablesSnapshot(sanitizé).
+⚠️ L'enum legacy `category` n'est **jamais** alimentée par un slug M7 (validation) — le slug
+va dans `categoryId`/`categorySnapshot`.
+
+### Front (préparation centre M9)
+`frontend-react/.../manager/notifications.ts` (types-only) : `RuntimeNotification`,
+`NotificationCategorySnapshot`, helpers `notificationDisplayColor`/`Icon` (source = snapshot,
+défaut `bi-bell`). Le centre React n'est pas refait (→ M9).
+
+### Tests
+Backend +6 fichiers (`tests/p1/notificationTemplateRuntime`, `notificationRuntimeFallback`,
+`notificationRuntimeTrigger`, `notificationRuntimeCategorySnapshot`, `notificationRuntimeSubscriber`,
+`notificationRuntimePrivacy`). Front +1 (`manager/notifications.test.ts`).
+
+### Suite
+**M9** : refonte du centre de notifications React (consomme categorySnapshot/priority/persistent/action)
++ éventuel endpoint manager de liste.
 
 ### Migration
 - `automatisme/notificationConfigMigration.js` : `runNotificationConfigMigration()` -- cree le singleton config si absent avec 8 evenements preconfigures. Appelee au boot dans `app.js`.

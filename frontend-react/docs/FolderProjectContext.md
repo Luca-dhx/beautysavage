@@ -221,6 +221,14 @@ qui) restent gérées ailleurs, par rôle. Toujours mobile-first, dev-only, sans
 d'envoi ni aux règles. Suite (M7) : rendu serveur fidèle pour l'aperçu, ou migration des e-mails
 comptables.
 
+## Sprint M8 — Le moteur consomme les templates (rapports 193-194)
+
+Le moteur de notifications backend exploite désormais les templates publiés (M7) + catégories. Additif &
+non destructif (sans template publié → comportement identique). La cible reste choisie par le moteur, pas
+par le template. Côté React : ajout d'un module **types-only** `manager/notifications.ts` (type runtime +
+helpers couleur/icône depuis la catégorie). Aucun écran modifié — le centre de notifications reste pour
+la suite (M9).
+
 ## Sprint M7 — Notification Studio + Catégories (rapports 191-192)
 
 Symétrique du Mail Template Studio (M6), pour les notifications : édition du contenu, des catégories

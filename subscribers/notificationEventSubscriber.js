@@ -133,7 +133,10 @@ export async function handleSaleFinalizedNotification(eventLog) {
 
     // M3B — enrichit avec les variables du contexte standard + corrélation event→notif.
     const ctxVars = eventLog?.payloadSafe?.context?.variables || {};
+    // M8 — `templateKey` explicite (= type) : le moteur consomme le NotificationTemplate
+    // publié si présent, sinon fallback legacy. Le scope reste choisi par le moteur (M3A).
     await triggerNotification('new_sale', { ...ctxVars, ...vars }, {
+      templateKey: 'new_sale',
       event: { eventId: eventLog._id, eventName: eventLog.eventName, contextType: eventLog.contextType || 'sale', contextId: String(contextId) }
     });
   } catch (err) {
@@ -158,7 +161,9 @@ export async function handleBookingNoShowNotification(eventLog) {
 
     // M3B — enrichit avec les variables du contexte standard + corrélation event→notif.
     const ctxVars = eventLog?.payloadSafe?.context?.variables || {};
+    // M8 — `templateKey` explicite (= type) ; scope choisi par le moteur (M3A).
     await triggerNotification('no_show_recorded', { ...ctxVars, ...vars }, {
+      templateKey: 'no_show_recorded',
       event: { eventId: eventLog._id, eventName: eventLog.eventName, contextType: eventLog.contextType || 'service_booking', contextId: String(contextId) }
     });
   } catch (err) {

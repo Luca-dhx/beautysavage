@@ -14,6 +14,12 @@ import {
   DevMailDeliveriesPage,
   DevSendLogsPage,
 } from './features/communication';
+import {
+  ThemeStudioLayout,
+  ThemeStudioDashboard,
+  VitrineThemeEditorPage,
+  PanelThemeEditorPage,
+} from './features/themeStudio';
 
 // Routing manager R0 — placeholders + guards rôle (cf. rapport 147).
 // Manager = admin ou dev. /dev/* = dev uniquement. /login public.
@@ -62,6 +68,13 @@ export function App() {
                 <Route path="identite-support" element={<SupportIdentityPage />} />
                 <Route path="mail-deliveries" element={<DevMailDeliveriesPage />} />
                 <Route path="send-logs" element={<DevSendLogsPage />} />
+              </Route>
+
+              {/* M5 — Theme Studio (dev uniquement) : 2 thèmes vitrine + panel */}
+              <Route path="theme-studio" element={<ThemeStudioLayout />}>
+                <Route index element={<ThemeStudioDashboard />} />
+                <Route path="vitrine" element={<VitrineThemeEditorPage />} />
+                <Route path="panel" element={<PanelThemeEditorPage />} />
               </Route>
             </Route>
           </Route>

@@ -7,6 +7,9 @@ function mapVitrineTheme(input: unknown): PublicVitrineTheme {
   const t = asRaw(input);
   const colors = asRaw(t.colors);
   const derived = asRaw(t.derivedTokens);
+  // M5 — passthrough additif des tokens visuels (typo/radius/shadow/spacing) s'ils existent.
+  const typo = asRaw(t.typography);
+  const spacing = asRaw(t.spacing);
   return {
     colors: {
       primary: optStr(colors.primary),
@@ -19,6 +22,15 @@ function mapVitrineTheme(input: unknown): PublicVitrineTheme {
       surfaceHeader: optStr(derived.surfaceHeader),
       accent: optStr(derived.accent),
       accentStrong: optStr(derived.accentStrong),
+    },
+    typography: { fontFamily: optStr(typo.fontFamily) },
+    radius: optStr(t.radius),
+    shadow: optStr(t.shadow),
+    spacing: {
+      x1: optStr(spacing.x1),
+      x2: optStr(spacing.x2),
+      x3: optStr(spacing.x3),
+      x4: optStr(spacing.x4),
     },
     slogan: optStr(t.slogan),
     logoUrl: optStr(t.logoUrl),

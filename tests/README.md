@@ -437,6 +437,15 @@ Backend (+35), notifications in-app uniquement (aucun e-mail) :
 - `tests/p1/notificationEventSubscriberTargetRole.test.js` (4) — subscriber crée `targetRole='admin'` (new_sale, no_show_recorded), aucune notif dev, pas de fuite e-mail client.
 - **Fix d'ordre de montage** : `notificationRouter` remonté AVANT les routeurs dev-only broad-mount sur `/api/gestion` (ex. `commissionRouter requireStrictDev`) qui shadowaient `/api/gestion/notifications` (403 admins, pré-existant). Manager filtre `targetRole {$ne:'dev'}` (legacy-safe), dev filtre `targetRole 'dev'` (requireStrictDev).
 
+## Sprint M5 — Theme Studio React (rapports 187-188)
+
+Frontend (+19 → **112 tests / 25 fichiers**) + backend (controller étendu → +6).
+- `packages/api-client/src/manager/themeStudioApi.test.ts` (6) — mapping panel↔manager, URLs CRUD, body (scope backend + tokens visuels), getActive null.
+- `apps/manager/src/features/themeStudio/themeStudio.test.tsx` (7) — dashboard 2 thèmes, blocage admin (dev-only), éditeurs vitrine/panel chargés, **preview live** à la modification d'une couleur, sauvegarde → updateTheme (PUT), pas de `<table>`.
+- `apps/manager/src/features/themeStudio/noHardcodedHex.test.ts` (1) — aucun hex dans les .tsx.
+- `tests/p1/themeStudioApi.test.js` (6) — persistance typography/radius/shadow/spacing (create+update), activation + GET public, scope manager, admin interdit (403), spacing robuste.
+- Note : `communication/noHardcodedHex.test.ts` migré vers `import.meta.glob('?raw')` (typecheck propre).
+
 ## Sprint M4 — React Communication Center (rapports 185-186)
 
 Frontend uniquement (backend inchangé). `npm run react:test` : **98 tests / 22 fichiers** (+15) ;

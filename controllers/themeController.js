@@ -62,6 +62,38 @@ function buildDerivedTokensObject(source = {}) {
   return normalized;
 }
 
+const SPACING_KEYS = ['x1', 'x2', 'x3', 'x4'];
+
+// M5 — Tokens visuels optionnels (typo/radius/shadow/spacing). Additif : ne renvoie que les
+// champs réellement fournis dans le body (les autres restent inchangés à l'update). Aucune
+// donnée sensible ; validation légère (chaînes courtes), l'autorité reste le backend.
+function extractVisualTokens(body = {}) {
+  const patch = {};
+  if (Object.prototype.hasOwnProperty.call(body, 'typography')) {
+    const t = body.typography;
+    if (t && typeof t === 'object' && typeof t.fontFamily === 'string') {
+      patch.typography = { fontFamily: String(t.fontFamily).trim().slice(0, 300) };
+    } else if (t === null || t === '') {
+      patch.typography = undefined;
+    }
+  }
+  if (typeof body.radius === 'string') patch.radius = body.radius.trim().slice(0, 60);
+  if (typeof body.shadow === 'string') patch.shadow = body.shadow.trim().slice(0, 300);
+  if (Object.prototype.hasOwnProperty.call(body, 'spacing')) {
+    const s = body.spacing;
+    if (s && typeof s === 'object') {
+      const out = {};
+      for (const key of SPACING_KEYS) {
+        if (typeof s[key] === 'string' && s[key].trim()) out[key] = s[key].trim().slice(0, 40);
+      }
+      patch.spacing = Object.keys(out).length ? out : undefined;
+    } else if (s === null) {
+      patch.spacing = undefined;
+    }
+  }
+  return patch;
+}
+
 function buildThemePayload(theme) {
   if (!theme) return null;
   const payload = {
@@ -129,7 +161,9 @@ export async function createTheme(req, res) {
       colors: normalizedColors,
       derivedTokens: normalizedDerivedTokens,
       logoUrl: String(logoUrl || '').trim(),
-      slogan: String(slogan || '').trim()
+      slogan: String(slogan || '').trim(),
+      // M5 — tokens visuels optionnels additifs.
+      ...extractVisualTokens(req.body || {})
     });
     return res.status(201).json({ ok: true, theme: buildThemePayload(theme.toObject()) });
   } catch (error) {
@@ -188,6 +222,12 @@ export async function updateTheme(req, res) {
     if (typeof slogan === 'string') {
       theme.slogan = slogan.trim();
     }
+    // M5 — tokens visuels optionnels (n'écrase que les champs fournis).
+    const visualPatch = extractVisualTokens(req.body || {});
+    if (Object.prototype.hasOwnProperty.call(visualPatch, 'typography')) theme.typography = visualPatch.typography;
+    if (Object.prototype.hasOwnProperty.call(visualPatch, 'radius')) theme.radius = visualPatch.radius;
+    if (Object.prototype.hasOwnProperty.call(visualPatch, 'shadow')) theme.shadow = visualPatch.shadow;
+    if (Object.prototype.hasOwnProperty.call(visualPatch, 'spacing')) theme.spacing = visualPatch.spacing;
     await theme.save();
     return res.json({ ok: true, theme: buildThemePayload(theme.toObject()) });
   } catch (error) {

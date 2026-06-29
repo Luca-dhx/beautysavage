@@ -194,3 +194,11 @@ dans `main.tsx`. Le payload prépare le `checkoutState.service` + `legal` attend
 - **`/checkout` 401** → lien `/connexion?redirect=/checkout` (panier conservé) → reprise du paiement
   après login.
 - api-client : `getCheckoutSessionStatus`, `login`. Aucun token localStorage ; cookie HttpOnly only.
+
+## Sprint M5 — Theme Studio (impact vitrine, rapports 187-188)
+
+Le thème **Vitrine** est éditable depuis le Theme Studio (app manager, dev-only). Le site public lit
+toujours son thème via `GET /api/vitrine/theme` / `getVitrineTheme` → `mapVitrineThemeToTokens` →
+`ThemeProvider scope="vitrine"`. M5 (additif) : le pipeline transmet désormais aussi
+typography/radius/shadow/spacing (en plus des couleurs) si le thème actif les définit — sinon repli
+sur `defaultVitrineTheme`. Aucune rupture : la vitrine Vanilla et React restent compatibles.

@@ -2501,6 +2501,37 @@ admin bloqué hors `/dev/*` ; 403 → « Accès réservé ». Tests front : 98 (
 **M5** : Mail Template Studio (édition par rôle) ou actions de supervision (relance), avant migration
 des flux comptables.
 
+## STEP 28 — Theme Studio React vitrine / panel (M5 — 2026-06-29)
+
+### Principe
+Theme Studio **dev-only** (app manager) : **2 thèmes** — `vitrine` (public) et `panel` (commun
+Manager/Admin + Dev). Vocabulaire UI = « Panel » ; mapping `panel ↔ backend scope 'manager'`.
+Rapports `187` (audit) + `188`.
+
+### Backend (additif)
+`controllers/themeController.js` : `createTheme`/`updateTheme` acceptent `typography/radius/shadow/
+spacing` (`extractVisualTokens`, chaînes, validation légère). Modèle inchangé (les supportait déjà).
+Compat préservée : `/api/vitrine/theme`, `/api/theme/:scope`, `scope='manager'`, Vanilla. CRUD dev-only
+`/api/gestion/themes` (requireStrictDev).
+
+### Front
+- `@bs/ui` `mapBackendThemeToTokens` mappe aussi font/radius/shadow/spacing (additif) ; api-client
+  `PublicVitrineTheme`/`mapVitrineTheme` les transmettent (le live applique les tokens au prochain load).
+- api-client `manager/themeStudio.ts` : `listThemes/getActiveTheme/createTheme/updateTheme/activateTheme`
+  + `toBackendScope`/`toUiScope`.
+- Feature `apps/manager/src/features/themeStudio/` : layout, dashboard, `ThemeEditor` (vitrine/panel),
+  champs, `ThemePreview` (aperçu live local via CSS vars inline, sans save), actions. `themeDraft.ts`
+  (logique + hex hors .tsx). CSS `themeStudio.css` (tokens `--bs-*`).
+- Routes dev-only `/dev/theme-studio[/vitrine|/panel]`.
+
+### Champs éditables / limites
+Colors (5 + accent), typography, radius, shadow, spacing ; logo/slogan = vitrine. Couleurs sémantiques
+(success/warning/danger/border/textMuted) = défauts (non modélisées). Pas de presets/import-export.
+
+### Suite
+**M6** : Mail Template Studio, ou extension Theme (couleurs sémantiques + presets), ou actions de
+supervision mail.
+
 ### Migration
 - `automatisme/notificationConfigMigration.js` : `runNotificationConfigMigration()` -- cree le singleton config si absent avec 8 evenements preconfigures. Appelee au boot dans `app.js`.
 

@@ -160,3 +160,13 @@ Tout est **mobile-first** (cartes, filtres en tiroir, boutons larges) et **sans 
 (aucune adresse client, aucun secret). En lecture seule pour les journaux : pas encore de relance
 d'envoi ni d'édition de templates (M5). C'est la mise en main concrète de toute la mécanique
 construite en M1→M3E.
+
+## Sprint M5 — Theme Studio (rapports 187-188)
+
+Le dev peut désormais personnaliser l'apparence depuis le panel, via un Theme Studio simple : **deux
+thèmes seulement**, le thème **Vitrine** (ce que voient les clients) et le thème **Panel** (l'interface
+de gestion, identique pour l'admin et le dev). On édite couleurs, police, arrondis, ombres et
+espacements, avec un **aperçu en direct** (pas besoin de sauvegarder pour voir le rendu), puis on
+**sauvegarde** et on **active**. C'est volontairement minimal (pas de presets ni d'import/export), et
+réservé au dev. Objectif : reprendre la main sur l'identité visuelle sans toucher au code, en gardant
+la vitrine et le panel bien distincts. Suite : édition des modèles d'e-mail (M6).

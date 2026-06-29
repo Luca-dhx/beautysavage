@@ -276,3 +276,12 @@ Routes admin `/communication/*` et dev `/dev/communication/*` (guards `RequireRo
 tokens `--bs-*` (aucun hex dans les .tsx, vérifié par test). **Aucun backend modifié** (branché sur
 M1 identités + M3E supervision). Privacy : recipientHash, jamais d'e-mail/secret. Rien ne change pour
 la vitrine. Suite : **M5**.
+
+## Sprint M5 — Theme Studio React (rapports 187-188)
+
+2 thèmes : **vitrine** + **panel** (panel = Manager/Admin + Dev ; mapping UI panel ↔ backend
+`manager`). Feature dev-only `apps/manager/src/features/themeStudio/` (éditeur + aperçu live local).
+api-client `@bs/api-client/manager/themeStudio`. Backend `themeController` étendu (additif :
+typography/radius/shadow/spacing ; `scope='manager'` conservé, `/api/vitrine/theme` intact). `@bs/ui`
+`mapBackendThemeToTokens` + `PublicVitrineTheme`/`mapVitrineTheme` transmettent les nouveaux tokens.
+Aucun hex dans les .tsx (tokens `--bs-*`). Suite : **M6**.

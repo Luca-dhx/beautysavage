@@ -10080,6 +10080,28 @@
     "limits": "lecture seule sur les journaux (aucune relance/renvoi), pas de Template Studio ni Theme Studio, pas de migration sale.finalized, pas de modification des regles d'envoi, pas de pagination curseur. Le verrou final reste backend.",
     "next": "M5 — Mail Template Studio (edition par role) ou actions de supervision (relance controlee), avant migration des flux comptables."
   },
+  "themeStudioReact": {
+    "description": "M5 (2026-06-29) — Theme Studio React dev-only (app manager). 2 themes: vitrine + panel (panel = Manager/Admin + Dev). Vocabulaire UI = Panel ; mapping panel <-> backend scope manager.",
+    "reports": [
+      "Rapports/version 1/187_audit_pre_m5_theme_studio_react.md",
+      "Rapports/version 1/188_rapport_m5_theme_studio_react.md"
+    ],
+    "decision": "EXACTEMENT 2 themes. PAS de theme admin ni dev separe : le panel (admin+dev) partage un seul theme (backend scope 'manager').",
+    "routes": "/dev/theme-studio, /dev/theme-studio/vitrine, /dev/theme-studio/panel (RequireRole dev).",
+    "apiClient": "packages/api-client/src/manager/themeStudio.ts — listThemes/getActiveTheme/createTheme/updateTheme/activateTheme + toBackendScope/toUiScope. CRUD /api/gestion/themes (dev-only) ; actif /api/theme/:scope.",
+    "backendChange": "ADDITIF — controllers/themeController.js create/update acceptent typography/radius/shadow/spacing (extractVisualTokens). Modele inchange (les supportait deja). Compat: /api/vitrine/theme, /api/theme/:scope, scope='manager', Vanilla intacts. @bs/ui mapBackendThemeToTokens + api-client PublicVitrineTheme/mapVitrineTheme transmettent les nouveaux tokens (live au prochain load).",
+    "feature": "apps/manager/src/features/themeStudio/ — ThemeStudioLayout, ThemeStudioDashboard, ThemeEditor (vitrine/panel), ThemeForm + champs (Color/Typography/Radius/Shadow/Spacing/LogoSlogan), ThemePreview (apercu live local via CSS vars inline, sans save), ThemeStatusCard, ThemeActions, MobileThemeToolbar. themeDraft.ts (logique + hex hors .tsx). CSS themeStudio.css (tokens --bs-*).",
+    "editableFields": "colors (primary/secondary/background/surface/text + accent), typography.fontFamily, radius, shadow, spacing x1..x4 ; logoUrl/slogan = vitrine uniquement. Couleurs semantiques (success/warning/danger/border/textMuted) = defauts (non modelisees backend).",
+    "preview": "live local : computePreviewVars(draft, scope) -> CSS vars --bs-* en inline style sur le conteneur (cascade). Pas besoin de sauvegarder. Sauvegarder=persist, Activer=actif.",
+    "tests": [
+      "packages/api-client/src/manager/themeStudioApi.test.ts",
+      "apps/manager/src/features/themeStudio/themeStudio.test.tsx",
+      "apps/manager/src/features/themeStudio/noHardcodedHex.test.ts",
+      "tests/p1/themeStudioApi.test.js"
+    ],
+    "limits": "2 themes seulement (pas de presets/import-export/versioning), couleurs semantiques non editables, pas de builder no-code. Verrou final backend ; apercu local (rendu reel au re-chargement apres activation).",
+    "next": "M6 — Mail Template Studio, ou extension Theme (couleurs semantiques + presets), ou actions de supervision mail."
+  },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",
     "problem": "applyFlowServiceRescheduleDecision creait ServiceBooking sans verifier disponibilite",

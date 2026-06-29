@@ -102,3 +102,10 @@ Le client peut désormais payer **et revenir** dans React (page de confirmation 
 vidé seulement si le paiement est réellement confirmé ; sinon « confirmation en cours »). En cas
 d'annulation ou de session expirée, le panier est conservé et l'achat peut reprendre. La bascule du
 retour Stripe vers React est activable proprement (variable backend) sans rien casser côté Vanilla.
+
+## Sprint M5 — Theme Studio (rapports 187-188)
+
+L'apparence de la vitrine (couleurs, police, arrondis, ombres, espacements, logo, slogan) est
+désormais pilotable depuis le Theme Studio réservé au dev, avec aperçu en direct. Rien ne change pour
+le visiteur tant qu'un nouveau thème n'est pas activé ; en l'absence de configuration, la vitrine
+garde son thème par défaut.

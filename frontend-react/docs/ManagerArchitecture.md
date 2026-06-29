@@ -223,3 +223,28 @@ Cards (jamais de table), filtres en drawer sur mobile, cibles tactiles ≥ 44px,
 loading/error/empty. Jamais d'e-mail client (recipientHash) ni de secret ; e-mail des identités
 configurées affiché (adresse d'expéditeur). Admin bloqué hors `/dev/*`. Détails : rapport 186.
 Suite : **M5** (Template Studio ou actions de supervision).
+
+## Sprint M5 — Theme Studio React (rapports 187-188)
+
+Theme Studio **dev-only** dans l'app manager : gère **2 thèmes** — Vitrine (site public) et **Panel**
+(commun Manager/Admin **et** Dev). Vocabulaire UI = « Panel » ; mapping api-client `panel ↔ backend
+scope 'manager'`, `vitrine ↔ 'vitrine'`.
+
+### Routes (sous /dev, RequireRole dev)
+`/dev/theme-studio` (dashboard 2 thèmes), `/dev/theme-studio/vitrine`, `/dev/theme-studio/panel`.
+
+### Feature `apps/manager/src/features/themeStudio/`
+`ThemeStudioLayout`, `ThemeStudioDashboard`, `ThemeEditor` (vitrine/panel), `ThemeForm` + champs
+(`ColorField`/`TypographyField`/`RadiusField`/`ShadowField`/`SpacingField`/`LogoSloganFields`),
+`ThemePreview` (aperçu live local par CSS vars inline, sans sauvegarde), `ThemeStatusCard`,
+`ThemeActions`, `MobileThemeToolbar`. `themeDraft.ts` (logique + hex hors .tsx). CSS `themeStudio.css`
+(tokens `--bs-*`, aucun hex dans les .tsx).
+
+### API client (`@bs/api-client/manager/themeStudio`)
+`listThemes`, `getActiveTheme`, `createTheme`, `updateTheme`, `activateTheme` + `toBackendScope`/
+`toUiScope`. CRUD `/api/gestion/themes` (dev-only) ; actif `/api/theme/:scope`.
+
+### Backend (additif)
+`themeController` create/update acceptent désormais typography/radius/shadow/spacing (compat Vanilla,
+`scope='manager'` conservé). Champs éditables : colors+accent, typo, radius, shadow, spacing ; logo/
+slogan = vitrine. Couleurs sémantiques = défauts. Mobile-first, dev-only. Suite : **M6**.

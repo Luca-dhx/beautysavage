@@ -122,6 +122,11 @@ export interface PublicVitrineTheme {
     accent?: string;
     accentStrong?: string;
   };
+  // M5 — tokens visuels optionnels additifs (Theme Studio). Absents = repli sur les défauts UI.
+  typography?: { fontFamily?: string };
+  radius?: string;
+  shadow?: string;
+  spacing?: { x1?: string; x2?: string; x3?: string; x4?: string };
   slogan?: string;
   logoUrl?: string;
 }

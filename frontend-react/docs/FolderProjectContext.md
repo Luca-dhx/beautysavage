@@ -204,3 +204,10 @@ d'expéditeur et suit ses e-mails ; le dev supervise l'ensemble et diagnostique.
 sans jamais exposer d'adresse client ni de secret. Lecture seule pour l'instant (pas de relance ni
 d'édition de templates) — l'objectif est la visibilité et la prise en main. Suite : édition des
 modèles et actions de supervision (M5).
+
+## Sprint M5 — Theme Studio (rapports 187-188)
+
+Après le centre de communication (M4), M5 donne au dev un Theme Studio pour gérer les **deux** thèmes
+du produit : la vitrine publique et le panel interne (commun admin/dev). Édition visuelle simple,
+aperçu en direct, sauvegarde et activation — sans presets ni import/export, et sans toucher au métier.
+La distinction vitrine/panel reste nette ; le panel n'a qu'un seul thème pour tout le monde.

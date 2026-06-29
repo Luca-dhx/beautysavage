@@ -1,6 +1,7 @@
 import { Link, Outlet } from 'react-router-dom';
 import { AppShell, Button } from '@bs/ui';
 import { useAuth, roleLabel } from '@bs/auth';
+import { NotificationBell, NotificationMotionProvider } from '../features/notifications';
 
 const MANAGER_NAV = [
   { to: '/', label: 'Tableau de bord' },
@@ -26,6 +27,9 @@ export function ManagerLayout() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <strong style={{ marginRight: 'auto' }}>Beauty Savage — Espace {roleLabel(user?.role) || 'Manager'}</strong>
           <span style={{ opacity: 0.6 }}>{user?.email}</span>
+          <NotificationMotionProvider>
+            <NotificationBell scope="admin" />
+          </NotificationMotionProvider>
           <Button variant="secondary" onClick={() => void signOut()}>
             Déconnexion
           </Button>

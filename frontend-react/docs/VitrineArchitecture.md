@@ -4,6 +4,13 @@
 > à chaque sprint vitrine. Global : [FolderArchitecture](./FolderArchitecture.md). Produit :
 > [VitrineProjectContext](./VitrineProjectContext.md).
 
+## React UX Motion Guideline (à partir de M9, rapport 196)
+S'applique aussi à la vitrine. Tout nouvel écran : **mobile-first**, animations légères (opacity/transform,
+tokens `--bs-motion-*` de `@bs/ui`), micro-interactions utiles, **respect `prefers-reduced-motion`**
+(`prefersReducedMotion()`/`motionTransition()`), **pas de table sur mobile** (cartes empilées), feedback
+immédiat, skeleton/loading doux, cibles tactiles ≥44px, transitions propres — jamais d'UI figée/brutale.
+La vitrine n'a pas de centre de notifications (notifications internes = panel uniquement).
+
 ## Routes
 ### Publiques
 | Route | Écran | API |

@@ -295,6 +295,19 @@ Aperçu **front** (iframe sandbox, mobile/desktop, aucun envoi). Templates = **r
 **aucune adresse** (identités → Communication Center M4). **Backend inchangé.** Tokens `--bs-*` (aucun
 hex .tsx). Suite : **M7**.
 
+## Sprint M9 — Notification Center React + UX Motion (rapports 195-196)
+
+Centre de notifications (app manager, admin + dev). Backend : unique changement = enrichissement de la
+sérialisation `notificationController` (categorySnapshot/priority/persistent/action/templateKey/…, jamais
+`variablesSnapshot`) ; endpoints inchangés. `@bs/ui` : MotionTokens + `prefersReducedMotion`/
+`motionTransition` + tokens `--bs-motion-*` + media reduced-motion. api-client
+`manager/notifications.ts` (list/stats(dérivé)/markRead/markAll/delete/resolveNotificationAction). Feature
+`apps/manager/src/features/notifications/` (useNotifications TanStack Query polling 45 s ; Bell+Badge+
+PulseBanner+Drawer+List+Card+DetailPanel+FilterBar+chips/badges+ActionButton+EmptyState+MotionProvider ;
+CSS `nc-`, aucun hex .tsx). Bell admin dans ManagerLayout, bell dev dans DevLayout. **React UX Motion
+Guideline** (dès M9) : mobile-first, animations légères, pas de table mobile, reduced-motion, ≥44px.
+Suite : **M10**.
+
 ## Sprint M8 — NotificationEngine branché sur les templates (rapports 193-194)
 
 Backend additif : `services/notificationTemplateRuntimeService.js` (render/snapshot/sanitize/buildPayload)

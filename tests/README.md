@@ -437,6 +437,17 @@ Backend (+35), notifications in-app uniquement (aucun e-mail) :
 - `tests/p1/notificationEventSubscriberTargetRole.test.js` (4) — subscriber crée `targetRole='admin'` (new_sale, no_show_recorded), aucune notif dev, pas de fuite e-mail client.
 - **Fix d'ordre de montage** : `notificationRouter` remonté AVANT les routeurs dev-only broad-mount sur `/api/gestion` (ex. `commissionRouter requireStrictDev`) qui shadowaient `/api/gestion/notifications` (403 admins, pré-existant). Manager filtre `targetRole {$ne:'dev'}` (legacy-safe), dev filtre `targetRole 'dev'` (requireStrictDev).
 
+## Sprint M9 — Notification Center React + UX Motion (rapports 195-196)
+
+Backend (+1 fichier / 5 cas) + frontend (+19 cas → **153 tests**). Backend quasi inchangé (sérialisation enrichie).
+- `tests/p1/notificationCenterSerialization.test.js` — la liste expose categorySnapshot/priority/persistent/action/templateKey/templateVersion ; **jamais `variablesSnapshot`** ni `templateRuntimeStatus` ni e-mail ; défauts sûrs pour une notif legacy.
+- `frontend-react/apps/manager/src/features/notifications/notificationCenter.test.tsx` (9) — badge non-lus, scope admin→`/api/gestion/notifications` / dev→`/api/gestion/dev/notifications`, drawer + cartes (pas de table), couleur/icône du snapshot, badges priorité/persistant, mark-read API, état vide, bandeau « +3 » + shake quand non-lus augmentent.
+- `frontend-react/apps/manager/src/features/notifications/notifications.unit.test.ts` (2) — `shouldPulse` (shake uniquement si augmentation), `pulseBannerText`.
+- `frontend-react/apps/manager/src/features/notifications/noHardcodedHex.test.ts` (1) — aucun hex dans les `.tsx`.
+- `frontend-react/packages/api-client/src/manager/notificationsApi.test.ts` (5) — scope→endpoint, mark/markAll/delete (PATCH/DELETE), stats dérivées, `resolveNotificationAction`.
+- `frontend-react/packages/ui/src/motion.test.ts` (2) — `prefersReducedMotion`, `motionTransition` (vide si reduced-motion).
+- `App.test.tsx`/`theme.test.tsx` : enveloppés d'un `QueryClientProvider` (le shell monte la cloche).
+
 ## Sprint M8 — NotificationEngine branché sur les templates (rapports 193-194)
 
 Backend (+6 fichiers / 14 cas) + frontend (+1 fichier / 2 cas → **134 tests**). Additif & non destructif.

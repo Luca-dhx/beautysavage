@@ -10169,6 +10169,31 @@
     "limits": "centre de notifications React non refait (notifications.ts = types-only, prepare M9) ; pas de seed auto de templates par type (un type sans template publie reste en legacy, volontaire).",
     "next": "M9 — refonte du centre de notifications React (consomme categorySnapshot/priority/persistent/action) + eventuel endpoint manager de liste."
   },
+  "notificationCenterReactM9": {
+    "description": "M9 (2026-06-29) — Vrai centre de notifications React (panel Manager/Admin + Dev) : cloche + badge + bandeau '+X' anime + shake + drawer responsive, mobile-first, anime, accessible. Isolation admin/dev = backend autorite. Pose la React UX Motion Guideline globale.",
+    "reports": [
+      "Rapports/version 1/195_audit_pre_m9_notification_center_react.md",
+      "Rapports/version 1/196_rapport_m9_notification_center_react.md"
+    ],
+    "backendChange": "UNIQUE changement : controllers/notificationController.js listNotificationsCore expose les metadonnees M8 (categorySnapshot/priority/persistent/action/templateKey/templateVersion/categoryId/targetType/expiresAt). variablesSnapshot JAMAIS expose. Endpoints inchanges.",
+    "endpoints": "admin GET/PATCH/DELETE /api/gestion/notifications ; dev GET/PATCH/DELETE /api/gestion/dev/notifications (requireStrictDev). Pas d'endpoint stats (derive front) ni archive (suppression seulement).",
+    "ui": "@bs/ui : MotionTokens + prefersReducedMotion() + motionTransition() + tokens CSS --bs-motion-* + media prefers-reduced-motion global (tokens.css).",
+    "apiClient": "frontend-react/packages/api-client/src/manager/notifications.ts : NotificationScope/Summary/Detail/Stats/Filters/Action/CategorySnapshot, listNotifications(scope,filters?), getNotificationStats(scope) [derive], markNotificationRead, markAllNotificationsRead, deleteNotification, resolveNotificationAction(action,ctx). Scope->endpoint admin/dev.",
+    "feature": "apps/manager/src/features/notifications/ : useNotifications(scope) (TanStack Query refetchInterval 45s + focus + keepPreviousData + mutations ; shouldPulse/pulseBannerText), NotificationBell (cloche+badge+shake+bandeau+drawer), NotificationDrawer/List/Card/DetailPanel/FilterBar/CategoryChip/PriorityBadge/PersistentBadge/ActionButton/EmptyState/Badge/PulseBanner/MotionProvider. CSS notificationCenter.css (prefixe nc-, tokens --bs-*, aucun hex .tsx ; couleur categorie = categorySnapshot inline). Drawer = bottom-sheet mobile / panel lateral desktop (@media min-width:768px).",
+    "layouts": "ManagerLayout header -> NotificationBell scope=admin ; DevLayout -> scope=dev (monte uniquement pour dev). App.test/theme.test enveloppes d'un QueryClientProvider (le shell monte la cloche).",
+    "polling": "TanStack Query, pas de WebSocket : 45s + refetch au focus, staleTime 30s. Shake/bandeau uniquement si non-lus augmentent (jamais a chaque render).",
+    "uxMotionGuideline": "A partir de M9 : toute interface React (panel + vitrine) = mobile-first, animations legeres (opacity/transform, --bs-motion-*), micro-interactions utiles, pas de table sur mobile, feedback immediat, skeleton doux, cibles >=44px, respect prefers-reduced-motion. Documentee Folder/Manager/Vitrine.",
+    "tests": [
+      "frontend-react/apps/manager/src/features/notifications/notificationCenter.test.tsx",
+      "frontend-react/apps/manager/src/features/notifications/notifications.unit.test.ts",
+      "frontend-react/apps/manager/src/features/notifications/noHardcodedHex.test.ts",
+      "frontend-react/packages/api-client/src/manager/notificationsApi.test.ts",
+      "frontend-react/packages/ui/src/motion.test.ts",
+      "tests/p1/notificationCenterSerialization.test.js"
+    ],
+    "limits": "pas d'archivage (endpoint inexistant, suppression seulement) ; stats derivees front ; centre dans l'app manager uniquement (vitrine sans notifs internes) ; actions sans route prete -> bouton 'Bientot disponible'.",
+    "next": "M10 — appliquer la Motion Guideline a un ecran metier reel, ou endpoint stats leger + polling intelligent, ou notifications temps quasi-reel (SSE) si besoin."
+  },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",
     "problem": "applyFlowServiceRescheduleDecision creait ServiceBooking sans verifier disponibilite",

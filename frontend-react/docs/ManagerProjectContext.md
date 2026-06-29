@@ -182,6 +182,21 @@ adresses se gèrent dans le Communication Center. C'est volontairement simple (p
 drag-and-drop, pas d'envoi de test réel) et réservé au dev. Suite : preview serveur fidèle ou migration
 des e-mails comptables (M7).
 
+## Sprint M9 — Notification Center React + UX animée (rapports 195-196)
+
+Le panel a enfin un **vrai centre de notifications** : une **cloche** dans le header (admin) et dans
+l'espace dev (scope dev), avec **compteur rouge**, **bandeau « +X notifications »** qui se déroule quand
+de nouvelles non-lues arrivent, **léger shake** de la cloche, et un **drawer** (bottom-sheet sur mobile,
+panneau latéral sur ordinateur). Chaque notification montre sa **catégorie** (icône/couleur), sa
+**priorité**, son caractère **persistant** et une **action métier** (ouvre la bonne page si elle existe,
+sinon « Bientôt disponible »). On peut marquer lue / tout marquer lu / supprimer. L'isolation admin/dev
+est garantie côté serveur. Rafraîchissement **prudent** (toutes les ~45 s + au retour sur l'onglet), pas
+de WebSocket. Tout respecte **`prefers-reduced-motion`** et est **mobile-first**.
+
+**React UX Motion Guideline (à partir de M9)** : toutes les nouvelles interfaces (panel ET vitrine)
+doivent être mobile-first, animées avec sobriété (opacity/transform, durées courtes), avec des
+micro-interactions utiles, sans table sur mobile, avec feedback immédiat et respect du reduced-motion.
+
 ## Sprint M8 — Le moteur consomme les templates (rapports 193-194)
 
 Le moteur d'envoi des notifications utilise désormais **réellement** les templates publiés dans le

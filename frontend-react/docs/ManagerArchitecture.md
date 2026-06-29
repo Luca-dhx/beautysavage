@@ -276,6 +276,36 @@ Les templates ne contiennent **aucune adresse** ; expéditeur/destinataire sont 
 l'envoi. Les adresses sont gérées dans le **Communication Center** (M4). Mobile-first, dev-only.
 Suite : **M7**.
 
+## Sprint M9 — Notification Center React + UX Motion (rapports 195-196)
+
+Centre de notifications dans l'app manager (admin + dev). **Backend** : un seul changement — la
+sérialisation `notificationController.listNotificationsCore` expose les métadonnées M8
+(`categorySnapshot/priority/persistent/action/templateKey/templateVersion/categoryId/targetType/
+expiresAt`) ; **`variablesSnapshot` jamais exposé**. Endpoints inchangés (admin `/api/gestion/notifications`,
+dev `/api/gestion/dev/notifications`).
+
+**api-client** `@bs/api-client/manager/notifications.ts` : `listNotifications(scope,filters?)`,
+`getNotificationStats(scope)` (dérivé front), `markNotificationRead`, `markAllNotificationsRead`,
+`deleteNotification`, `resolveNotificationAction` (action métier → route panel ; sinon `available:false`).
+Pas d'`archive` (endpoint inexistant). Pas d'endpoint stats backend.
+
+**@bs/ui** : `MotionTokens`, `prefersReducedMotion()`, `motionTransition()` + tokens CSS `--bs-motion-*`
++ media `prefers-reduced-motion: reduce` global.
+
+**Feature** `apps/manager/src/features/notifications/` : `useNotifications(scope)` (TanStack Query,
+polling 45 s + focus, mutations), `NotificationBell` (cloche+badge+shake+bandeau+drawer), et composants
+`NotificationDrawer/List/Card/DetailPanel/FilterBar/CategoryChip/PriorityBadge/PersistentBadge/
+ActionButton/EmptyState/Badge/PulseBanner/MotionProvider`. CSS `notificationCenter.css` (préfixe `nc-`,
+tokens `--bs-*`, aucun hex .tsx ; couleur catégorie = donnée inline). Drawer = bottom-sheet mobile / panel
+latéral desktop (`@media min-width:768px`).
+
+**Layouts** : `ManagerLayout` header → `NotificationBell scope="admin"` ; `DevLayout` → `scope="dev"`
+(monté uniquement pour dev). `App.test.tsx`/`theme.test.tsx` enveloppés d'un `QueryClientProvider`.
+
+**React UX Motion Guideline** (à partir de M9) : mobile-first, animations légères (opacity/transform),
+durées courtes (`--bs-motion-*`), micro-interactions utiles, pas de table sur mobile, feedback immédiat,
+skeleton doux, cibles ≥44px, respect `prefers-reduced-motion`. À appliquer à tous les écrans suivants.
+
 ## Sprint M8 — NotificationEngine branché sur les templates (rapports 193-194)
 
 Le moteur backend (`triggerNotification`) consomme les `NotificationTemplate` publiés (M7) +

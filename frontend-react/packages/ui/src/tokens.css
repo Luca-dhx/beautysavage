@@ -22,10 +22,32 @@
   --bs-space-3: 16px;
   --bs-space-4: 24px;
   --bs-font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* M9 — Motion tokens (React UX Motion Guideline). Durées courtes, easing doux. */
+  --bs-motion-fast: 140ms;
+  --bs-motion-normal: 240ms;
+  --bs-motion-slow: 360ms;
+  --bs-motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --bs-motion-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --bs-z-overlay: 1000;
+  --bs-z-drawer: 1001;
+  --bs-z-banner: 1002;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* M9 — Accessibilité : couper les animations si l'utilisateur le demande. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 body {

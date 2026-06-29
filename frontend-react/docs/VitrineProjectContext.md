@@ -3,6 +3,12 @@
 > Pourquoi chaque écran existe, côté client. Complément de
 > [VitrineArchitecture](./VitrineArchitecture.md). Global : [FolderProjectContext](./FolderProjectContext.md).
 
+## React UX Motion Guideline (à partir de M9, rapport 196)
+La vitrine, surface publique premium et mobile, doit suivre la ligne UX globale : **mobile-first**,
+animations fluides et sobres, transitions propres, micro-interactions utiles, **respect du
+reduced-motion**, **jamais de table sur mobile**, feedback immédiat — l'expérience téléphone doit être
+agréable. (Les notifications internes restent côté panel ; la vitrine ne les affiche pas.)
+
 ## Vision
 La vitrine est la **devanture premium** de l'institut : elle doit inspirer confiance, valoriser
 l'expertise (prestations, formations) et convertir sans friction. C'est l'unique surface publique

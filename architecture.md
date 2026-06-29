@@ -2631,6 +2631,44 @@ Backend +6 fichiers (`tests/p1/notificationTemplateRuntime`, `notificationRuntim
 **M9** : refonte du centre de notifications React (consomme categorySnapshot/priority/persistent/action)
 + éventuel endpoint manager de liste.
 
+## STEP 32 — Notification Center React + UX Motion Guideline (M9 — 2026-06-29)
+
+### Principe
+Vrai centre de notifications React dans le panel (Manager/Admin + Dev) : cloche + badge + bandeau « +X »
+animé + shake subtil + drawer responsive, mobile-first, animé, accessible. **Backend quasi inchangé** :
+un seul ajout — la sérialisation `notificationController.listNotificationsCore` expose les métadonnées M8
+(`categorySnapshot/priority/persistent/action/templateKey/templateVersion/categoryId/targetType/expiresAt`).
+**`variablesSnapshot` jamais exposé** (privacy). Endpoints inchangés. Rapports `195` (audit) + `196`.
+
+### Endpoints (autorité backend, isolation admin/dev)
+- Admin : `GET /api/gestion/notifications` + `PATCH /:id/read` + `PATCH /read-all` + `DELETE /:id` (audience `targetRole != dev`).
+- Dev : `GET /api/gestion/dev/notifications` + idem (`requireStrictDev`, audience `targetRole == dev`).
+- Pas d'endpoint `stats` (dérivé côté front) ni `archive` (suppression seulement).
+
+### Front
+- `@bs/ui` : `MotionTokens`, `prefersReducedMotion()`, `motionTransition()` + tokens CSS `--bs-motion-*`
+  + media `prefers-reduced-motion: reduce` global (tokens.css).
+- api-client `manager/notifications.ts` : `listNotifications(scope,filters?)`, `getNotificationStats`
+  (dérivé), `markNotificationRead`, `markAllNotificationsRead`, `deleteNotification`,
+  `resolveNotificationAction` (action métier → route panel ; sinon désactivé). Scope→endpoint.
+- Feature `apps/manager/src/features/notifications/` : `useNotifications` (TanStack Query, polling 45 s +
+  focus, mutations), `NotificationBell` + Drawer/List/Card/DetailPanel/FilterBar/CategoryChip/
+  PriorityBadge/PersistentBadge/ActionButton/EmptyState/Badge/PulseBanner/MotionProvider. CSS `nc-`,
+  aucun hex .tsx (couleur catégorie = `categorySnapshot` inline). Bell admin → ManagerLayout ; bell dev → DevLayout.
+
+### React UX Motion Guideline (à partir de M9)
+Toutes les futures interfaces React (panel + vitrine) : mobile-first, animations légères (opacity/transform,
+`--bs-motion-*`), micro-interactions utiles, pas de table sur mobile, feedback immédiat, skeleton doux,
+cibles ≥44px, respect `prefers-reduced-motion`. Documentée dans Folder/Manager/Vitrine.
+
+### Tests
+Front +19 (`features/notifications/*`, `packages/api-client/.../notificationsApi.test.ts`,
+`packages/ui/src/motion.test.ts`). Backend +5 (`tests/p1/notificationCenterSerialization.test.js`).
+
+### Suite
+**M10** : appliquer la Motion Guideline à un écran métier réel, ou endpoint stats léger + polling
+intelligent, ou notifications temps quasi-réel (SSE) si besoin.
+
 ### Migration
 - `automatisme/notificationConfigMigration.js` : `runNotificationConfigMigration()` -- cree le singleton config si absent avec 8 evenements preconfigures. Appelee au boot dans `app.js`.
 

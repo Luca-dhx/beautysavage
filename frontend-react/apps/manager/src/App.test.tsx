@@ -1,17 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@bs/auth';
 import type { AuthUser } from '@bs/api-client';
 import { App } from './App';
 
 function renderAt(path: string, user: AuthUser | null) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <AuthProvider loader={async () => user}>
-      <MemoryRouter initialEntries={[path]}>
-        <App />
-      </MemoryRouter>
-    </AuthProvider>,
+    <QueryClientProvider client={qc}>
+      <AuthProvider loader={async () => user}>
+        <MemoryRouter initialEntries={[path]}>
+          <App />
+        </MemoryRouter>
+      </AuthProvider>
+    </QueryClientProvider>,
   );
 }
 

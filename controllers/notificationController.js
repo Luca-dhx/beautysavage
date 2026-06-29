@@ -66,14 +66,33 @@ async function listNotificationsCore(req, res, audience) {
       message: n.message,
       category: n.category,
       targetRole: n.targetRole || 'admin',
+      targetType: n.targetType || 'all',
       link: n.link,
       linkLabel: n.linkLabel,
       eventType: n.eventType,
       eventName: n.eventName || null,
       contextType: n.contextType || null,
       contextId: n.contextId || null,
+      // M9 — champs enrichis M8 exposés au centre de notifications React (SAFE :
+      // categorySnapshot/priority/persistent/action sont des métadonnées d'affichage ;
+      // variablesSnapshot N'EST PAS exposé).
+      categoryId: n.categoryId ? String(n.categoryId) : null,
+      categorySnapshot: n.categorySnapshot && (n.categorySnapshot.name || n.categorySnapshot.slug || n.categorySnapshot.icon || n.categorySnapshot.color)
+        ? {
+            name: n.categorySnapshot.name ?? null,
+            slug: n.categorySnapshot.slug ?? null,
+            icon: n.categorySnapshot.icon ?? null,
+            color: n.categorySnapshot.color ?? null
+          }
+        : null,
+      priority: n.priority || 'normal',
+      persistent: Boolean(n.persistent),
+      action: n.action || null,
+      templateKey: n.templateKey || null,
+      templateVersion: typeof n.templateVersion === 'number' ? n.templateVersion : null,
       isRead: n.readBy?.some(id => String(id) === String(userId)) || false,
-      createdAt: n.createdAt
+      createdAt: n.createdAt,
+      expiresAt: n.expiresAt || null
     }));
 
     return res.json({ ok: true, notifications: serialized, unreadCount });

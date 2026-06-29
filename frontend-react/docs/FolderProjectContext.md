@@ -221,6 +221,17 @@ qui) restent gérées ailleurs, par rôle. Toujours mobile-first, dev-only, sans
 d'envoi ni aux règles. Suite (M7) : rendu serveur fidèle pour l'aperçu, ou migration des e-mails
 comptables.
 
+## Sprint M9 — Notification Center React + UX animée (rapports 195-196)
+
+Centre de notifications dans le panel (admin + dev) : cloche + badge + bandeau « +X » + shake + drawer
+responsive (bottom-sheet mobile / panneau desktop), catégorie/priorité/persistant/action, mark-read/
+delete, scope admin/dev (backend autorité), polling prudent (~45 s, pas de WebSocket), respect du
+reduced-motion. Un seul changement backend : la sérialisation expose les métadonnées M8 (jamais
+`variablesSnapshot`). Nouveaux : `@bs/ui` MotionTokens/prefersReducedMotion, api-client
+`manager/notifications.ts`, feature `apps/manager/src/features/notifications/`.
+**React UX Motion Guideline** (dès M9) : mobile-first, animations sobres, pas de table sur mobile,
+feedback immédiat, reduced-motion — à appliquer à toutes les interfaces futures (panel + vitrine).
+
 ## Sprint M8 — Le moteur consomme les templates (rapports 193-194)
 
 Le moteur de notifications backend exploite désormais les templates publiés (M7) + catégories. Additif &

@@ -1,2 +1,3 @@
-// M3E — Espace Manager (supervision). Pas d'écran ici, uniquement le client API typé.
+// M3E/M4 — Espace Manager : clients API typés (supervision mail + identités de communication).
 export * from './mailSupervision';
+export * from './communicationIdentities';

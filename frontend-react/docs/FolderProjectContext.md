@@ -195,3 +195,12 @@ supervision : journaux des livraisons (moteur par rôles) et des envois, avec st
 erreurs. Le dev voit tout (y compris la plateforme), la gérante voit uniquement l'institut/client —
 sans jamais exposer d'adresse e-mail ni de secret. C'est une fondation de diagnostic et de confiance,
 en lecture seule pour l'instant ; l'interface de consultation arrivera ensuite.
+
+## Sprint M4 — Communication Center (rapports 185-186)
+
+Après avoir bâti le moteur (identités, envois par rôles, supervision) en coulisses, M4 livre **l'écran**
+qui le rend pilotable : un Communication Center dans l'espace Manager. La gérante y gère son identité
+d'expéditeur et suit ses e-mails ; le dev supervise l'ensemble et diagnostique. Pensé mobile d'abord,
+sans jamais exposer d'adresse client ni de secret. Lecture seule pour l'instant (pas de relance ni
+d'édition de templates) — l'objectif est la visibilité et la prise en main. Suite : édition des
+modèles et actions de supervision (M5).

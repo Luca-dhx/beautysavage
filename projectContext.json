@@ -10059,6 +10059,27 @@
     "limits": "lecture seule (aucune relance), pas d'UI React, sendLogId rarement renseigne (correlation best-effort par contexte), attempts=1, pas de pagination curseur reelle.",
     "next": "M3F — ecran React de supervision OU lien delivery<->sendLog + actions de relance, avant migration sale.finalized."
   },
+  "communicationCenterReact": {
+    "description": "M4 (2026-06-29) — ecran React Communication Center (app manager, mobile-first), separe admin/dev. AUCUN backend modifie (branche sur M1 identites + M3E supervision).",
+    "reports": [
+      "Rapports/version 1/185_audit_pre_m4_react_communication_center.md",
+      "Rapports/version 1/186_rapport_m4_react_communication_center.md"
+    ],
+    "routesAdmin": "/communication, /communication/identite-commerciale, /communication/mails (RequireRole admin|dev).",
+    "routesDev": "/dev/communication, /dev/communication/identite-support, /dev/communication/mail-deliveries, /dev/communication/send-logs (RequireRole dev).",
+    "feature": "apps/manager/src/features/communication/ — CommunicationCenterLayout, IdentityManager (react-query create/request/confirm/setActive/refresh), VerificationPanel, IdentityForm, DnsStatusPanel, MailDeliveriesView/SendLogsView, MailFilterBar/MobileFilterDrawer, MailStatsCards, listes en cards, StatusBadge/RoleBadge. CSS communication.css (tokens --bs-*, aucun hex dans .tsx).",
+    "apiClient": "packages/api-client/src/manager/communicationIdentities.ts (admin->commerciale, dev->support, OTP non stocke) + mailSupervision.ts etendu d'un parametre scope admin/dev (base /api/gestion vs /api/gestion/dev ; dev /send-logs legacy {logs} normalise).",
+    "mobileFirst": "cards (jamais de table), filtres en drawer/bottom-sheet sur mobile, cibles tactiles >=44px, etats loading/error/empty, pas de scroll horizontal force.",
+    "privacy": "jamais d'e-mail client (recipientHash) ni de secret/Brevo ; OTP non stocke ; e-mail des identites configurees affiche (adresse expediteur). Admin bloque hors /dev/* ; 403 -> Acces reserve.",
+    "tests": [
+      "packages/api-client/src/manager/communicationIdentitiesApi.test.ts",
+      "packages/api-client/src/manager/mailSupervisionScope.test.ts",
+      "apps/manager/src/features/communication/communication.test.tsx",
+      "apps/manager/src/features/communication/noHardcodedHex.test.ts"
+    ],
+    "limits": "lecture seule sur les journaux (aucune relance/renvoi), pas de Template Studio ni Theme Studio, pas de migration sale.finalized, pas de modification des regles d'envoi, pas de pagination curseur. Le verrou final reste backend.",
+    "next": "M5 — Mail Template Studio (edition par role) ou actions de supervision (relance controlee), avant migration des flux comptables."
+  },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",
     "problem": "applyFlowServiceRescheduleDecision creait ServiceBooking sans verifier disponibilite",

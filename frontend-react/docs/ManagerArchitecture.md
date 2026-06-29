@@ -194,3 +194,32 @@ shadow/active, failuresLast24h. **Privacy** : jamais d'e-mail (recipientHash seu
 Client API : `@bs/api-client` → `manager/mailSupervision.ts` (`listMailDeliveries`, `getMailDeliveryDetail`,
 `getMailDeliveryStats`, `listSendLogs`, `getSendLogStats` + types). **Aucun écran livré** (M3F).
 Détails : `Rapports/version 1/184_rapport_m3e_mail_supervision.md`.
+
+## Sprint M4 — Communication Center React (rapports 185-186)
+
+Écran **Communication Center** dans l'app Manager (mobile-first), séparé admin/dev. **Aucun backend
+modifié** — branché sur les endpoints M1 (identités) + M3E (supervision).
+
+### Routes
+- Admin (RequireRole admin|dev) : `/communication` (dashboard), `/communication/identite-commerciale`,
+  `/communication/mails`.
+- Dev (RequireRole dev) : `/dev/communication`, `/dev/communication/identite-support`,
+  `/dev/communication/mail-deliveries`, `/dev/communication/send-logs`.
+
+### Feature `apps/manager/src/features/communication/`
+Layouts (`AdminCommunicationLayout`/`DevCommunicationLayout`), `IdentityManager` (react-query :
+create/request-verification/confirm-OTP/set-active/refresh), `VerificationPanel`, `IdentityForm`,
+`DnsStatusPanel`, `MailDeliveriesView`/`SendLogsView`, `MailFilterBar`/`MobileFilterDrawer`,
+`MailStatsCards`, listes en cards, `StatusBadge`/`RoleBadge`. Styles `communication.css` (tokens
+`--bs-*`, aucun hex dans les .tsx).
+
+### API client (`@bs/api-client/manager`)
+`communicationIdentities.ts` (admin→commerciale, dev→support ; OTP jamais stocké) ;
+`mailSupervision.ts` étendu d'un paramètre `scope: 'admin'|'dev'` (base `/api/gestion` vs
+`/api/gestion/dev` ; le `/dev/send-logs` legacy `{logs}` est normalisé).
+
+### Mobile-first & privacy
+Cards (jamais de table), filtres en drawer sur mobile, cibles tactiles ≥ 44px, états
+loading/error/empty. Jamais d'e-mail client (recipientHash) ni de secret ; e-mail des identités
+configurées affiché (adresse d'expéditeur). Admin bloqué hors `/dev/*`. Détails : rapport 186.
+Suite : **M5** (Template Studio ou actions de supervision).

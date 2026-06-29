@@ -2474,6 +2474,33 @@ Lecture seule (aucune relance) ; pas d'UI ; sendLogId rarement renseigné (corr�
 contexte) ; attempts=1. **M3F** : écran React de supervision OU lien delivery↔sendLog + actions de
 relance, avant la migration `sale.finalized`.
 
+## STEP 27 — React Communication Center Manager/Dev (M4 — 2026-06-29)
+
+### Principe
+Écran React (app **manager**, mobile-first) consommant les endpoints existants — identités M1 +
+supervision M3E. **Aucun changement backend.** Rapports `185` (audit) + `186`.
+
+### Routes (apps/manager/src/App.tsx)
+- Admin (RequireRole admin|dev) : `/communication`, `/communication/identite-commerciale`,
+  `/communication/mails`.
+- Dev (RequireRole dev) : `/dev/communication`, `/dev/communication/identite-support`,
+  `/dev/communication/mail-deliveries`, `/dev/communication/send-logs`.
+
+### Front
+- Feature `apps/manager/src/features/communication/` : layouts, `IdentityManager` (react-query),
+  `VerificationPanel`, `IdentityForm`, `DnsStatusPanel`, `MailDeliveriesView`/`SendLogsView`,
+  filtres (drawer mobile), cards, badges. CSS `communication.css` (tokens `--bs-*`, aucun hex .tsx).
+- API client `@bs/api-client/manager` : `communicationIdentities.ts` (admin→commerciale, dev→support)
+  + `mailSupervision.ts` (paramètre `scope` admin/dev ; dev `/send-logs` legacy normalisé).
+
+### Privacy / permissions
+recipientHash uniquement (jamais d'e-mail client/secret) ; e-mail des identités configurées affiché ;
+admin bloqué hors `/dev/*` ; 403 → « Accès réservé ». Tests front : 98 (dont M4 +15). Backend inchangé.
+
+### Suite
+**M5** : Mail Template Studio (édition par rôle) ou actions de supervision (relance), avant migration
+des flux comptables.
+
 ### Migration
 - `automatisme/notificationConfigMigration.js` : `runNotificationConfigMigration()` -- cree le singleton config si absent avec 8 evenements preconfigures. Appelee au boot dans `app.js`.
 

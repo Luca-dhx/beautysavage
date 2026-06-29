@@ -148,3 +148,15 @@ plateforme/technique). Aucune adresse e-mail ni secret n'est exposé (on ne mont
 anonymisée). C'est une base de diagnostic : comprendre ce qui part, ce qui est inhibé (shadow) et ce
 qui échoue, pour activer la suite en confiance. L'écran dédié viendra ensuite (M3F) ; ici on prépare le
 backend et le client d'API.
+
+## Sprint M4 — Communication Center (rapports 185-186)
+
+Première vraie interface du centre de communication, accessible à la gérante (admin) et au dev, avec
+des périmètres distincts. La **gérante** configure son identité « commerciale » (adresse d'expéditeur),
+lance la vérification Brevo (saisie d'un code), suit l'authentification DNS de son domaine, et consulte
+le **journal de ses e-mails** institut/client (statuts, filtres). Le **dev** dispose en plus de
+l'identité « support », de la supervision complète (livraisons + envois) et du diagnostic technique.
+Tout est **mobile-first** (cartes, filtres en tiroir, boutons larges) et **sans donnée sensible**
+(aucune adresse client, aucun secret). En lecture seule pour les journaux : pas encore de relance
+d'envoi ni d'édition de templates (M5). C'est la mise en main concrète de toute la mécanique
+construite en M1→M3E.

@@ -267,3 +267,12 @@ Supervision lecture seule du moteur mail M2 : `services/mail/mailSupervisionServ
 détail, stats). Privacy stricte (recipientHash, jamais d'e-mail/secret) ; cloisonnement admin (pas de
 plateforme). Client React `@bs/api-client/manager/mailSupervision` (types + fonctions, **aucun écran**).
 Rien ne change pour la vitrine/client ni pour les envois. Suite : **M3F**.
+
+## Sprint M4 — Communication Center React (rapports 185-186)
+
+App **manager** : feature `features/communication/` (Communication Center mobile-first) + api-client
+`@bs/api-client/manager/communicationIdentities` et `mailSupervision` (paramètre `scope` admin/dev).
+Routes admin `/communication/*` et dev `/dev/communication/*` (guards `RequireRole`). Styles via
+tokens `--bs-*` (aucun hex dans les .tsx, vérifié par test). **Aucun backend modifié** (branché sur
+M1 identités + M3E supervision). Privacy : recipientHash, jamais d'e-mail/secret. Rien ne change pour
+la vitrine. Suite : **M5**.

@@ -3,6 +3,17 @@ import { RequireRole } from '@bs/auth';
 import { ManagerLayout } from './layouts/ManagerLayout';
 import { DevLayout } from './layouts/DevLayout';
 import { Placeholder } from './pages/Placeholder';
+import {
+  AdminCommunicationLayout,
+  DevCommunicationLayout,
+  AdminCommunicationDashboard,
+  CommercialeIdentityPage,
+  AdminMailsPage,
+  DevCommunicationDashboard,
+  SupportIdentityPage,
+  DevMailDeliveriesPage,
+  DevSendLogsPage,
+} from './features/communication';
 
 // Routing manager R0 — placeholders + guards rôle (cf. rapport 147).
 // Manager = admin ou dev. /dev/* = dev uniquement. /login public.
@@ -26,6 +37,13 @@ export function App() {
           <Route path="commissions" element={<Placeholder title="Commissions" description="Paiement des commissions." />} />
           <Route path="parametres" element={<Placeholder title="Paramètres" description="Réglages du site." />} />
 
+          {/* M4 — Communication Center (admin/dev autorisés ; vue institut/client) */}
+          <Route path="communication" element={<AdminCommunicationLayout />}>
+            <Route index element={<AdminCommunicationDashboard />} />
+            <Route path="identite-commerciale" element={<CommercialeIdentityPage />} />
+            <Route path="mails" element={<AdminMailsPage />} />
+          </Route>
+
           {/* Section dev (RequireRole dev uniquement) */}
           <Route path="dev" element={<RequireRole allow={['dev']} loginPath="/login" deniedPath="/" />}>
             <Route element={<DevLayout />}>
@@ -37,6 +55,14 @@ export function App() {
               <Route path="send-logs" element={<Placeholder title="Logs d'envoi" description="Journal des envois." />} />
               <Route path="event-logs" element={<Placeholder title="Logs d'événements" description="Journal des événements." />} />
               <Route path="webhook-failures" element={<Placeholder title="Échecs webhook" description="Webhooks en échec." />} />
+
+              {/* M4 — Communication Center (dev uniquement, vue complète safe) */}
+              <Route path="communication" element={<DevCommunicationLayout />}>
+                <Route index element={<DevCommunicationDashboard />} />
+                <Route path="identite-support" element={<SupportIdentityPage />} />
+                <Route path="mail-deliveries" element={<DevMailDeliveriesPage />} />
+                <Route path="send-logs" element={<DevSendLogsPage />} />
+              </Route>
             </Route>
           </Route>
         </Route>

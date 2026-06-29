@@ -437,6 +437,15 @@ Backend (+35), notifications in-app uniquement (aucun e-mail) :
 - `tests/p1/notificationEventSubscriberTargetRole.test.js` (4) — subscriber crée `targetRole='admin'` (new_sale, no_show_recorded), aucune notif dev, pas de fuite e-mail client.
 - **Fix d'ordre de montage** : `notificationRouter` remonté AVANT les routeurs dev-only broad-mount sur `/api/gestion` (ex. `commissionRouter requireStrictDev`) qui shadowaient `/api/gestion/notifications` (403 admins, pré-existant). Manager filtre `targetRole {$ne:'dev'}` (legacy-safe), dev filtre `targetRole 'dev'` (requireStrictDev).
 
+## Sprint M4 — React Communication Center (rapports 185-186)
+
+Frontend uniquement (backend inchangé). `npm run react:test` : **98 tests / 22 fichiers** (+15) ;
+`react:build`, `react:lint`, `typecheck` verts.
+- `packages/api-client/src/manager/communicationIdentitiesApi.test.ts` (6) — URLs/scopes (admin→commerciale, dev→support), bodies, liste vide.
+- `packages/api-client/src/manager/mailSupervisionScope.test.ts` (3) — base admin vs dev, mapping du `/dev/send-logs` legacy `{logs}` → `SendLogSummary`.
+- `apps/manager/src/features/communication/communication.test.tsx` (6) — dashboard admin, blocage admin sur `/dev/communication`, dev OK, journal en **cards** (pas de `<table>`), création identité (POST `/commerciale`), aucune fuite d'e-mail (recipientHash).
+- `apps/manager/src/features/communication/noHardcodedHex.test.ts` (1) — aucun hex couleur dans les `.tsx`.
+
 ## Sprint M3E — Supervision MailEventDelivery + SendLog (rapports 183-184)
 
 Backend (+29) + frontend (+5). Lecture seule ; aucun envoi ; Brevo non sollicité :

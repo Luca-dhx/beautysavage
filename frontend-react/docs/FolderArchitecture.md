@@ -295,6 +295,15 @@ Aperçu **front** (iframe sandbox, mobile/desktop, aucun envoi). Templates = **r
 **aucune adresse** (identités → Communication Center M4). **Backend inchangé.** Tokens `--bs-*` (aucun
 hex .tsx). Suite : **M7**.
 
+## Sprint M10 — Planning global institut (rapports 197-198)
+
+Décision : entité unique institut (practitionerId legacy déprécié). Backend additif : `services/calendar/`
+(instituteCalendarContext, globalCalendarService, globalAvailabilityService) + `GET /api/gestion/calendar/
+items` (admin/dev, monté avant les dev-only broad-mount). api-client `manager/calendar.ts`. Feature
+`apps/manager/src/features/planning/` (PlanningPage jour mobile/semaine desktop + usePlanning TanStack
+Query + composants cards/drawer/badges/views ; CSS `pl-`, aucun hex .tsx, zéro table, Motion Guideline).
+Actions = endpoints booking existants ; report admin sans endpoint (UI désactivée). Suite : **M11**.
+
 ## Sprint M9 — Notification Center React + UX Motion (rapports 195-196)
 
 Centre de notifications (app manager, admin + dev). Backend : unique changement = enrichissement de la

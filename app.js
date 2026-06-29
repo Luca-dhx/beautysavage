@@ -65,6 +65,7 @@ import serviceRouter from './routers/serviceRouter.js';
 import practitionerRouter from './routers/practitionerRouter.js';
 import availabilityRouter from './routers/availabilityRouter.js';
 import gestionBookingRouter from './routers/gestionBookingRouter.js';
+import calendarRouter from './routers/calendarRouter.js';
 import serviceSettingsRouter from './routers/serviceSettingsRouter.js';
 import vitrineServiceRouter, { vitrineAvailabilityRouter } from './routers/vitrineServiceRouter.js';
 import { handleDevWebhook } from './controllers/devWebhookController.js';
@@ -416,6 +417,9 @@ app.use('/api/gestion/dev/notifications', notificationDevRouter);
 // dev-only montés en masse sur '/api/gestion' (ex. commissionRouter avec
 // requireStrictDev), qui sinon shadowent ce chemin et renvoient 403 aux admins.
 app.use('/api/gestion/notifications', notificationRouter);
+// M10 — Calendrier global institut (lecture seule, admin/dev). Monté ICI, AVANT les routeurs
+// dev-only broad-mount sur '/api/gestion' (qui sinon shadowent ce chemin et renvoient 403).
+app.use('/api/gestion/calendar', calendarRouter);
 // M3E — Supervision mail dev (mail-deliveries + send-logs stats), strict dev — AVANT /api/gestion/dev générique.
 app.use('/api/gestion/dev', mailSupervisionDevRouter);
 // M7 — Notification Studio dev (templates + catégories), strict dev — AVANT /api/gestion/dev générique.

@@ -10194,6 +10194,34 @@
     "limits": "pas d'archivage (endpoint inexistant, suppression seulement) ; stats derivees front ; centre dans l'app manager uniquement (vitrine sans notifs internes) ; actions sans route prete -> bouton 'Bientot disponible'.",
     "next": "M10 — appliquer la Motion Guideline a un ecran metier reel, ou endpoint stats leger + polling intelligent, ou notifications temps quasi-reel (SSE) si besoin."
   },
+  "planningGlobalInstitutM10": {
+    "description": "M10 (2026-06-29) — Decision metier FERME : une seule entite = l'institut, plus de multi-prestataires. Calendrier GLOBAL type Planity (app manager). Formations presentielles incluses. Reservations/annulations/remboursements/acomptes/soldes sur place geres depuis le planning. Additif & non destructif.",
+    "reports": [
+      "Rapports/version 1/197_audit_m10_planning_global_institut.md",
+      "Rapports/version 1/198_rapport_m10_planning_global_institut.md"
+    ],
+    "decision": "practitionerId (ServiceBooking/BookingSlotLock/PractitionerProfile) CONSERVE legacy nullable-compatible, DEPRECIE (suppression DB trop risquee : index uniques/locks/refund/sale). Cleanup futur via script volontaire. L'entite PractitionerProfile devient semantiquement 'l'institut' (un seul profil).",
+    "neutralization": "services/calendar/instituteCalendarContext.js (DEFAULT_INSTITUTE_CALENDAR_ID='institute', resolveInstitutePractitionerProfile/Id) + services/calendar/globalAvailabilityService.js (getGlobalAvailableSlots SANS practitionerId ; createGlobalServiceBooking : practitionerId legacy accepte mais IGNORE -> institut ; double-booking global via index unique + slot-locks). Flux checkout/refund existants INCHANGES.",
+    "calendarService": "services/calendar/globalCalendarService.js : listGlobalCalendarItems({startDate,endDate,status,type}) lit TOUT (aucun filtre prestataire) ; mapServiceBookingToCalendarItem ; mapFormationSessionToCalendarItem (1 item/jour). CalendarItem SAFE (client.name jamais d'e-mail) : type(service_booking|formation_session|blocked_slot), paymentStatus, refundStatus, totalAmount, depositAmount, amountPaidOnline, balanceDueAmount, actionLinks{detail,cancel,markBalancePaid,reschedule}, sourceModel/sourceId.",
+    "endpoint": "GET /api/gestion/calendar/items?startDate=&endDate=&type=&status= (routers/calendarRouter.js + controllers/calendarController.js). Admin/dev uniquement, monte AVANT les dev-only broad-mount (sinon 403 shadow). Jamais client. Plage <= 92 jours.",
+    "actions": "Endpoints EXISTANTS : detail GET /bookings/:id/detail ; annuler (flow refund) POST /bookings/:id/cancel ; solde paye sur place POST /bookings/:id/balance-paid. Report admin : AUCUN endpoint -> UI desactivee (pas de logique inventee).",
+    "apiClient": "frontend-react/packages/api-client/src/manager/calendar.ts : listCalendarItems/getBookingDetail/cancelBooking/markBalancePaid ; rescheduleBooking leve (RESCHEDULE_SUPPORTED=false). Types CalendarItem/CalendarItemType/CalendarItemStatus/CalendarFilters.",
+    "feature": "apps/manager/src/features/planning/ : PlanningPage (vue JOUR mobile par defaut, SEMAINE desktop, nav precedent/aujourd'hui/suivant, filtres type, drawer detail+actions), usePlanning (TanStack Query + mutations cancel/markPaid ; helpers planningRange/groupItemsByDay/startOfWeek), composants PlanningCalendar/DayColumn/WeekView/MobileDayAgenda/CalendarItemCard/FormationSessionCard/CalendarItemDetailDrawer/CalendarFiltersDrawer/BookingActionsPanel/BalanceDueBadge/PaymentStatusBadge/RefundStatusBadge. CSS pl- tokens --bs-*, aucun hex .tsx, zero <table>, drawer bottom-sheet mobile/panel desktop, Motion Guideline + reduced-motion. Routes /planning + /planning/:date (remplacent placeholder).",
+    "formations": "FormationSession presentielles -> formation_session (places restantes + statut). Distancielles exclues (pas de creneau physique). LIMITE : paiements participants non modelises au niveau session.",
+    "acomptes": "drawer affiche Total/Paye en ligne/Acompte/Solde a payer sur place + badges. Bouton 'Marquer le solde paye' uniquement si actionLinks.markBalancePaid (deposit + pay_on_site + solde>0).",
+    "tests": [
+      "tests/p1/globalCalendarService.test.js",
+      "tests/p1/globalCalendarRoutes.test.js",
+      "tests/p1/noPractitionerBooking.test.js",
+      "tests/p1/globalAvailabilityNoPractitioner.test.js",
+      "tests/p1/calendarFormationSessions.test.js",
+      "frontend-react/packages/api-client/src/manager/calendarApi.test.ts",
+      "frontend-react/apps/manager/src/features/planning/planning.test.tsx",
+      "frontend-react/apps/manager/src/features/planning/noHardcodedHex.test.ts"
+    ],
+    "limits": "champs practitionerId non supprimes (legacy nullable, cleanup futur) ; pas d'endpoint report admin (UI preparee) ; paiements participants formation non exposes ; checkout prod garde practitionerId (=institut), chemin global teste en parallele.",
+    "next": "M11 — cleanup volontaire practitionerId (migration + index {startAt} global) + brancher le checkout prod sur createGlobalServiceBooking ; ou endpoint report admin teste ; ou vue mois + drag-to-reschedule."
+  },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",
     "problem": "applyFlowServiceRescheduleDecision creait ServiceBooking sans verifier disponibilite",

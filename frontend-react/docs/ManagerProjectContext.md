@@ -182,6 +182,17 @@ adresses se gèrent dans le Communication Center. C'est volontairement simple (p
 drag-and-drop, pas d'envoi de test réel) et réservé au dev. Suite : preview serveur fidèle ou migration
 des e-mails comptables (M7).
 
+## Sprint M10 — Planning global institut (rapports 197-198)
+
+**Décision métier ferme** : une seule entité = l'institut. Plus de prestataires multiples. Le planning
+devient un **calendrier global** (type Planity) : vue **jour** sur mobile, **semaine** sur ordinateur,
+navigation jour/semaine, filtres par type. Il regroupe **réservations**, **formations présentielles** et
+**créneaux bloqués**. Au clic, un drawer affiche le détail + le **paiement** (total, payé en ligne,
+acompte, **solde à payer sur place**) + les actions : **annuler** (déclenche le remboursement éligible),
+**marquer le solde payé sur place**. Le **report** de créneau est préparé mais désactivé (pas d'endpoint
+admin). La réservation ne nécessite plus de prestataire côté serveur (un `practitionerId` ancien est
+accepté mais ignoré). Mobile-first, animé (Motion Guideline), zéro tableau.
+
 ## Sprint M9 — Notification Center React + UX animée (rapports 195-196)
 
 Le panel a enfin un **vrai centre de notifications** : une **cloche** dans le header (admin) et dans

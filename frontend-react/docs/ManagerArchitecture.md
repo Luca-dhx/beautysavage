@@ -276,6 +276,26 @@ Les templates ne contiennent **aucune adresse** ; expéditeur/destinataire sont 
 l'envoi. Les adresses sont gérées dans le **Communication Center** (M4). Mobile-first, dev-only.
 Suite : **M7**.
 
+## Sprint M10 — Planning global institut (rapports 197-198)
+
+Décision métier : une seule entité = l'institut (plus de multi-prestataires ; `practitionerId` legacy
+nullable déprécié, ignoré à la réservation). **Backend** : `GET /api/gestion/calendar/items` (admin/dev)
+via `services/calendar/globalCalendarService.js` (`listGlobalCalendarItems` lit TOUT) +
+`globalAvailabilityService.js` (`getGlobalAvailableSlots`/`createGlobalServiceBooking` sans practitionerId)
++ `instituteCalendarContext.js`. Flux checkout/refund inchangés.
+
+**api-client** `@bs/api-client/manager/calendar.ts` : `listCalendarItems`, `getBookingDetail`,
+`cancelBooking`, `markBalancePaid`, `rescheduleBooking` (lève — `RESCHEDULE_SUPPORTED=false`). Types
+`CalendarItem/CalendarItemType/CalendarItemStatus/CalendarFilters`.
+
+**Feature** `apps/manager/src/features/planning/` : `PlanningPage` (jour mobile par défaut / semaine
+desktop, nav, filtres, drawer + actions), `usePlanning` (TanStack Query), composants `PlanningCalendar/
+DayColumn/WeekView/MobileDayAgenda/CalendarItemCard/FormationSessionCard/CalendarItemDetailDrawer/
+CalendarFiltersDrawer/BookingActionsPanel/BalanceDueBadge/PaymentStatusBadge/RefundStatusBadge`. CSS `pl-`
+tokens `--bs-*`, aucun hex .tsx, zéro `<table>`, drawer bottom-sheet mobile / panel desktop, Motion
+Guideline + reduced-motion. Routes `/planning` + `/planning/:date`. Actions = endpoints booking existants ;
+report admin désactivé (pas d'endpoint). Suite : **M11**.
+
 ## Sprint M9 — Notification Center React + UX Motion (rapports 195-196)
 
 Centre de notifications dans l'app manager (admin + dev). **Backend** : un seul changement — la

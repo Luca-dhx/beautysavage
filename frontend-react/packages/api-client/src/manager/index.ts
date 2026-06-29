@@ -7,3 +7,4 @@ export * from './mailTemplates';
 export * from './notificationCategories';
 export * from './notificationTemplates';
 export * from './notifications';
+export * from './calendar';

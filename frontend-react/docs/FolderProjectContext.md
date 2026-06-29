@@ -221,6 +221,15 @@ qui) restent gérées ailleurs, par rôle. Toujours mobile-first, dev-only, sans
 d'envoi ni aux règles. Suite (M7) : rendu serveur fidèle pour l'aperçu, ou migration des e-mails
 comptables.
 
+## Sprint M10 — Planning global institut (rapports 197-198)
+
+Décision métier : une seule entité = l'institut, calendrier global (Planity). Nouveau endpoint manager
+`GET /api/gestion/calendar/items` + services calendrier (`services/calendar/*`, additif, non destructif :
+practitionerId legacy conservé/ignoré). Feature React `apps/manager/src/features/planning/` (vue jour
+mobile / semaine desktop, drawer détail + actions annuler/solde, formations présentielles incluses), api-
+client `manager/calendar.ts`. Mobile-first, zéro table, Motion Guideline. Limites : report admin sans
+endpoint (UI désactivée), cleanup practitionerId reporté.
+
 ## Sprint M9 — Notification Center React + UX animée (rapports 195-196)
 
 Centre de notifications dans le panel (admin + dev) : cloche + badge + bandeau « +X » + shake + drawer

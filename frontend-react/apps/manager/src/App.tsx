@@ -33,6 +33,7 @@ import {
   NotificationTemplateVersionsPage,
   NotificationCategoriesPage,
 } from './features/notificationTemplates';
+import { PlanningPage } from './features/planning';
 
 // Routing manager R0 — placeholders + guards rôle (cf. rapport 147).
 // Manager = admin ou dev. /dev/* = dev uniquement. /login public.
@@ -45,7 +46,9 @@ export function App() {
         <Route element={<ManagerLayout />}>
           <Route index element={<Placeholder title="Tableau de bord" description="Vue d'ensemble du manager." />} />
           <Route path="onboarding/contrat" element={<Placeholder title="Onboarding — Contrat" description="Activation du contrat." />} />
-          <Route path="planning" element={<Placeholder title="Planning" description="Planning des sessions." />} />
+          {/* M10 — Planning global institut (calendrier unique, mobile-first) */}
+          <Route path="planning" element={<PlanningPage />} />
+          <Route path="planning/:date" element={<PlanningPage />} />
           <Route path="reservations" element={<Placeholder title="Réservations" description="Réservations de prestations." />} />
           <Route path="prestations" element={<Placeholder title="Prestations" description="Gestion des prestations." />} />
           <Route path="formations" element={<Placeholder title="Formations" description="Gestion des formations." />} />

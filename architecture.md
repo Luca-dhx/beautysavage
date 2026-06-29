@@ -2669,6 +2669,50 @@ Front +19 (`features/notifications/*`, `packages/api-client/.../notificationsApi
 **M10** : appliquer la Motion Guideline à un écran métier réel, ou endpoint stats léger + polling
 intelligent, ou notifications temps quasi-réel (SSE) si besoin.
 
+## STEP 33 — Planning global institut + suppression multi-prestatrices (M10 — 2026-06-29)
+
+### Décision métier
+Une seule entité = **l'institut**. Plus de multi-prestataires. Calendrier **global** (type Planity).
+Champs `practitionerId` (ServiceBooking/BookingSlotLock/PractitionerProfile) **conservés legacy
+nullable-compatibles, dépréciés** (suppression DB = trop risquée : index uniques, locks, refund, sale ;
+cleanup futur via script volontaire). Rapports `197` (audit) + `198`.
+
+### Backend (additif, non destructif)
+- `services/calendar/instituteCalendarContext.js` : `DEFAULT_INSTITUTE_CALENDAR_ID='institute'`,
+  `resolveInstitutePractitionerProfile()`/`resolveInstitutePractitionerId()` (entité institut unique).
+- `services/calendar/globalCalendarService.js` : `listGlobalCalendarItems({startDate,endDate,status,type})`
+  (lit TOUT, aucun filtre prestataire), `mapServiceBookingToCalendarItem`, `mapFormationSessionToCalendarItem`
+  (1 item/jour de session). `CalendarItem` SAFE (jamais d'e-mail) avec amountPaidOnline/balanceDueAmount/
+  actionLinks/sourceModel.
+- `services/calendar/globalAvailabilityService.js` : `getGlobalAvailableSlots` (sans practitionerId),
+  `createGlobalServiceBooking` (practitionerId legacy **accepté mais IGNORÉ** → institut ; anti-double-booking
+  global). Les flux checkout/refund existants **inchangés**.
+- `controllers/calendarController.js` + `routers/calendarRouter.js` → `GET /api/gestion/calendar/items`
+  (admin/dev, monté AVANT les dev-only broad-mount ; jamais client ; plage ≤ 92 j).
+
+### Actions (endpoints existants)
+détail `GET /bookings/:id/detail` ; annuler (flow refund) `POST /bookings/:id/cancel` ; solde payé sur place
+`POST /bookings/:id/balance-paid`. **Report admin** : aucun endpoint → UI désactivée.
+
+### Front
+api-client `manager/calendar.ts` (listCalendarItems/getBookingDetail/cancelBooking/markBalancePaid ;
+rescheduleBooking lève, `RESCHEDULE_SUPPORTED=false`). Feature `apps/manager/src/features/planning/` :
+`PlanningPage` (jour mobile par défaut, semaine desktop, nav, filtres, drawer + actions), `usePlanning`
+(TanStack Query), composants `PlanningCalendar/DayColumn/WeekView/MobileDayAgenda/CalendarItemCard/
+FormationSessionCard/CalendarItemDetailDrawer/CalendarFiltersDrawer/BookingActionsPanel/badges`. CSS `pl-`
+tokens `--bs-*`, aucun hex .tsx, zéro `<table>`, Motion Guideline + reduced-motion. Routes `/planning` +
+`/planning/:date`.
+
+### Tests
+Backend +5 (`tests/p1/globalCalendarService`, `globalCalendarRoutes`, `noPractitionerBooking`,
+`globalAvailabilityNoPractitioner`, `calendarFormationSessions`). Front +11 (`calendarApi.test.ts`,
+`features/planning/planning.test.tsx`, `noHardcodedHex.test.ts`).
+
+### Limites / Suite
+Champs practitioner legacy non supprimés ; pas d'endpoint report admin ; paiements participants formation
+non exposés ; checkout prod garde practitionerId (=institut). **M11** : cleanup practitionerId + brancher le
+checkout sur `createGlobalServiceBooking`, ou endpoint report admin, ou vue mois.
+
 ### Migration
 - `automatisme/notificationConfigMigration.js` : `runNotificationConfigMigration()` -- cree le singleton config si absent avec 8 evenements preconfigures. Appelee au boot dans `app.js`.
 

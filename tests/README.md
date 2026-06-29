@@ -437,6 +437,18 @@ Backend (+35), notifications in-app uniquement (aucun e-mail) :
 - `tests/p1/notificationEventSubscriberTargetRole.test.js` (4) — subscriber crée `targetRole='admin'` (new_sale, no_show_recorded), aucune notif dev, pas de fuite e-mail client.
 - **Fix d'ordre de montage** : `notificationRouter` remonté AVANT les routeurs dev-only broad-mount sur `/api/gestion` (ex. `commissionRouter requireStrictDev`) qui shadowaient `/api/gestion/notifications` (403 admins, pré-existant). Manager filtre `targetRole {$ne:'dev'}` (legacy-safe), dev filtre `targetRole 'dev'` (requireStrictDev).
 
+## Sprint M10 — Planning global institut + suppression multi-prestatrices (rapports 197-198)
+
+Backend (+5 fichiers / 17 cas) + frontend (+11 cas → **164 tests**). Additif & non destructif.
+- `tests/p1/globalCalendarService.test.js` — `listGlobalCalendarItems` (réservations + formations présentielles, global) ; mappers (acompte/solde/actions ; 1 item/jour de session). Client sans nom → `null` (jamais d'e-mail).
+- `tests/p1/globalCalendarRoutes.test.js` — `GET /api/gestion/calendar/items` : admin/dev 200, filtre type, client/anon 401-403, dates manquantes 400, aucun e-mail exposé.
+- `tests/p1/noPractitionerBooking.test.js` — réservation **sans** practitionerId (résolu = institut), practitionerId legacy **ignoré**, double-booking global impossible (409).
+- `tests/p1/globalAvailabilityNoPractitioner.test.js` — disponibilité globale sans practitionerId ; le créneau réservé disparaît (conflit global).
+- `tests/p1/calendarFormationSessions.test.js` — sessions présentielles exposées (places/statut) ; distancielles exclues.
+- `frontend-react/packages/api-client/src/manager/calendarApi.test.ts` (4) — scope→endpoint, cancel/balance POST, reschedule lève.
+- `frontend-react/apps/manager/src/features/planning/planning.test.tsx` (6) — vue jour/semaine, cartes, drawer + solde, action solde, filtres, report désactivé, pas de table.
+- `frontend-react/apps/manager/src/features/planning/noHardcodedHex.test.ts` (1).
+
 ## Sprint M9 — Notification Center React + UX Motion (rapports 195-196)
 
 Backend (+1 fichier / 5 cas) + frontend (+19 cas → **153 tests**). Backend quasi inchangé (sérialisation enrichie).

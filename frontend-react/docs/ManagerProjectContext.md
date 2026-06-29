@@ -170,3 +170,14 @@ espacements, avec un **aperçu en direct** (pas besoin de sauvegarder pour voir 
 **sauvegarde** et on **active**. C'est volontairement minimal (pas de presets ni d'import/export), et
 réservé au dev. Objectif : reprendre la main sur l'identité visuelle sans toucher au code, en gardant
 la vitrine et le panel bien distincts. Suite : édition des modèles d'e-mail (M6).
+
+## Sprint M6 — Mail Template Studio (rapports 189-190)
+
+Le dev peut désormais éditer les **modèles d'e-mail** depuis le panel : objet, contenu HTML et version
+texte, avec **aperçu en direct** (mobile/desktop, sans aucun envoi), gestion des **versions**
+(brouillon → publication → restauration/rollback) et un panneau de **variables** (celles utilisées,
+celles disponibles, et une alerte si une variable inconnue est employée). Les **rôles** d'expéditeur et
+de destinataire sont affichés (commerciale/support/client) mais **jamais d'adresse e-mail** : les
+adresses se gèrent dans le Communication Center. C'est volontairement simple (pas d'éditeur
+drag-and-drop, pas d'envoi de test réel) et réservé au dev. Suite : preview serveur fidèle ou migration
+des e-mails comptables (M7).

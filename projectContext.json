@@ -10102,6 +10102,26 @@
     "limits": "2 themes seulement (pas de presets/import-export/versioning), couleurs semantiques non editables, pas de builder no-code. Verrou final backend ; apercu local (rendu reel au re-chargement apres activation).",
     "next": "M6 — Mail Template Studio, ou extension Theme (couleurs semantiques + presets), ou actions de supervision mail."
   },
+  "mailTemplateStudioReact": {
+    "description": "M6 (2026-06-29) — Mail Template Studio React dev-only (app manager). Edition templates e-mail (versions/publish/rollback/apercu) sans hardcoder d'adresses. BACKEND INCHANGE (endpoints versioning Phase 5A existants ; apercu front).",
+    "reports": [
+      "Rapports/version 1/189_audit_pre_m6_mail_template_studio.md",
+      "Rapports/version 1/190_rapport_m6_mail_template_studio.md"
+    ],
+    "routes": "/dev/email-templates (liste), /dev/email-templates/:templateKey (editeur), /dev/email-templates/:templateKey/versions (RequireRole dev). Remplace l'ancien placeholder.",
+    "apiClient": "packages/api-client/src/manager/mailTemplates.ts — listMailTemplates/getMailTemplate/listMailTemplateVersions/createMailTemplateDraft/publishMailTemplateDraft/archiveMailTemplateDraft/rollbackMailTemplate/previewMailTemplate (FRONT, aucun envoi) + getTemplateRoleBinding (miroir safe de mailDispatchRules, ROLES uniquement) + extractTemplateVariables/KNOWN_TEMPLATE_VARIABLES. Endpoints /api/gestion/mails.",
+    "feature": "apps/manager/src/features/mailTemplates/ — MailTemplateStudioLayout, MailTemplateStudioDashboard + MailTemplateList (filtres statut/role/recherche), MailTemplateEditor (subject/html/text, draft->publish, rollback), TemplatePreviewPane (iframe sandbox, toggle mobile/desktop, aucun envoi), TemplateVariablesPanel (utilisees/inconnues/catalogue), TemplateRoleBindingCard (from/to/event/mode, JAMAIS d'e-mail), badges. mock.ts (MOCK_PREVIEW_VARS). CSS mailTemplates.css (tokens --bs-*, aucun hex .tsx).",
+    "draftFlow": "Charge le publie (runtime). Enregistrer brouillon = POST /templates/:fn/draft (subject+fullHtml+bodyHtml+mode). Publier = POST /drafts/:id/publish. Le publie n'est jamais ecrase directement (save legacy non utilise).",
+    "preview": "FRONT uniquement : iframe sandbox='' (aucun script), srcDoc=HTML interpole avec MOCK_PREVIEW_VARS (jamais d'adresse), toggle mobile 360px/desktop. Aucun endpoint backend preview.",
+    "rolesVsIdentities": "Templates = roles (from/to) resolus a l'envoi ; AUCUNE adresse e-mail stockee/affichee. Les adresses sont gerees dans le Communication Center (M4).",
+    "tests": [
+      "packages/api-client/src/manager/mailTemplatesApi.test.ts",
+      "apps/manager/src/features/mailTemplates/mailTemplates.test.tsx",
+      "apps/manager/src/features/mailTemplates/noHardcodedHex.test.ts"
+    ],
+    "limits": "pas d'envoi de test reel, preview front (pas d'endpoint backend dedie), pas de suppression definitive, pas d'edition mailDispatchRules, catalogue variables curate (miroir renderer, pas par-template), editeur HTML brut (pas de WYSIWYG). Verrou final backend.",
+    "next": "M7 — endpoint backend de preview/rendu fidele, ou migration flux comptables (sale.finalized/commissions), ou extension Theme."
+  },
   "serviceRescheduleSlotValidation": {
     "description": "Validation creneau report prestation via SessionCancellationFlow (2026-04-05)",
     "problem": "applyFlowServiceRescheduleDecision creait ServiceBooking sans verifier disponibilite",

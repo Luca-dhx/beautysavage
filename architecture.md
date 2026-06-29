@@ -2532,6 +2532,30 @@ Colors (5 + accent), typography, radius, shadow, spacing ; logo/slogan = vitrine
 **M6** : Mail Template Studio, ou extension Theme (couleurs sémantiques + presets), ou actions de
 supervision mail.
 
+## STEP 29 — Mail Template Studio React (M6 — 2026-06-29)
+
+### Principe
+Studio d'édition des templates e-mail **dev-only** (app manager). **Backend inchangé** (endpoints
+versioning Phase 5A existants ; aperçu rendu côté front). Rapports `189` (audit) + `190`.
+
+### Routes (dev-only) / Front
+- `/dev/email-templates[/:templateKey[/versions]]` (RequireRole dev).
+- Feature `apps/manager/src/features/mailTemplates/` : liste (filtres), `MailTemplateEditor`
+  (subject/html/text, draft→publish, rollback), `TemplatePreviewPane` (iframe `sandbox`, toggle
+  mobile/desktop, **aucun envoi**), `TemplateVariablesPanel` (utilisées/inconnues/catalogue),
+  `TemplateRoleBindingCard` (rôles, **jamais d'e-mail**). CSS `mailTemplates.css` (tokens `--bs-*`).
+- api-client `manager/mailTemplates.ts` : list/get/versions/createDraft/publish/archive/rollback +
+  `previewMailTemplate` (front) + `getTemplateRoleBinding` (miroir safe de mailDispatchRules, rôles).
+  Endpoints `/api/gestion/mails`.
+
+### Séparation & privacy
+Les templates ne contiennent aucune adresse e-mail ; from/to = rôles résolus à l'envoi (identités =
+Communication Center M4). Aperçu sans envoi (iframe sandbox sans scripts). Variables : aucune invention
+(catalogue miroir du renderer + warning inconnues).
+
+### Suite
+**M7** : endpoint backend de preview/rendu fidèle, ou migration des flux comptables, ou extension Theme.
+
 ### Migration
 - `automatisme/notificationConfigMigration.js` : `runNotificationConfigMigration()` -- cree le singleton config si absent avec 8 evenements preconfigures. Appelee au boot dans `app.js`.
 

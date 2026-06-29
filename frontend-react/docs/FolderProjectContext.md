@@ -211,3 +211,12 @@ Après le centre de communication (M4), M5 donne au dev un Theme Studio pour gé
 du produit : la vitrine publique et le panel interne (commun admin/dev). Édition visuelle simple,
 aperçu en direct, sauvegarde et activation — sans presets ni import/export, et sans toucher au métier.
 La distinction vitrine/panel reste nette ; le panel n'a qu'un seul thème pour tout le monde.
+
+## Sprint M6 — Mail Template Studio (rapports 189-190)
+
+Après les identités (M4) et les thèmes (M5), M6 donne au dev l'édition des **modèles d'e-mail** :
+contenu, versions, publication/rollback et aperçu sans envoi. Cohérent avec la séparation
+construite depuis M1 : les modèles décrivent le message et les variables ; les adresses (qui envoie, à
+qui) restent gérées ailleurs, par rôle. Toujours mobile-first, dev-only, sans toucher au moteur
+d'envoi ni aux règles. Suite (M7) : rendu serveur fidèle pour l'aperçu, ou migration des e-mails
+comptables.

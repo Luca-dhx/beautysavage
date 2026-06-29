@@ -285,3 +285,12 @@ api-client `@bs/api-client/manager/themeStudio`. Backend `themeController` éten
 typography/radius/shadow/spacing ; `scope='manager'` conservé, `/api/vitrine/theme` intact). `@bs/ui`
 `mapBackendThemeToTokens` + `PublicVitrineTheme`/`mapVitrineTheme` transmettent les nouveaux tokens.
 Aucun hex dans les .tsx (tokens `--bs-*`). Suite : **M6**.
+
+## Sprint M6 — Mail Template Studio React (rapports 189-190)
+
+Feature dev-only `apps/manager/src/features/mailTemplates/` + api-client
+`@bs/api-client/manager/mailTemplates`. Routes `/dev/email-templates[/:templateKey[/versions]]`.
+Versioning via endpoints existants (`/api/gestion/mails`, dev-only) : draft/publish/archive/rollback.
+Aperçu **front** (iframe sandbox, mobile/desktop, aucun envoi). Templates = **rôles** (from/to),
+**aucune adresse** (identités → Communication Center M4). **Backend inchangé.** Tokens `--bs-*` (aucun
+hex .tsx). Suite : **M7**.

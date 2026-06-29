@@ -248,3 +248,30 @@ scope 'manager'`, `vitrine ↔ 'vitrine'`.
 `themeController` create/update acceptent désormais typography/radius/shadow/spacing (compat Vanilla,
 `scope='manager'` conservé). Champs éditables : colors+accent, typo, radius, shadow, spacing ; logo/
 slogan = vitrine. Couleurs sémantiques = défauts. Mobile-first, dev-only. Suite : **M6**.
+
+## Sprint M6 — Mail Template Studio React (rapports 189-190)
+
+Studio de templates e-mail **dev-only** (app manager). **Backend inchangé** (endpoints versioning M5A
+existants ; aperçu rendu côté front).
+
+### Routes (sous /dev, RequireRole dev)
+`/dev/email-templates` (liste), `/dev/email-templates/:templateKey` (éditeur),
+`/dev/email-templates/:templateKey/versions`.
+
+### Feature `apps/manager/src/features/mailTemplates/`
+`MailTemplateStudioLayout`, dashboard + `MailTemplateList` (filtres), `MailTemplateEditor`
+(subject/html/text, draft→publish, rollback), `TemplatePreviewPane` (iframe `sandbox`, toggle
+mobile/desktop, **aucun envoi**), `TemplateVariablesPanel` (utilisées + inconnues + catalogue),
+`TemplateRoleBindingCard` (fromRole/toRole/event/mode, **jamais d'e-mail**), badges. CSS
+`mailTemplates.css` (tokens `--bs-*`).
+
+### API client (`@bs/api-client/manager/mailTemplates`)
+`listMailTemplates/getMailTemplate/listMailTemplateVersions/createMailTemplateDraft/
+publishMailTemplateDraft/archiveMailTemplateDraft/rollbackMailTemplate/previewMailTemplate` (front) +
+`getTemplateRoleBinding` (miroir safe de mailDispatchRules — rôles uniquement). Endpoints
+`/api/gestion/mails`.
+
+### Séparation templates vs identités
+Les templates ne contiennent **aucune adresse** ; expéditeur/destinataire sont des **rôles** résolus à
+l'envoi. Les adresses sont gérées dans le **Communication Center** (M4). Mobile-first, dev-only.
+Suite : **M7**.

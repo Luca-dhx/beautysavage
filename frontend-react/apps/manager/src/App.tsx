@@ -20,6 +20,12 @@ import {
   VitrineThemeEditorPage,
   PanelThemeEditorPage,
 } from './features/themeStudio';
+import {
+  MailTemplateStudioLayout,
+  MailTemplateStudioDashboard,
+  MailTemplateEditorPage,
+  TemplateVersionsPage,
+} from './features/mailTemplates';
 
 // Routing manager R0 — placeholders + guards rôle (cf. rapport 147).
 // Manager = admin ou dev. /dev/* = dev uniquement. /login public.
@@ -57,7 +63,12 @@ export function App() {
               <Route path="contrats" element={<Placeholder title="Contrats" description="Gestion des contrats (dev)." />} />
               <Route path="commissions" element={<Placeholder title="Commissions (dev)" description="Config commissions." />} />
               <Route path="integrated-api" element={<Placeholder title="API intégrée" description="Credentials API intégrée." />} />
-              <Route path="email-templates" element={<Placeholder title="Templates email" description="Éditeur de templates." />} />
+              {/* M6 — Mail Template Studio (dev uniquement) */}
+              <Route path="email-templates" element={<MailTemplateStudioLayout />}>
+                <Route index element={<MailTemplateStudioDashboard />} />
+                <Route path=":templateKey" element={<MailTemplateEditorPage />} />
+                <Route path=":templateKey/versions" element={<TemplateVersionsPage />} />
+              </Route>
               <Route path="send-logs" element={<Placeholder title="Logs d'envoi" description="Journal des envois." />} />
               <Route path="event-logs" element={<Placeholder title="Logs d'événements" description="Journal des événements." />} />
               <Route path="webhook-failures" element={<Placeholder title="Échecs webhook" description="Webhooks en échec." />} />

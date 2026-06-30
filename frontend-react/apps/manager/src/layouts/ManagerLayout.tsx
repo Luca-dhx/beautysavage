@@ -11,6 +11,7 @@ const MANAGER_NAV = [
   { to: '/catalogue', label: 'Catalogue' },
   { to: '/avis', label: 'Avis' },
   { to: '/cartes-cadeaux/templates', label: 'Modèles carte cadeau' },
+  { to: '/finance', label: 'Finance' },
   { to: '/ventes', label: 'Ventes' },
   { to: '/remboursements', label: 'Remboursements' },
   { to: '/commissions', label: 'Commissions' },

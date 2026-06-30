@@ -9,6 +9,7 @@ import {
   listCartSnapshots,
   downloadSaleInvoiceForGestion,
   listRefunds,
+  updateRefundStatus,
   getServiceBookingForSale
 } from '../controllers/salesController.js';
 
@@ -22,5 +23,8 @@ router.get('/sales/:saleId/invoice', downloadSaleInvoiceForGestion);
 router.get('/sales/:saleId/service-booking', getServiceBookingForSale);
 router.get('/carts', listCartSnapshots);
 router.get('/refunds', listRefunds);
+// B1 (RX2) — Décision admin sur un remboursement (valider/refuser/annuler). Le handler existait
+// mais n'était monté nulle part : aucun admin ne pouvait actionner un remboursement via l'API.
+router.post('/refunds/:refundId/status', updateRefundStatus);
 
 export default router;

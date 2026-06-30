@@ -72,6 +72,7 @@ import practitionerRouter from './routers/practitionerRouter.js';
 import availabilityRouter from './routers/availabilityRouter.js';
 import gestionBookingRouter from './routers/gestionBookingRouter.js';
 import customer360Router from './routers/customer360Router.js';
+import financeRouter from './routers/financeRouter.js';
 import calendarRouter from './routers/calendarRouter.js';
 import serviceSettingsRouter from './routers/serviceSettingsRouter.js';
 import vitrineServiceRouter, { vitrineAvailabilityRouter } from './routers/vitrineServiceRouter.js';
@@ -442,6 +443,10 @@ app.use('/api/gestion', gestionBookingRouter);
 // M12 — Customer 360 (Client Hub, admin/dev). Monté ICI, AVANT les broad-mounts dev-only sur
 // '/api/gestion' (sinon shadow 403 admins, cf. M3A/M11B).
 app.use('/api/gestion/customers', customer360Router);
+// RX2 — Espace Finance (Finance Dashboard, admin/dev). Monté ICI, AVANT les broad-mounts dev-only
+// sur '/api/gestion' (commissionRouter requireStrictDev) qui sinon shadowent '/api/gestion/finance/*'
+// et renvoient 403 aux admins (même raison que M12/M13/M3A).
+app.use('/api/gestion/finance', financeRouter);
 // M13 — Cartes cadeaux gestion (config, manuel, débit, lookup, librairie templates ADMIN/dev). Monté
 // ICI, AVANT les broad-mounts dev-only sur '/api/gestion' (commissionRouter requireStrictDev, etc.)
 // qui sinon shadowent '/api/gestion/gift-cards/*' et renvoient 403 aux admins (cf. M3A/M11B).

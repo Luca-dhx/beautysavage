@@ -1,0 +1,93 @@
+/* RX2 — Espace Finance (préfixe fin-). Mobile-first, cards, tokens --bs-* uniquement (aucun hex).
+   Inspiration Stripe / Qonto / Linear : on ouvre, on comprend tout. Jamais de table. Cibles ≥44px. */
+
+.fin-page { display: flex; flex-direction: column; gap: var(--bs-space-3); padding-bottom: var(--bs-space-4, 32px); }
+
+.fin-card {
+  border: 1px solid var(--bs-color-border);
+  border-radius: var(--bs-radius);
+  background: var(--bs-color-surface);
+  color: var(--bs-color-text);
+}
+
+/* En-tête + sélecteur de période */
+.fin-head { display: flex; align-items: center; gap: var(--bs-space-2); flex-wrap: wrap; }
+.fin-head__title { font-weight: 700; font-size: 1.25rem; margin-right: auto; }
+.fin-ranges { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--bs-color-border); border-radius: 999px; background: var(--bs-color-surface); }
+.fin-range {
+  min-height: 36px; padding: 0 var(--bs-space-3);
+  border: none; border-radius: 999px; background: transparent;
+  color: var(--bs-color-muted); font-weight: 600; font-size: 0.85rem;
+  transition: background var(--bs-motion-fast, 160ms) var(--bs-motion-ease-out, ease), color var(--bs-motion-fast, 160ms) var(--bs-motion-ease-out, ease);
+}
+.fin-range--active { background: var(--bs-color-accent); color: var(--bs-color-surface); }
+
+/* Héro « Aujourd'hui » : le chiffre qui résume tout */
+.fin-hero { display: flex; flex-direction: column; gap: var(--bs-space-2); padding: var(--bs-space-3); animation: fin-fade var(--bs-motion-fast, 160ms) var(--bs-motion-ease-out, ease); }
+.fin-hero__label { font-size: 0.8rem; color: var(--bs-color-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.fin-hero__amount { font-weight: 800; font-size: 2rem; line-height: 1.1; color: var(--bs-color-success); }
+.fin-hero__sub { font-size: 0.9rem; color: var(--bs-color-muted); }
+
+/* Ventilation (chips) */
+.fin-breakdown { display: flex; flex-wrap: wrap; gap: var(--bs-space-2); }
+.fin-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px var(--bs-space-2);
+  border: 1px solid var(--bs-color-border); border-radius: 999px;
+  background: var(--bs-color-background); font-size: 0.85rem; font-weight: 600;
+}
+.fin-chip i { color: var(--bs-color-accent); }
+.fin-chip__count { color: var(--bs-color-text); }
+
+/* Section */
+.fin-section { display: flex; flex-direction: column; gap: var(--bs-space-2); }
+.fin-section__title { font-weight: 700; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+.fin-section__title i { color: var(--bs-color-accent); }
+
+/* Cartes d'action « à faire » */
+.fin-actions { display: grid; grid-template-columns: 1fr; gap: var(--bs-space-2); }
+@media (min-width: 640px) { .fin-actions { grid-template-columns: repeat(3, 1fr); } }
+.fin-actioncard {
+  display: flex; align-items: center; gap: var(--bs-space-2);
+  padding: var(--bs-space-3); min-height: 44px; text-align: left;
+  cursor: pointer;
+  transition: transform var(--bs-motion-fast, 160ms) var(--bs-motion-ease-out, ease), background var(--bs-motion-fast, 160ms) var(--bs-motion-ease-out, ease);
+}
+.fin-actioncard:hover { background: var(--bs-color-background); }
+.fin-actioncard:active { transform: scale(0.98); }
+.fin-actioncard--muted { opacity: 0.6; }
+.fin-actioncard__icon {
+  width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--bs-radius);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bs-color-background);
+}
+.fin-actioncard__icon i { font-size: 1.2rem; color: var(--bs-color-accent); }
+.fin-actioncard__icon--warn i { color: var(--bs-color-danger); }
+.fin-actioncard__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.fin-actioncard__value { font-weight: 700; font-size: 1.1rem; }
+.fin-actioncard__label { font-size: 0.78rem; color: var(--bs-color-muted); }
+.fin-actioncard__chev { color: var(--bs-color-muted); }
+
+/* KPIs secondaires */
+.fin-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--bs-space-2); }
+.fin-kpi { display: flex; flex-direction: column; gap: 2px; padding: var(--bs-space-2); }
+.fin-kpi i { color: var(--bs-color-accent); }
+.fin-kpi__value { font-weight: 700; font-size: 1.1rem; }
+.fin-kpi__label { font-size: 0.75rem; color: var(--bs-color-muted); }
+
+/* États */
+.fin-skeletonwrap { display: flex; flex-direction: column; gap: var(--bs-space-2); }
+.fin-skeleton { border-radius: var(--bs-radius); background: var(--bs-color-border); opacity: 0.5; animation: fin-pulse 1.2s ease-in-out infinite; }
+.fin-skeleton--hero { height: 120px; }
+.fin-skeleton--row { height: 64px; }
+.fin-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: var(--bs-space-4, 32px); color: var(--bs-color-muted); }
+.fin-empty i { font-size: 1.6rem; }
+.fin-error { display: flex; align-items: center; gap: var(--bs-space-2); padding: var(--bs-space-3); color: var(--bs-color-danger); }
+.fin-error button { min-height: 44px; }
+
+@keyframes fin-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes fin-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) {
+  .fin-hero, .fin-skeleton { animation: none; }
+  .fin-range, .fin-actioncard { transition: none; }
+}

@@ -19,6 +19,16 @@ import User from '../../models/user.js';
 
 const SOURCE_QUERY_CAP = 500; // garde-fou par source (V1) ; documenté.
 
+// RX2.4 — Filtre UNIFIÉ « paiement sur place dû » (partagé dashboard + timeline). Inclut les acomptes
+// online (solde sur place) ET les prestations manuelles payées intégralement sur place. Exclut les
+// réservations annulées et les online non encore payées. `paymentStatus` n'est PAS un critère
+// (incohérent : les manuelles full sont `pending`). Cf. docs/RX2_4_ONSITE_PAYMENTS_AUDIT.md.
+export const ONSITE_DUE_BOOKING_FILTER = {
+  balanceDueAmount: { $gt: 0 },
+  balanceSettlementMode: 'pay_on_site',
+  status: { $nin: ['cancelled', 'pending_payment'] },
+};
+
 const MONTH_LABELS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 
 function roundToCents(value) {
@@ -123,6 +133,10 @@ export function mapBookingBalanceToFinanceMovement(booking, { customerName = '',
     ? roundToCents(Number(booking.totalPrice || 0) - Number(booking.depositAmount || 0))
     : roundToCents(booking.balanceDueAmount);
   if (amount <= 0) return null;
+  // RX2.4 — wording adaptatif : prestation payée 100 % sur place (full) vs solde d'acompte.
+  const isFullOnSite = booking.paymentType === 'full';
+  const onSite = booking.paymentMode === 'on_site';
+  const isManual = booking.source === 'manual_institute';
   const base = {
     currency: 'EUR',
     subtitle: `${serviceName || 'Prestation'}${customerName ? ` · ${customerName}` : ''}`,
@@ -138,16 +152,23 @@ export function mapBookingBalanceToFinanceMovement(booking, { customerName = '',
       ...base,
       id: `balance_paid:${booking.bookingId || booking._id}`,
       type: 'balance_paid', direction: 'in', amount,
-      title: 'Solde encaissé', status: 'paid',
-      badges: [{ label: 'Sur place', tone: 'success' }],
+      title: isFullOnSite ? 'Paiement sur place encaissé' : 'Solde encaissé', status: 'paid',
+      badges: [
+        { label: onSite ? 'Sur place' : 'Encaissé', tone: 'success' },
+        ...(isManual ? [{ label: 'Réservation manuelle', tone: 'neutral' }] : []),
+      ],
     };
   }
   return {
     ...base,
     id: `balance_due:${booking.bookingId || booking._id}`,
     type: 'balance_due', direction: 'neutral', amount,
-    title: 'Solde à encaisser', status: 'balance_due',
-    badges: [{ label: 'À encaisser', tone: 'warning' }],
+    title: isFullOnSite ? 'Paiement sur place à encaisser' : 'Solde à encaisser', status: 'balance_due',
+    badges: [
+      { label: 'À encaisser', tone: 'warning' },
+      ...(onSite ? [{ label: 'Sur place', tone: 'neutral' }] : []),
+      ...(isManual ? [{ label: 'Réservation manuelle', tone: 'neutral' }] : []),
+    ],
     actions: [
       { kind: 'balance_collect', enabled: true, to: '/reservations' },
       ...base.actions,
@@ -325,9 +346,10 @@ export async function buildFinanceTimeline({ dateFrom = null, dateTo = null, typ
 
   // ── Booking balances (due / paid) ──
   if (wants('balance_due') || wants('balance_paid')) {
+    // RX2.4 — dû sur place (filtre unifié) OU déjà encaissé sur place.
     const bookingFilter = {
       $or: [
-        { balanceDueAmount: { $gt: 0 } },
+        ONSITE_DUE_BOOKING_FILTER,
         { balancePaidAt: { $ne: null } },
       ],
     };

@@ -44,7 +44,7 @@ describe('Encaissement solde sur place (RX2.3)', () => {
   it('ouvre le panneau, choisit Espèces, confirme → POST balance-paid cash + succès', async () => {
     installFetch();
     renderDrawer();
-    fireEvent.click(await screen.findByRole('button', { name: 'Encaisser le solde' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Encaisser sur place' }));
     expect(await screen.findByTestId('fin-md-balance-panel')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Espèces' }));
     fireEvent.click(screen.getByRole('button', { name: "Confirmer l'encaissement" }));
@@ -53,5 +53,18 @@ describe('Encaissement solde sur place (RX2.3)', () => {
     const post = calls.find((c) => c.method === 'POST');
     expect(post?.url).toContain('/api/gestion/bookings/BKG-1/balance-paid');
     expect(post?.body).toContain('cash');
+  });
+
+  it('RX2.4 — prestation full on-site : wording « Encaisser le paiement sur place »', async () => {
+    installFetch();
+    const fullItem = { ...BALANCE_ITEM, title: 'Paiement sur place à encaisser' };
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter><FinanceMovementDrawer item={fullItem} onClose={() => {}} /></MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Encaisser sur place' }));
+    expect(await screen.findByText('Encaisser le paiement sur place')).toBeInTheDocument();
   });
 });

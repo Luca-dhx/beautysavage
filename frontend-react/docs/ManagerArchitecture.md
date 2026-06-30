@@ -465,3 +465,11 @@ si frais Stripe en attente) + **Documents liés** + footer sticky. Actions inter
 `useMarkBalancePaid` → balance-paid M11). api-client : `getFinanceMovementDetail`, `processRefundStatus`,
 `markBookingBalancePaid` + types (`FinanceMovementDetail`/`FinancePaymentBreakdown`/`NetProfitStatus`/
 `StripeFeesStatus`). Backend autorité (aucun calcul de montant front). Détail : `docs/RX2_3_PAYMENTS_REFUNDS_NET_PROFIT_REPORT.md`.
+
+
+## RX2.4 — Paiements sur place unifiés (`features/finance/`)
+Les prestations payées 100 % sur place (réservation manuelle) apparaissent dans la timeline (« Paiement sur
+place à encaisser / encaissé ») et le dashboard (« À encaisser sur place »), avec un encaissement en un geste
+depuis le drawer (`BalanceCollectPanel` : wording adaptatif full vs solde, moyen CB/espèces/autre via
+`useMarkBalancePaid` → `markBalancePaidOnSite` généralisé). Backend = filtre unifié ONSITE_DUE partagé
+timeline+dashboard. Détail : `docs/RX2_4_ONSITE_PAYMENTS_REPORT.md`.

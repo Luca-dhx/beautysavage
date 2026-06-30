@@ -4255,3 +4255,17 @@ complete/partial/not_applicable. Encaissement solde : `ServiceBooking.balancePay
 logique dupliquée). React : `FinanceMovementDrawer` premium (breakdown + profit net + RefundProcessPanel +
 BalanceCollectPanel + footer sticky), badges card (Commission formation, max 2). Tests backend +24, react +10.
 Backend 818 verts + audits 36/20, react 330. Détail : `docs/RX2_3_PAYMENTS_REFUNDS_NET_PROFIT_REPORT.md`.
+
+
+## RX2.4 — Paiements sur place unifiés & encaissement prestations manuelles
+
+Ferme le trou RX2.3 (prestations payées 100 % sur place via réservation manuelle, sans Sale).
+Une manuelle full on-site = `paymentType:'full'`, `paymentMode:'on_site'`, `paymentStatus:'pending'`,
+`balanceDueAmount=totalPrice`, `balanceSettlementMode:'pay_on_site'`. **G1** `markBalancePaidOnSite` accepte
+désormais `full` on-site (plus seulement `deposit`) → encaissable (aucun Stripe). **G2+G3** filtre unifié
+`ONSITE_DUE_BOOKING_FILTER` (financeTimelineService, importé par financeService) = `{balanceDueAmount>0,
+balanceSettlementMode:'pay_on_site', status∉{cancelled,pending_payment}}` partagé timeline+dashboard
+(paymentStatus n'est plus un critère). Wording adaptatif mapper : full → « Paiement sur place à encaisser/
+encaissé », sinon « Solde … » ; badges Sur place / Réservation manuelle. React : BalanceCollectPanel +
+footer « Encaisser sur place », dashboard « À encaisser sur place ». Tests +10. Détail :
+`docs/RX2_4_ONSITE_PAYMENTS_REPORT.md`.

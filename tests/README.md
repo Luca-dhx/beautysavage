@@ -871,3 +871,8 @@ lu dynamiquement → togglé par test (restauré en afterEach). Front : `apps/vi
 - `p1/financeNetProfit` : net = payé − frais − commission − remboursements ; partial si frais en attente.
 - `p1/financeRefundActionRoute` : POST /refunds/:id/status (accepter/refuser, 409 sans vente, 403 client).
 - `p1/financeBalanceCollectRoute` : POST /bookings/:id/balance-paid + moyen de paiement, idempotent, 403 client.
+
+## RX2.4 — Paiements sur place unifiés
+- `p1/financeOnSitePayments` : wording mapper (full « Paiement sur place » vs acompte « Solde ») ; timeline
+  inclut la prestation manuelle full on-site et exclut les annulées ; dashboard compte les manuelles full on-site.
+- `p1/financeBalanceCollectRoute` (étendu) : encaissement d'une prestation full on-site (paymentType full).

@@ -48,7 +48,7 @@ export function FinanceDashboardPage() {
             <div className="fin-actions">
               <ActionCard
                 icon="bi-cash-coin"
-                label="Soldes à encaisser"
+                label="À encaisser sur place"
                 unit="solde"
                 metric={data.actions.balancesToCollect}
                 onClick={() => navigate('/reservations')}

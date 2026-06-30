@@ -56,4 +56,22 @@ describe('RX2.3 — balance collect route', () => {
     const res = await agent.post('/api/gestion/bookings/BKG-COL-1/balance-paid').set('Cookie', cookie).send({ paymentMethod: 'cash' });
     expect(res.status).toBe(403);
   });
+
+  it('RX2.4 — prestation manuelle payée 100 % sur place (paymentType full) est encaissable', async () => {
+    await ServiceBooking.create({
+      bookingId: 'BKG-FULL-1', serviceId: fx.service._id, practitionerId: fx.practitioner._id, clientId: fx.client1._id,
+      startAt: new Date(Date.now() + 86400000), endAt: new Date(Date.now() + 90000000),
+      totalPrice: 90, depositAmount: 0, balanceDueAmount: 90, balanceSettlementMode: 'pay_on_site',
+      paymentType: 'full', paymentStatus: 'pending', status: 'confirmed', source: 'manual_institute', paymentMode: 'on_site',
+    });
+    const cookie = await login('admin@test.local');
+    const res = await agent.post('/api/gestion/bookings/BKG-FULL-1/balance-paid').set('Cookie', cookie).send({ paymentMethod: 'card' });
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    const booking = await ServiceBooking.findOne({ bookingId: 'BKG-FULL-1' }).lean();
+    expect(booking.paymentStatus).toBe('paid');
+    expect(booking.balanceDueAmount).toBe(0);
+    expect(booking.balancePaidAt).toBeTruthy();
+    expect(booking.balancePaymentMethod).toBe('card');
+  });
 });

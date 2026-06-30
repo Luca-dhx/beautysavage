@@ -277,3 +277,11 @@ par carte cadeau, sur place), les frais Stripe, la commission plateforme (format
 remboursements, et surtout le **profit net estimé**. Si un frais Stripe n'est pas encore connu, on affiche
 « Données partielles » plutôt qu'un chiffre inventé. Depuis ce volet, on traite un remboursement en un geste
 (accepter/refuser + motif) et on encaisse un solde sur place (CB, espèces, autre). Simple, mobile, sans tableau.
+
+
+## RX2.4 — Paiements sur place unifiés
+
+Quand une prestation est réservée et payée directement à l'institut (sans paiement en ligne), elle apparaît
+maintenant clairement dans la finance : « Paiement sur place à encaisser », puis « encaissé » une fois réglé.
+On encaisse en un geste depuis le volet (CB, espèces, autre). Le tableau de bord et la timeline comptent
+exactement la même chose : ce qu'il reste à encaisser sur place, sans rien oublier.

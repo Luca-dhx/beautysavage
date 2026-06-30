@@ -161,12 +161,14 @@ export function BalanceCollectPanel({ item, onDone }: { item: FinanceTimelineIte
       </div>
     );
   }
+  // RX2.4 — wording adaptatif : prestation payée 100 % sur place vs solde d'acompte.
+  const isFullOnSite = item.title.startsWith('Paiement sur place');
   return (
     <div className="fin-md-panel" data-testid="fin-md-balance-panel">
-      <span className="fin-md-panel__title">Encaisser le solde</span>
+      <span className="fin-md-panel__title">{isFullOnSite ? 'Encaisser le paiement sur place' : 'Encaisser le solde'}</span>
       <div className="fin-md-rows">
         <div className="fin-md-row"><span>Prestation</span><span>{item.subtitle}</span></div>
-        <div className="fin-md-row"><span>Solde restant</span><span>{money(item.amount)}</span></div>
+        <div className="fin-md-row"><span>{isFullOnSite ? 'Montant à encaisser' : 'Solde restant'}</span><span>{money(item.amount)}</span></div>
       </div>
       <div className="fin-md-field">
         <label>Moyen de paiement</label>
@@ -209,7 +211,7 @@ export function FinanceActionFooter({ actions, onRefund, onBalance }: {
           return <button key={i} type="button" className="fin-md-btn fin-md-btn--primary" disabled={!a.enabled} aria-disabled={!a.enabled} onClick={onRefund}>Traiter le remboursement</button>;
         }
         if (a.kind === 'balance_collect') {
-          return <button key={i} type="button" className="fin-md-btn fin-md-btn--primary" disabled={!a.enabled} aria-disabled={!a.enabled} onClick={onBalance}>Encaisser le solde</button>;
+          return <button key={i} type="button" className="fin-md-btn fin-md-btn--primary" disabled={!a.enabled} aria-disabled={!a.enabled} onClick={onBalance}>Encaisser sur place</button>;
         }
         if (a.kind === 'customer_view') {
           return a.enabled && a.to

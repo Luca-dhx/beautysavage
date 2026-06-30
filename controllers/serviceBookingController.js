@@ -722,11 +722,15 @@ export async function markBalancePaidOnSite(req, res) {
     const { bookingId } = req.params;
     const booking = await ServiceBooking.findOne({ bookingId });
     if (!booking) return res.status(404).json({ ok: false, error: 'Réservation introuvable.' });
-    if (booking.paymentType !== 'deposit') {
-      return res.status(409).json({ ok: false, error: 'Cette réservation n\'est pas un acompte.' });
+    // RX2.4 — encaissement sur place UNIFIÉ : soldes d'acompte (deposit) ET prestations payées
+    // intégralement sur place (full + paymentMode on_site, réservation manuelle). Aucun Stripe.
+    const isDepositBalance = booking.paymentType === 'deposit';
+    const isFullOnSite = booking.paymentType === 'full' && booking.paymentMode === 'on_site';
+    if (!isDepositBalance && !isFullOnSite) {
+      return res.status(409).json({ ok: false, error: 'Cette réservation n\'a pas de paiement à encaisser sur place.' });
     }
     if (booking.balanceSettlementMode !== 'pay_on_site') {
-      return res.status(409).json({ ok: false, code: 'BALANCE_NO_CIRCUIT', error: 'Aucun circuit de règlement du solde.' });
+      return res.status(409).json({ ok: false, code: 'BALANCE_NO_CIRCUIT', error: 'Aucun circuit de règlement sur place.' });
     }
     if (booking.paymentStatus === 'paid' && Number(booking.balanceDueAmount || 0) <= 0) {
       return res.json({ ok: true, idempotent: true, balanceDueAmount: 0 });

@@ -121,9 +121,11 @@ function buildBalanceDetail(booking) {
       ],
     };
   }
+  // RX2.4 — wording adaptatif : prestation payée 100 % sur place (full) vs solde d'acompte.
+  const dueLabel = booking.paymentType === 'full' ? 'Paiement sur place à encaisser' : 'Solde à encaisser';
   return {
     breakdown: emptyBreakdown({ netProfitStatus: 'not_applicable' }),
-    lines: [{ label: 'Solde à encaisser', amount, kind: 'balance' }],
+    lines: [{ label: dueLabel, amount, kind: 'balance' }],
   };
 }
 

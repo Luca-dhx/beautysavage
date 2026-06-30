@@ -11,6 +11,7 @@ import Sale from '../models/Sale.js';
 import ServiceBooking from '../models/ServiceBooking.js';
 import RefundRequest from '../models/RefundRequest.js';
 import Invoice from '../models/Invoice.js';
+import { ONSITE_DUE_BOOKING_FILTER } from './finance/financeTimelineService.js';
 
 const VALID_RANGES = new Set(['today', '7d', '30d']);
 
@@ -102,11 +103,9 @@ export async function buildFinanceDashboard({ range = 'today', referenceDate = n
   const salesAggregate = aggregateSales(sales);
 
   // « actions » — backlog d'état courant (indépendant de la fenêtre).
-  // Soldes à encaisser : acompte payé, solde restant dû, règlement sur place.
-  const pendingBalanceBookings = await ServiceBooking.find({
-    balanceDueAmount: { $gt: 0 },
-    paymentStatus: 'deposit_paid',
-  }).lean();
+  // RX2.4 — À encaisser sur place : filtre UNIFIÉ avec la timeline (acomptes online à solder +
+  // prestations manuelles payées 100 % sur place). paymentStatus n'est plus un critère (incohérent).
+  const pendingBalanceBookings = await ServiceBooking.find(ONSITE_DUE_BOOKING_FILTER).lean();
   const balancesToCollectTotal = pendingBalanceBookings.reduce(
     (sum, booking) => sum + (Number.isFinite(Number(booking.balanceDueAmount)) ? Number(booking.balanceDueAmount) : 0),
     0,

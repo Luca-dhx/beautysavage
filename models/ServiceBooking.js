@@ -49,6 +49,9 @@ const serviceBookingSchema = new mongoose.Schema({
   balanceDueAmount: { type: Number, default: 0 },
   balanceSettlementMode: { type: String, enum: ['none', 'pay_on_site', null], default: null },
   balancePaidAt: { type: Date, default: null },
+  // RX2.3 — moyen de règlement du solde sur place (CB/espèces/autre), renseigné depuis le drawer
+  // finance lors de l'encaissement. Additif/optionnel : les réservations historiques restent valides.
+  balancePaymentMethod: { type: String, enum: ['cash', 'card', 'other', null], default: null },
 
   paymentType: {
     type: String,

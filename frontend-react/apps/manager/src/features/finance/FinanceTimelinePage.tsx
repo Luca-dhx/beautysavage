@@ -7,8 +7,9 @@ import { useFinanceTimeline } from './useFinance';
 import { FinanceSkeleton, FinanceError } from './components';
 import {
   FinanceTimelineSummary, FinanceTimelineFilters, FinanceTimelineList,
-  FinanceMovementDrawer, FinanceTimelineEmpty,
+  FinanceTimelineEmpty,
 } from './timeline';
+import { FinanceMovementDrawer } from './movementDrawer';
 import './finance.css';
 import './timeline.css';
 

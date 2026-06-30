@@ -1,7 +1,10 @@
 // RX2 — Espace Finance. Point d'entrée de la feature.
 export { FinanceDashboardPage } from './FinanceDashboardPage';
 export { FinanceTimelinePage } from './FinanceTimelinePage';
-export { useFinanceDashboard, useFinanceTimeline } from './useFinance';
+export {
+  useFinanceDashboard, useFinanceTimeline, useFinanceMovementDetail,
+  useProcessRefund, useMarkBalancePaid,
+} from './useFinance';
 export {
   RangeSwitch, FinanceHero, BreakdownChips, ActionCard,
   FinanceSkeleton, FinanceEmpty, FinanceError, money, signedMoney,
@@ -9,5 +12,9 @@ export {
 export {
   FinanceTimelineSummary, FinanceTimelineFilters, FinancePeriodChips, FinanceTypeChips,
   FinanceTimelineList, FinanceTimelineCard, FinanceMovementAmount, FinanceMovementBadges,
-  FinanceMovementActions, FinanceMovementDrawer, FinanceTimelineEmpty,
+  FinanceMovementActions, FinanceTimelineEmpty,
 } from './timeline';
+export {
+  FinanceMovementDrawer, FinancePaymentBreakdownCard, FinanceNetProfitCard, FinanceBreakdownLine,
+  FinanceDocumentLinks, RefundProcessPanel, BalanceCollectPanel, FinanceActionFooter,
+} from './movementDrawer';

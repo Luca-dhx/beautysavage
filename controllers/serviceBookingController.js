@@ -731,9 +731,13 @@ export async function markBalancePaidOnSite(req, res) {
     if (booking.paymentStatus === 'paid' && Number(booking.balanceDueAmount || 0) <= 0) {
       return res.json({ ok: true, idempotent: true, balanceDueAmount: 0 });
     }
+    // RX2.3 — moyen de règlement sur place (optionnel, additif). Aucun Stripe ici.
+    const methodRaw = String(req.body?.paymentMethod || '').trim().toLowerCase();
+    const paymentMethod = ['cash', 'card', 'other'].includes(methodRaw) ? methodRaw : null;
     booking.balanceDueAmount = 0;
     booking.paymentStatus = 'paid';
     booking.balancePaidAt = new Date();
+    if (paymentMethod) booking.balancePaymentMethod = paymentMethod;
     await booking.save();
     // Audit-only event (best-effort).
     await emitBookingEvent('booking.balance_paid_on_site', booking, {

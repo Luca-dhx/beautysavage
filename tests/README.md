@@ -863,3 +863,11 @@ lu dynamiquement → togglé par test (restauré en afterEach). Front : `apps/vi
 - `p1/financeTimelineSummary` : `computeSummary` (in/out/net/balanceDue/count/refundCount).
 - `p1/financeTimelineNoDoubleCount` : facture non comptée (lien sur la vente), carte cadeau utilisée neutre.
 - `p1/financeTimelineRoutes` : `GET /api/gestion/finance/timeline` (admin 200 mount-order, client 403, filtres).
+
+## RX2.3 — Paiements, remboursements, profit net
+- `p1/financeMovementDetail` : breakdown + lignes par type (vente/solde/refund/carte cadeau).
+- `p1/financeStripeFeesBreakdown` : frais Stripe available/pending/not_applicable (centimes/100, jamais estimés).
+- `p1/financeDevCommissionFormationOnly` : commission Dev formations only (prestation = 0, badge).
+- `p1/financeNetProfit` : net = payé − frais − commission − remboursements ; partial si frais en attente.
+- `p1/financeRefundActionRoute` : POST /refunds/:id/status (accepter/refuser, 409 sans vente, 403 client).
+- `p1/financeBalanceCollectRoute` : POST /bookings/:id/balance-paid + moyen de paiement, idempotent, 403 client.

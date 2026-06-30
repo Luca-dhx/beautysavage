@@ -1,6 +1,7 @@
 // RX2.1/RX2.2 — Espace Finance (React, admin/dev). Le backend agrège et fait autorité.
 import { buildFinanceDashboard } from '../services/financeService.js';
 import { buildFinanceTimeline, resolveTimelineWindow } from '../services/finance/financeTimelineService.js';
+import { buildFinanceMovementDetail } from '../services/finance/financeMovementDetailService.js';
 
 const VALID_RANGES = new Set(['today', '7d', '30d']);
 const VALID_PERIODS = new Set(['today', 'week', 'month', 'all']);
@@ -40,5 +41,27 @@ export async function getFinanceTimeline(req, res) {
   } catch (error) {
     console.error('Erreur Finance Timeline', error);
     return res.status(500).json({ ok: false, error: 'Impossible de charger la timeline financière.' });
+  }
+}
+
+const VALID_SOURCE_MODELS = new Set(['Sale', 'ServiceBooking', 'RefundRequest', 'GiftCardTransaction', 'CommissionPayment', 'Invoice']);
+
+// RX2.3 — Détail d'un mouvement financier (breakdown paiement + profit net).
+export async function getFinanceMovementDetail(req, res) {
+  try {
+    const sourceModel = String(req.query.sourceModel || '').trim();
+    const sourceId = String(req.query.sourceId || '').trim();
+    const type = String(req.query.type || '').trim();
+    if (!VALID_SOURCE_MODELS.has(sourceModel) || !sourceId) {
+      return res.status(400).json({ ok: false, error: 'Paramètres de mouvement invalides.' });
+    }
+    const detail = await buildFinanceMovementDetail({ sourceModel, sourceId, type });
+    if (!detail) {
+      return res.status(404).json({ ok: false, error: 'Mouvement introuvable.' });
+    }
+    return res.json({ ok: true, ...detail });
+  } catch (error) {
+    console.error('Erreur Finance Movement Detail', error);
+    return res.status(500).json({ ok: false, error: 'Impossible de charger le détail du mouvement.' });
   }
 }

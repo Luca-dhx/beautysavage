@@ -454,3 +454,14 @@ Feature finance React (préfixe `fin-*` / `fin-tl-*`, tokens `--bs-*`, zéro hex
   `FinanceMovementDrawer`), `useFinanceTimeline`, api-client `getFinanceTimeline` + types
   (`FinanceTimelineItem`/`…Summary`/`…Filters`/`FinanceMovementType`/`FinanceMovementStatus`). Backend autorité
   (aucun calcul de montant côté front). Détail : `docs/RX2_2_FINANCIAL_TIMELINE_REPORT.md`.
+
+
+## RX2.3 — Détail mouvement, remboursement 1-clic, profit net (`features/finance/`)
+`FinanceMovementDrawer` (movementDrawer.tsx, préfixe `fin-md-*`) charge le détail via
+`useFinanceMovementDetail` (`GET /api/gestion/finance/movement-detail`) : **Détail du paiement**
+(`FinancePaymentBreakdownCard`) + **Profit net estimé** (`FinanceNetProfitCard`, gère « Données partielles »
+si frais Stripe en attente) + **Documents liés** + footer sticky. Actions interactives : `RefundProcessPanel`
+(accepter/refuser via `useProcessRefund` → route B1) et `BalanceCollectPanel` (CB/espèces/autre via
+`useMarkBalancePaid` → balance-paid M11). api-client : `getFinanceMovementDetail`, `processRefundStatus`,
+`markBookingBalancePaid` + types (`FinanceMovementDetail`/`FinancePaymentBreakdown`/`NetProfitStatus`/
+`StripeFeesStatus`). Backend autorité (aucun calcul de montant front). Détail : `docs/RX2_3_PAYMENTS_REFUNDS_NET_PROFIT_REPORT.md`.

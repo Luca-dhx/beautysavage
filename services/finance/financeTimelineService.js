@@ -87,8 +87,11 @@ export function mapSaleToFinanceMovement(sale, { isDeposit = false, customerName
     : items.find((i) => i?.type === 'gift-card') ? 'Carte cadeau'
     : 'Vente';
   const customerId = sale.userId ? String(sale.userId) : null;
+  // RX2.3 — commission Dev = formations uniquement → indicateur sur la card.
+  const hasFormation = items.some((i) => i?.type === 'formation');
   const badges = [];
   if (isDeposit) badges.push({ label: 'Acompte', tone: 'neutral' });
+  if (hasFormation) badges.push({ label: 'Commission formation', tone: 'neutral' });
   if (hasGiftCardPayment) badges.push({ label: 'Carte cadeau', tone: 'neutral' });
   badges.push({ label: sale.stripePaymentIntentId ? 'Stripe' : 'Encaissé', tone: 'success' });
   return {

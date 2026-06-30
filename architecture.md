@@ -4240,3 +4240,18 @@ remboursement). `services/financeService.buildFinanceDashboard` + `GET /api/gest
 **no double-count** (facture = lien sur la vente, carte cadeau utilisée = neutral, gift_card_issue = cartes
 manuelles seules, commission = CommissionPayment). Actions structurées (`refund_process`/`balance_collect`/…)
 préparent RX2.3. Tests backend +21 (service/summary/noDoubleCount/routes). Backend 794 verts, audits 36/20.
+
+
+## RX2.3 — Paiements, remboursements 1-clic & profit net
+
+Détail financier d'un mouvement + actions interactives. `services/finance/financeMovementDetailService.js`
+`buildFinanceMovementDetail({sourceModel,sourceId,type})` → `{movement, paymentBreakdown, lines, actions}` ;
+`GET /api/gestion/finance/movement-detail` (admin/dev). **Profit net = montant payé − frais Stripe − commission
+Dev (formation) − remboursements.** Frais Stripe = `Sale.stripeFee` (CENTIMES, async) → statut
+available/pending/not_applicable, jamais recalculés (pending → « en attente », pas d'estimation). Commission
+Dev = `CommissionTransaction` sourceType `sale` (formations UNIQUEMENT ; prestation = 0). `netProfitStatus`
+complete/partial/not_applicable. Encaissement solde : `ServiceBooking.balancePaymentMethod` additif +
+`markBalancePaidOnSite` accepte `paymentMethod`. Remboursement 1-clic = route B1 (refundService, pas de
+logique dupliquée). React : `FinanceMovementDrawer` premium (breakdown + profit net + RefundProcessPanel +
+BalanceCollectPanel + footer sticky), badges card (Commission formation, max 2). Tests backend +24, react +10.
+Backend 818 verts + audits 36/20, react 330. Détail : `docs/RX2_3_PAYMENTS_REFUNDS_NET_PROFIT_REPORT.md`.

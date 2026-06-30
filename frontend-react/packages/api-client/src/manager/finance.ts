@@ -116,6 +116,84 @@ export async function getFinanceTimeline(filters: FinanceTimelineFilters = {}): 
   return res;
 }
 
+// ── RX2.3 — Détail d'un mouvement (breakdown paiement + profit net) ────────────────
+export type NetProfitStatus = 'complete' | 'partial' | 'not_applicable';
+export type StripeFeesStatus = 'available' | 'pending' | 'not_applicable';
+export type FinanceActionKind =
+  | 'customer_view' | 'invoice_view' | 'sale_view' | 'refund_process' | 'balance_collect' | 'commission_view';
+
+export interface FinancePaymentBreakdown {
+  paidAmount: number;
+  stripePaidAmount: number;
+  giftCardPaidAmount: number;
+  onSitePaidAmount: number;
+  refundAmount: number;
+  stripeFeesAmount: number;
+  stripeFeesStatus: StripeFeesStatus;
+  devCommissionAmount: number;
+  netProfitAmount: number;
+  netProfitStatus: NetProfitStatus;
+}
+
+export interface FinanceBreakdownLine {
+  label: string;
+  amount: number | null;
+  kind: 'income' | 'fee' | 'commission' | 'refund' | 'net' | 'method' | 'balance' | 'document';
+  status?: 'pending';
+  note?: string;
+}
+
+export interface FinanceMovementDetail {
+  movement: FinanceTimelineItem;
+  paymentBreakdown: FinancePaymentBreakdown;
+  lines: FinanceBreakdownLine[];
+  actions: FinanceMovementAction[];
+}
+
+export interface FinanceMovementRef {
+  sourceModel: string;
+  sourceId: string;
+  type?: string;
+}
+
+/** GET /api/gestion/finance/movement-detail — détail breakdown + profit net d'un mouvement. */
+export async function getFinanceMovementDetail(ref: FinanceMovementRef): Promise<FinanceMovementDetail> {
+  const params: Record<string, string> = { sourceModel: ref.sourceModel, sourceId: ref.sourceId };
+  if (ref.type) params.type = ref.type;
+  const res = await apiGet<{ ok: boolean } & FinanceMovementDetail>('/api/gestion/finance/movement-detail', params);
+  return res;
+}
+
+/**
+ * POST /api/gestion/refunds/:refundId/status — décision admin 1-clic (accepter/refuser).
+ * Réutilise la route B1 (RX2.1) ; le backend orchestre refundService (pas de logique dupliquée).
+ */
+export async function processRefundStatus(
+  refundId: string,
+  decision: 'accept' | 'refuse',
+  reason?: string,
+): Promise<RefundDecisionResult> {
+  const status: RefundDecisionStatus = decision === 'accept' ? 'succeeded' : 'canceled';
+  return apiPost<RefundDecisionResult>(
+    `/api/gestion/refunds/${encodeURIComponent(refundId)}/status`,
+    { status, ...(reason ? { reason } : {}) },
+  );
+}
+
+export type BalancePaymentMethod = 'cash' | 'card' | 'other';
+export interface BalancePaidResult { ok: boolean; balanceDueAmount?: number; paymentStatus?: string; idempotent?: boolean; }
+
+/** POST /api/gestion/bookings/:bookingId/balance-paid — encaissement du solde sur place (M11). */
+export async function markBookingBalancePaid(
+  bookingId: string,
+  paymentMethod?: BalancePaymentMethod,
+): Promise<BalancePaidResult> {
+  return apiPost<BalancePaidResult>(
+    `/api/gestion/bookings/${encodeURIComponent(bookingId)}/balance-paid`,
+    paymentMethod ? { paymentMethod } : {},
+  );
+}
+
 export type RefundDecisionStatus = 'succeeded' | 'failed' | 'canceled' | 'pending' | 'requested';
 
 export interface RefundDecisionResult {

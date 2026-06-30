@@ -268,3 +268,12 @@ reste à faire (soldes à encaisser, remboursements à traiter, factures impayé
 (`/finance/timeline`) : une seule liste ordonnée de tous les mouvements (paiement, acompte, solde, carte
 cadeau, remboursement, commission, facture), avec un résumé net en haut et un volet de détail au tap.
 Cards et volets, jamais de tableau, aussi agréable sur téléphone que sur ordinateur.
+
+
+## RX2.3 — Actions financières & profit net
+
+En tapant un mouvement de la timeline, on ouvre un volet qui raconte tout : combien a été payé (en ligne,
+par carte cadeau, sur place), les frais Stripe, la commission plateforme (formations uniquement), les
+remboursements, et surtout le **profit net estimé**. Si un frais Stripe n'est pas encore connu, on affiche
+« Données partielles » plutôt qu'un chiffre inventé. Depuis ce volet, on traite un remboursement en un geste
+(accepter/refuser + motif) et on encaisse un solde sur place (CB, espèces, autre). Simple, mobile, sans tableau.

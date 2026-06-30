@@ -1,7 +1,7 @@
 // RX2.2 — Composants de la Financial Timeline (mobile-first, cards/drawer, accessibles).
 // Aucune couleur hex en dur (tokens --bs-* via classes fin-tl-*). Aucune <table>. Cibles ≥44px.
 // Le backend fait autorité : le front n'effectue AUCUN calcul de montant.
-import { useEffect, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type {
   FinanceTimelineItem, FinanceTimelineSummary, FinanceMovementBadge, FinanceMovementAction,
@@ -19,12 +19,6 @@ function fmtDate(v: string | null): string {
   if (!v) return '—';
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-}
-function fmtDateTime(v: string | null): string {
-  if (!v) return '—';
-  const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return '—';
-  return `${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })} · ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
 const TYPE_ICON: Record<FinanceMovementType, string> = {
@@ -51,11 +45,13 @@ export function FinanceMovementAmount({ direction, amount }: { direction: Financ
 }
 
 // ── Badges ────────────────────────────────────────────────────────────────────────
-export function FinanceMovementBadges({ badges }: { badges: FinanceMovementBadge[] }) {
+export function FinanceMovementBadges({ badges, max }: { badges: FinanceMovementBadge[]; max?: number }) {
   if (!badges?.length) return null;
+  // RX2.3 — sur la card, max 2 badges visibles ; le reste dans le drawer.
+  const shown = typeof max === 'number' ? badges.slice(0, max) : badges;
   return (
     <span className="fin-tl-badges">
-      {badges.map((b, i) => <span key={`${b.label}-${i}`} className={`fin-tl-badge fin-tl-badge--${b.tone}`}>{b.label}</span>)}
+      {shown.map((b, i) => <span key={`${b.label}-${i}`} className={`fin-tl-badge fin-tl-badge--${b.tone}`}>{b.label}</span>)}
     </span>
   );
 }
@@ -141,7 +137,7 @@ export function FinanceTimelineCard({ item, onSelect }: { item: FinanceTimelineI
       <span className="fin-tl-card__body">
         <span className="fin-tl-card__title">{item.title}</span>
         <span className="fin-tl-card__sub">{item.subtitle}</span>
-        <FinanceMovementBadges badges={item.badges} />
+        <FinanceMovementBadges badges={item.badges} max={2} />
       </span>
       <span className="fin-tl-card__right">
         <FinanceMovementAmount direction={item.direction} amount={item.amount} />
@@ -184,38 +180,7 @@ export function FinanceMovementActions({ actions }: { actions: FinanceMovementAc
   );
 }
 
-// ── Drawer détail mouvement ──────────────────────────────────────────────────────────
-export function FinanceMovementDrawer({ item, onClose }: { item: FinanceTimelineItem | null; onClose: () => void }) {
-  useEffect(() => {
-    if (!item) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [item, onClose]);
-  if (!item) return null;
-  return (
-    <>
-      <div className="fin-tl-overlay" onClick={onClose} aria-hidden="true" />
-      <div className="fin-tl-drawer" role="dialog" aria-modal="true" aria-label={item.title} data-testid="fin-tl-drawer">
-        <div className="fin-tl-drawer__head">
-          <span className="fin-tl-drawer__title">{item.title}</span>
-          <button type="button" className="fin-tl-iconbtn" aria-label="Fermer" onClick={onClose}><i className="bi-x-lg" aria-hidden="true" /></button>
-        </div>
-        <div className="fin-tl-drawer__body">
-          <span className={`fin-tl-drawer__amount fin-tl-amount--${item.direction}`}>{signedAmount(item.direction, item.amount)}</span>
-          <FinanceMovementBadges badges={item.badges} />
-          <div className="fin-tl-drawer__rows">
-            <div className="fin-tl-row"><span>Statut</span><span>{item.status}</span></div>
-            <div className="fin-tl-row"><span>Date</span><span>{fmtDateTime(item.occurredAt)}</span></div>
-            {item.customer ? <div className="fin-tl-row"><span>Client</span><span>{item.customer.name || '—'}</span></div> : null}
-            <div className="fin-tl-row"><span>Origine</span><span>{item.source.model} · {item.source.id}</span></div>
-          </div>
-          <FinanceMovementActions actions={item.actions} />
-        </div>
-      </div>
-    </>
-  );
-}
+// Le drawer détail premium (avec breakdown paiement + profit net + actions) est dans movementDrawer.tsx (RX2.3).
 
 // ── États (réexport légers pour cohérence d'API de la feature) ─────────────────────────
 export function FinanceTimelineEmpty({ label = 'Aucun mouvement sur la période' }: { label?: string }): ReactNode {

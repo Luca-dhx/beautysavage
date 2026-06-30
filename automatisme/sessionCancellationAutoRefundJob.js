@@ -7,7 +7,7 @@ import {
   FLOW_DECISION_PENDING,
   resolveSiteName
 } from '../services/sessionCancellationFlowService.js';
-import { getAppBaseUrl } from '../utils/invoiceUrl.js';
+import { resolveVitrineUrl } from '../services/system/domainResolver.js';
 
 let started = false;
 
@@ -47,7 +47,7 @@ async function executeJob() {
         ]);
         const siteName = await resolveSiteName();
         const trackingUrl = refundRequest?.trackingToken
-          ? `${getAppBaseUrl()}/vitrine.html?page=refund-tracking&token=${refundRequest.trackingToken}`
+          ? resolveVitrineUrl(`vitrine.html?page=refund-tracking&token=${refundRequest.trackingToken}`)
           : '';
         await sendRefundAutoInitiatedEmail({
           toEmail: String(flow.clientEmail || user?.email || '').trim(),

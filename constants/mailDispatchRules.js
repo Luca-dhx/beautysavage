@@ -89,6 +89,43 @@ export const MAIL_DISPATCH_RULES = [
     contextType: 'gift_card',
     enabled: true,
     directSenderExists: false
+  },
+  // C2 — Learning : mails commerciale → client (aucun envoi direct legacy → moteur seul sender).
+  {
+    eventName: 'formation.started',
+    templateKey: 'formation_started',
+    fromRole: 'commerciale',
+    toRole: 'client',
+    contextType: 'formation',
+    enabled: true,
+    directSenderExists: false
+  },
+  {
+    eventName: 'lesson.completed',
+    templateKey: 'lesson_completed',
+    fromRole: 'commerciale',
+    toRole: 'client',
+    contextType: 'formation',
+    enabled: true,
+    directSenderExists: false
+  },
+  {
+    eventName: 'formation.completed',
+    templateKey: 'formation_completed',
+    fromRole: 'commerciale',
+    toRole: 'client',
+    contextType: 'formation',
+    enabled: true,
+    directSenderExists: false
+  },
+  {
+    eventName: 'presence.confirmed',
+    templateKey: 'presence_confirmed',
+    fromRole: 'commerciale',
+    toRole: 'client',
+    contextType: 'formation',
+    enabled: true,
+    directSenderExists: false
   }
 ];
 

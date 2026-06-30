@@ -14,6 +14,8 @@ import { CheckoutPage } from './pages/CheckoutPage';
 import { PaymentSuccessPage } from './pages/PaymentSuccessPage';
 import { PaymentCancelPage } from './pages/PaymentCancelPage';
 import { LoginPage } from './pages/LoginPage';
+import { MyFormationsPage } from './pages/MyFormationsPage';
+import { FormationPlayerPage } from './pages/FormationPlayerPage';
 
 // Routing vitrine R1 — catalogue public réel. Checkout/paiement = placeholders (R2).
 export function App() {
@@ -40,6 +42,10 @@ export function App() {
 
         {/* Login client léger (R2C) */}
         <Route path="connexion" element={<LoginPage />} />
+
+        {/* C2 — Learning : espace apprenant (formations distancielles acquises) */}
+        <Route path="mes-formations" element={<MyFormationsPage />} />
+        <Route path="mes-formations/:id" element={<FormationPlayerPage />} />
 
         <Route path="*" element={<Placeholder title="Page introuvable" description="404." />} />
       </Route>

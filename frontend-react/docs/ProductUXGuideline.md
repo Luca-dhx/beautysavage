@@ -98,3 +98,18 @@ des erreurs subsistent (`canSave` le reflète).
 **Règles** : tokens `--bs-*` only (préfixe `cat-`), 44px, mobile-first 768px, zéro `<table>`, zéro hex,
 `prefers-reduced-motion`, primitives `@bs/ui` réutilisées. Un **seul pattern calendrier** dans le produit :
 les sessions présentielles réutilisent les cards/badges du Planning M10 (pas de calendrier divergent).
+
+## 12. Patterns Learning (C2)
+- **Lecteur apprenant** (`FormationPlayer`, vitrine) : mobile = vidéo en haut → « J'ai terminé » → leçon
+  suivante (auto) → accordion chapitres en dessous ; desktop = navigation gauche (chapitres/leçons) +
+  vidéo droite. Objectif **≤ 3 clics** pour ouvrir → lancer → terminer → continuer. Progression dérivée
+  serveur (jamais localStorage). Confetti **uniquement** en fin de formation, **coupé en reduced-motion**
+  (fallback texte `aria-live`).
+- **Vidéo = embed only** (jamais d'upload) : utiliser `LessonEmbed`/`resolveEmbed` (`@bs/ui`) —
+  YouTube/Vimeo/Loom/Wistia/iframe, preview immédiate, validation d'URL.
+- **Édition pédagogique** (`ChapterEditor`, manager) : accordion de chapitres ; une leçon ouvre un
+  **drawer** (réutiliser le pattern drawer C1). Pas d'écran complexe : chapitre → leçon → drawer → preview.
+- **Scan QR présence** : `html5-qrcode` (open-source, aucun service externe), import dynamique (n'embarque
+  la lib que si le scanner est ouvert), caméra arrière, anti-rebond. Token **opaque** par participant.
+- **Pas de nouvelle app cliente** : l'expérience apprenant vit dans l'app **vitrine** authentifiée
+  (`features/learning/`), pas dans une `apps/client` (réutiliser plutôt que créer un nouveau pattern).

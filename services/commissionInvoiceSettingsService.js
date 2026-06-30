@@ -1,16 +1,25 @@
 import CommissionInvoiceSettings from '../models/CommissionInvoiceSettings.js';
+import {
+  resolvePlatformName,
+  resolveInstituteName,
+  resolveInstituteEmail
+} from './system/systemConfigurationService.js';
 
 const SINGLETON_IDENTIFIER = 'default';
 
-const FALLBACK_SETTINGS = {
-  issuerName: process.env.PLATFORM_NAME || 'Beauty Savage',
-  issuerCompany: process.env.PLATFORM_NAME || 'Beauty Savage',
-  issuerAddress: process.env.PLATFORM_ADDRESS || '1 rue de la Beaute, 75001 Paris',
-  issuerEmail: process.env.MAIL_FROM || 'contact@beautysavage.fr',
-  recipientName: process.env.INSTITUTE_NAME || 'Institut Beauty Savage',
-  recipientAddress: process.env.INSTITUTE_ADDRESS || 'Paris, France',
-  emailRecipients: []
-};
+// S1 — fallback résolu au moment de l'appel (config DB → env). PLATFORM_ADDRESS /
+// INSTITUTE_ADDRESS restent des variables legacy lues en dernier recours.
+function getFallbackSettings() {
+  return {
+    issuerName: resolvePlatformName() || 'Beauty Savage',
+    issuerCompany: resolvePlatformName() || 'Beauty Savage',
+    issuerAddress: process.env.PLATFORM_ADDRESS || '1 rue de la Beaute, 75001 Paris',
+    issuerEmail: resolveInstituteEmail() || 'contact@beautysavage.fr',
+    recipientName: resolveInstituteName() || 'Institut Beauty Savage',
+    recipientAddress: process.env.INSTITUTE_ADDRESS || 'Paris, France',
+    emailRecipients: []
+  };
+}
 
 const EMAIL_WHITESPACE_PATTERN = /[\s\u00A0\u200B\u200C\u200D\uFEFF\u2028\u2029]+/g;
 const DOMAIN_LABEL_PATTERN = /^[a-zA-Z0-9-]+$/;
@@ -106,7 +115,7 @@ function sanitizeEmailRecipients(values) {
 }
 
 function mergeWithDefaults(document) {
-  const base = { ...FALLBACK_SETTINGS };
+  const base = getFallbackSettings();
   if (!document) {
     return base;
   }

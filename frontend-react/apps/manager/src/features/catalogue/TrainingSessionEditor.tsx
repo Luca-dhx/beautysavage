@@ -1,6 +1,7 @@
 // C1 — Sessions présentielles + QR de présence. Réutilise le pattern calendrier M10 (cards +
 // badges + form phase-machine), prefixe cat-. Une seule UX calendrier dans tout le produit.
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Badge } from '@bs/ui';
 import type { CatalogueTrainingSession } from '@bs/api-client';
 import { useSessionsList, useSessionMutations } from './useCatalogue';
@@ -16,12 +17,14 @@ function fmtDate(iso: string): string {
 
 function SessionCard({
   session,
+  formationId,
   durationDays,
   onDelete,
   onQr,
   qrBusy,
 }: {
   session: CatalogueTrainingSession;
+  formationId: string;
   durationDays: number;
   onDelete: () => void;
   onQr: (regenerate: boolean) => void;
@@ -41,8 +44,11 @@ function SessionCard({
         {session.qr.hasToken ? <span className="cat-session__qrflag"><i className="bi bi-qr-code" aria-hidden="true" /> QR généré</span> : null}
       </div>
       <div className="cat-session__actions">
+        <Link to={`/catalogue/formations/${formationId}/sessions/${session.id}/presence`} className="cat-btn cat-btn--ghost">
+          <i className="bi bi-people" aria-hidden="true" /> Présence
+        </Link>
         <button type="button" className="cat-btn cat-btn--ghost" onClick={() => { setShowQr((v) => !v); if (!session.qr.hasToken) onQr(false); }}>
-          <i className="bi bi-qr-code" aria-hidden="true" /> QR présence
+          <i className="bi bi-qr-code" aria-hidden="true" /> QR session
         </button>
         <button type="button" className="cat-iconbtn" aria-label="Supprimer la session" onClick={onDelete}>
           <i className="bi bi-trash" aria-hidden="true" />
@@ -121,6 +127,7 @@ export function TrainingSessionEditor({ formationId, durationDays }: { formation
             <SessionCard
               key={s.id}
               session={s}
+              formationId={formationId}
               durationDays={durationDays}
               onDelete={() => remove.mutate(s.id)}
               onQr={(regenerate) => qr.mutate({ sessionId: s.id, regenerate })}

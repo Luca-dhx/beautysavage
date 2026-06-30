@@ -6,5 +6,6 @@ export * from './trainings';
 export * from './products';
 export * from './giftCards';
 export * from './reviews';
+export * from './learning';
 export * from './site';
 export * from './theme';

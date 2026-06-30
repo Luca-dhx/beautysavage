@@ -4068,3 +4068,32 @@ détail formation. Règles : `cat-`/`bs-*` tokens only, 44px, mobile-first 768px
 reduced-motion. Pattern officiel : ProductUXGuideline §11. Tests : backend 699 verts ; front 264 verts ;
 typecheck/lint/build OK (`@types/node` ajouté en devDep — réparait un typecheck pré-existant P1). Limites :
 modules pédagogiques distanciel + upload médias intégré + scan caméra/attestation + modération avis → C2.
+
+
+## C2 — Learning Studio + Présentiel Experience (rapports 211-212)
+
+Modèle pédagogique distanciel SANS quiz/note : Formation → **Chapitre → Leçon → Ressource** + progression
+serveur + présence présentiel (scan QR). Additif (5 modèles, 1 controller, 2 routers, 4 events), legacy
+FormationModule intact.
+
+Modèles : `Chapter`, `Lesson` (videoUrl embed-only + resources[] pdf/link/document + isFree + estimatedMinutes),
+`FormationProgress` (completedLessonIds → %), `SessionAttendance` (token opaque par participant, status
+pending/present/absent), `AttestationTemplate` (preview only → C3). Controller `learningController.js` +
+`services/learning/{progressionService,learningEventsService}.js`. Routers : `learningManagerRouter`
+(`/api/gestion/learning`, admin/dev, monté AVANT broad-mounts dev-only) + `learningClientRouter`
+(`/api/client/learning`, requireAuth, monté avant clientRouter). Accès gated par Purchase. Scan :
+`BS-PRESENCE:<sessionId>:<token>` → participant → present. Events `formation.started/lesson.completed/
+formation.completed/presence.confirmed` : mail commerciale→client (TEMPLATE_FUNCTIONS + MAIL_DISPATCH_RULES
+directSenderExists:false + eventCatalog, idempotent ledger) + notification admin (DEFAULT_EVENTS migration,
+category formations). Customer360 enrichi (mapFormation progress/attendance SAFE, contextIds élargi,
+timeline formation_start/done/presence).
+
+Front : api-client `manager/learning.ts` + `catalog/learning.ts` ; `@bs/ui/embed` (resolveEmbed/LessonEmbed
+YouTube/Vimeo/Loom/Wistia/iframe). Learning Studio = module **Contenu** dans l'éditeur distanciel C1
+(ChapterEditor accordion + LessonDrawer + ResourceList + LessonEmbed preview). Présence manager :
+`SessionPresencePage` + `QrScanner` (html5-qrcode, open-source, import dynamique). Apprenant : app **vitrine**
+authentifiée (PAS de apps/client — écart assumé) `MyFormationsPage` + `FormationPlayer` (mobile vidéo→terminé→
+suivant ; desktop nav gauche + vidéo droite ; confetti léger à 100% coupé reduced-motion). Tokens --bs-* only,
+44px, mobile-first, zéro table/hex. Tests : backend p0+p1+integration verts (+learningC2), front 284 verts,
+typecheck/lint/build OK. Limites : attestation preview only (génération → C3), reorder UI non câblée, embed
+only. Détail : rapport 212.

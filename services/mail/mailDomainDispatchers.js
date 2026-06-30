@@ -5,7 +5,7 @@
 
 import Sale from '../../models/Sale.js';
 import crypto from 'node:crypto';
-import { getAppBaseUrl } from '../../utils/invoiceUrl.js';
+import { resolvePublicBaseUrl, resolvePublicUrl, resolveVitrineUrl } from '../system/domainResolver.js';
 import { formatAmount, withMailThemeVars, stripHtml, replaceTemplateVariables } from './mailRenderer.js';
 import { loadTemplate } from './mailTemplateRuntime.js';
 import { postToBrevo } from './mailBrevoGateway.js';
@@ -38,19 +38,17 @@ function buildSender() {
 
 function buildPasswordResetLink(token) {
   if (!token) {
-    return getAppBaseUrl();
+    return resolvePublicBaseUrl();
   }
-  const base = getAppBaseUrl();
-  return `${base}/reset-password?token=${encodeURIComponent(token)}`;
+  return resolvePublicUrl(`reset-password?token=${encodeURIComponent(token)}`);
 }
 
 function buildInvoiceDownloadUrl(invoiceToken) {
   if (!invoiceToken) {
     return '';
   }
-  const base = getAppBaseUrl();
   const encodedToken = encodeURIComponent(String(invoiceToken));
-  return `${base}/vitrine.html?slug=invoice&token=${encodedToken}`;
+  return resolveVitrineUrl(`vitrine.html?slug=invoice&token=${encodedToken}`);
 }
 
 async function pickRandomSale() {
@@ -1626,7 +1624,7 @@ async function sendBookingCancelledEmail({
     const refundAmountStr = refundAmount > 0 ? `${formatAmount(refundAmount)} €` : '';
 
     const trackingLinkHtml = refundRequest?.trackingToken
-      ? `<p style="margin:8px 0 0"><a href="${getAppBaseUrl()}/vitrine.html?page=refund-tracking&token=${refundRequest.trackingToken}" style="color:#166534">Suivre mon remboursement →</a></p>`
+      ? `<p style="margin:8px 0 0"><a href="${resolveVitrineUrl(`vitrine.html?page=refund-tracking&token=${refundRequest.trackingToken}`)}" style="color:#166534">Suivre mon remboursement →</a></p>`
       : '';
 
     let templateName;
@@ -1818,7 +1816,7 @@ async function sendBookingCancelledByAdminEmail({
     const refundAmountStr = refundAmount > 0 ? `${formatAmount(refundAmount)} €` : '';
 
     const trackingUrl = refundRequest?.trackingToken
-      ? `${getAppBaseUrl()}/vitrine.html?page=refund-tracking&token=${refundRequest.trackingToken}`
+      ? resolveVitrineUrl(`vitrine.html?page=refund-tracking&token=${refundRequest.trackingToken}`)
       : '';
 
     const template = await loadTemplate('booking_cancelled_admin');

@@ -11,6 +11,51 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const DEFAULT_EVENTS = [
+  // C2 — Learning : événements formations distancielles + présence (audience admin).
+  {
+    eventType: 'formation_started',
+    label: 'Formation commencée',
+    isActive: true,
+    category: 'formations',
+    targetType: 'role',
+    targetRole: 'admin',
+    titleTemplate: 'Formation commencée — {{formationName}}',
+    messageTemplate: '{{clientName}} a commencé la formation "{{formationName}}"',
+    availableVariables: ['clientName', 'formationName']
+  },
+  {
+    eventType: 'lesson_completed',
+    label: 'Leçon terminée',
+    isActive: true,
+    category: 'formations',
+    targetType: 'role',
+    targetRole: 'admin',
+    titleTemplate: 'Leçon terminée — {{lessonName}}',
+    messageTemplate: '{{clientName}} a terminé "{{lessonName}}" ({{formationName}})',
+    availableVariables: ['clientName', 'lessonName', 'formationName']
+  },
+  {
+    eventType: 'formation_completed',
+    label: 'Formation terminée',
+    isActive: true,
+    category: 'formations',
+    targetType: 'role',
+    targetRole: 'admin',
+    titleTemplate: 'Formation terminée — {{formationName}}',
+    messageTemplate: '{{clientName}} a terminé la formation "{{formationName}}"',
+    availableVariables: ['clientName', 'formationName']
+  },
+  {
+    eventType: 'presence_confirmed',
+    label: 'Présence confirmée',
+    isActive: true,
+    category: 'formations',
+    targetType: 'role',
+    targetRole: 'admin',
+    titleTemplate: 'Présence confirmée — {{formationName}}',
+    messageTemplate: '{{clientName}} — présence validée ({{sessionDate}})',
+    availableVariables: ['clientName', 'formationName', 'sessionDate']
+  },
   {
     eventType: 'booking_created',
     label: 'Nouvelle réservation prestation',

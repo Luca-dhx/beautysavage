@@ -83,16 +83,27 @@ export function mapBooking(booking, serviceNameById = new Map()) {
   };
 }
 
-export function mapFormation(purchase, formationById = new Map()) {
-  const f = formationById.get(idStr(purchase.formationId || purchase.itemId));
+export function mapFormation(purchase, formationById = new Map(), progressByFormation = new Map(), attendanceBySession = new Map()) {
+  const fid = idStr(purchase.formationId || purchase.itemId);
+  const f = formationById.get(fid);
+  // C2 — enrichissement learning (SAFE : aucun token QR ni secret exposé).
+  const prog = progressByFormation.get(fid);
+  const completedCount = prog ? (prog.completedLessonIds || []).filter(Boolean).length : 0;
+  const att = purchase.sessionId ? attendanceBySession.get(idStr(purchase.sessionId)) : null;
   return {
     id: String(purchase._id),
-    formationId: idStr(purchase.formationId || purchase.itemId),
+    formationId: fid,
     name: f?.name || 'Formation',
     type: f?.type || null,
     sessionId: idStr(purchase.sessionId),
     participationStatus: purchase.participationStatus || 'active',
-    acquiredAt: purchase.createdAt || null
+    acquiredAt: purchase.createdAt || null,
+    startedAt: prog?.startedAt || null,
+    completedAt: prog?.completedAt || null,
+    completedLessons: completedCount,
+    lastLessonId: prog?.lastLessonId ? String(prog.lastLessonId) : null,
+    attendanceStatus: att?.status || null,
+    attendanceAt: att?.checkedInAt || null
   };
 }
 

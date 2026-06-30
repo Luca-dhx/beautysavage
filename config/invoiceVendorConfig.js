@@ -1,12 +1,26 @@
-export const getVendorConfig = () => ({
-  name: process.env.INSTITUTE_NAME || 'Beauty Savage',
-  email: process.env.INVOICE_CONTACT_EMAIL || process.env.MAIL_FROM,
-  address: {
-    line1: process.env.INSTITUTE_ADDRESS_LINE1,
-    city: process.env.INSTITUTE_CITY,
-    postal_code: process.env.INSTITUTE_POSTAL_CODE,
-    country: process.env.INSTITUTE_COUNTRY || 'FR'
-  },
-  siret: process.env.INSTITUTE_SIRET,
-  vatMention: process.env.INSTITUTE_VAT_MENTION || 'TVA non applicable, article 293B du CGI'
-});
+import {
+  resolveInstituteName,
+  resolveInstituteEmail,
+  resolveInstituteAddress,
+  resolveInstituteSiret,
+  resolveVatMention
+} from '../services/system/systemConfigurationService.js';
+
+// S1 — Identité institut migrée vers SystemConfiguration (source officielle).
+// Les accesseurs résolvent : config DB (cache) → fallback .env → '' ; les libellés
+// par défaut historiques sont conservés ici pour une parité de comportement totale.
+export const getVendorConfig = () => {
+  const address = resolveInstituteAddress();
+  return {
+    name: resolveInstituteName() || 'Beauty Savage',
+    email: resolveInstituteEmail() || undefined,
+    address: {
+      line1: address.line1 || undefined,
+      city: address.city || undefined,
+      postal_code: address.postalCode || undefined,
+      country: address.country || 'FR'
+    },
+    siret: resolveInstituteSiret() || undefined,
+    vatMention: resolveVatMention() || 'TVA non applicable, article 293B du CGI'
+  };
+};

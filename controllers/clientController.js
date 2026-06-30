@@ -25,7 +25,7 @@ import { getSessionUserId } from '../utils/session.js';
 import { extractClientIp } from '../utils/requestClientIp.js';
 import { validateAndBuildConsumerWaiver } from '../utils/consumerWaiver.js';
 import { buildLegalConsentSnapshot } from '../services/legalConsentService.js';
-import { getAppBaseUrl } from '../utils/invoiceUrl.js';
+import { resolveVitrineUrl } from '../services/system/domainResolver.js';
 import { buildModulePayload } from './formationModuleController.js';
 import { buildSessionPayload } from './formationSessionController.js';
 import {
@@ -1483,7 +1483,7 @@ export async function cancelFormationParticipation(req, res) {
       ).trim();
       const amountPaid = Number.isFinite(Number(previewSale?.amount)) ? Number(previewSale.amount) : 0;
       const trackingUrl = refundDoc?.trackingToken
-        ? `${getAppBaseUrl()}/vitrine.html?page=refund-tracking&token=${refundDoc.trackingToken}`
+        ? resolveVitrineUrl(`vitrine.html?page=refund-tracking&token=${refundDoc.trackingToken}`)
         : '';
       const customerName = `${String(req.sessionUser?.firstName || '').trim()} ${String(req.sessionUser?.lastName || '').trim()}`.trim();
 

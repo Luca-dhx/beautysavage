@@ -250,12 +250,24 @@ export function FormationSection({ formations }: { formations: CustomerFormation
   if (!formations.length) return <CustomerEmptyState label="Aucune formation" icon="bi-mortarboard" />;
   return (
     <div className="c3-list">
-      {formations.map((f) => (
-        <div className="c3-card c3-listitem" key={f.id}>
-          <span className="c3-listitem__main"><strong>{f.name}</strong><span className="c3-listitem__sub">{f.type || 'Formation'} · {fmtDate(f.acquiredAt)}</span></span>
-          <span className="c3-tag">{f.participationStatus}</span>
-        </div>
-      ))}
+      {formations.map((f) => {
+        // C2 — enrichissement learning (progression distanciel / présence présentiel).
+        const learningBits: string[] = [];
+        if (f.completedAt) learningBits.push('Terminée');
+        else if (f.startedAt) learningBits.push('En cours');
+        if (typeof f.completedLessons === 'number' && f.completedLessons > 0) learningBits.push(`${f.completedLessons} leçon(s)`);
+        if (f.attendanceStatus === 'present') learningBits.push('Présent');
+        else if (f.attendanceStatus === 'absent') learningBits.push('Absent');
+        return (
+          <div className="c3-card c3-listitem" key={f.id}>
+            <span className="c3-listitem__main">
+              <strong>{f.name}</strong>
+              <span className="c3-listitem__sub">{f.type || 'Formation'} · {fmtDate(f.acquiredAt)}{learningBits.length ? ` · ${learningBits.join(' · ')}` : ''}</span>
+            </span>
+            <span className="c3-tag">{f.participationStatus}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }

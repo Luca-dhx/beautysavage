@@ -25,7 +25,11 @@ const EVENT_TIMELINE_MAP = {
   'booking.balance_paid_on_site': { type: 'solde_paye', icon: 'bi-cash-stack', title: 'Solde payé sur place' },
   'booking.rescheduled': { type: 'report', icon: 'bi-arrow-left-right', title: 'Créneau reporté' },
   'booking.no_show_marked': { type: 'annulation', icon: 'bi-person-x', title: 'Absence (no-show)' },
-  'sale.zero_payment_finalized': { type: 'paiement', icon: 'bi-gift', title: 'Commande réglée (carte cadeau)' }
+  'sale.zero_payment_finalized': { type: 'paiement', icon: 'bi-gift', title: 'Commande réglée (carte cadeau)' },
+  // C2 — Learning timeline.
+  'formation.started': { type: 'formation_start', icon: 'bi-play-circle', title: 'Formation commencée' },
+  'formation.completed': { type: 'formation_done', icon: 'bi-patch-check', title: 'Formation terminée' },
+  'formation.attendance_validated': { type: 'presence', icon: 'bi-qr-code-scan', title: 'Présence validée (QR)' }
 };
 
 /**

@@ -237,3 +237,10 @@ Détail formation : section **avis** (`features/catalog/components/TrainingRevie
 nombre, tri récent/meilleur, liste. Notation **patte de chien** portée dans `@bs/ui` (`PawRating`, identité
 Beauty Savage). api-client `catalog/reviews.ts` (endpoints publics `/api/vitrine/formations/:id/reviews[/stats]`).
 Lecture seule (modération admin → C2). Détail : rapport 210.
+
+## C2 — Espace apprenant (Learning)
+`features/learning/` + pages `MyFormationsPage` (`/mes-formations`) et `FormationPlayerPage`
+(`/mes-formations/:id`). Lecteur mobile-first (vidéo `LessonEmbed` → « J'ai terminé » → leçon suivante ;
+desktop nav gauche + vidéo droite), progression serveur, téléchargements, confetti léger à 100% (coupé
+reduced-motion). api-client `catalog/learning.ts`. Accès gated serveur (Purchase). Nav « Mes formations ».
+Détail : rapport 212.

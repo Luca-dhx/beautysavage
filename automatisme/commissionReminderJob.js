@@ -15,7 +15,7 @@ import {
   sendCommissionReminderEmail,
   sendCommissionLastDayEmail
 } from '../services/mailService.js';
-import { getAppBaseUrl } from '../utils/invoiceUrl.js';
+import { resolvePanelUrl } from '../services/system/domainResolver.js';
 import { getNow } from '../utils/simulatedDate.js';
 import { emitCommissionEvent } from '../services/businessEventService.js';
 
@@ -77,7 +77,7 @@ export async function executeJob() {
     }
 
     const today = startOfDay(await getNow());
-    const platformUrl = `${getAppBaseUrl()}/gestion.html?module=commissionPayment`;
+    const platformUrl = resolvePanelUrl('gestion.html?module=commissionPayment');
 
     for (const payment of payments) {
       if (Number(payment.amount) === 0) continue; // montant nul — déjà succeeded, pas de mail

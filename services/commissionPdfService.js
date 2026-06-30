@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import { resolvePlatformName, resolveInstituteName } from './system/systemConfigurationService.js';
 
 const currencyFormatter = new Intl.NumberFormat('fr-FR', {
   style: 'currency',
@@ -58,8 +59,8 @@ function measureRowHeight(doc, row, columns) {
 
 export function buildCommissionPdf(entries, options = {}) {
   const {
-    platformName = process.env.PLATFORM_NAME || 'Beauty Savage',
-    instituteName = process.env.INSTITUTE_NAME || 'Institut Beauty Savage',
+    platformName = resolvePlatformName() || 'Beauty Savage',
+    instituteName = resolveInstituteName() || 'Institut Beauty Savage',
     periodLabel = '',
     periodRangeLabel = '',
     generatedAt = new Date(),

@@ -385,3 +385,10 @@ body {
 .bs-review__comment { margin: 0; color: var(--bs-color-text); }
 .bs-review__date { font-size: 0.78rem; color: var(--bs-color-muted); }
 .bs-reviews__more { margin: 0; font-size: 0.82rem; color: var(--bs-color-muted); text-align: center; }
+
+/* C2 — Embed vidéo (ratio 16:9). Zéro hex. */
+.bs-embed { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--bs-radius); overflow: hidden; background: var(--bs-color-background); }
+.bs-embed__frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.bs-embed__provider { position: absolute; bottom: var(--bs-space-1); right: var(--bs-space-1); font-size: 0.68rem; padding: 2px var(--bs-space-1); border-radius: 999px; background: var(--bs-color-surface); color: var(--bs-color-muted); opacity: 0.85; }
+.bs-embed--empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--bs-space-1); color: var(--bs-color-muted); border: 1px dashed var(--bs-color-border); }
+.bs-embed--empty i { font-size: 1.6rem; }

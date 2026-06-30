@@ -31,7 +31,7 @@ import {
 import { createCompensationGiftCard } from './giftCardService.js';
 import { createGlobalServiceBooking } from './calendar/globalAvailabilityService.js';
 import { getPresentielWaiverExpectation } from '../utils/consumerWaiver.js';
-import { getAppBaseUrl } from '../utils/invoiceUrl.js';
+import { resolveVitrineBaseUrl } from './system/domainResolver.js';
 import {
   sendFormationDeletedChoiceEmail,
   sendServiceCancellationChoiceEmail,
@@ -275,7 +275,7 @@ export function buildSessionCancellationActionUrl({ flowId, token } = {}) {
   const normalizedFlowId = normalizeFlowId(flowId);
   const normalizedToken = String(token || '').trim();
   if (!normalizedFlowId || !normalizedToken) return '';
-  const baseUrl = getAppBaseUrl();
+  const baseUrl = resolveVitrineBaseUrl();
   const params = new URLSearchParams({
     page: SESSION_CANCELLATION_PAGE_SLUG,
     flowId: normalizedFlowId,

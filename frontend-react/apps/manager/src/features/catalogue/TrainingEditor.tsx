@@ -18,6 +18,7 @@ import {
 import { validateTraining } from './validation';
 import { useTrainingDetail, useTrainingMutations, useSessionsList } from './useCatalogue';
 import { TrainingSessionEditor } from './TrainingSessionEditor';
+import { ChapterEditor } from './learning/ChapterEditor';
 
 type Draft = Partial<CatalogueTraining>;
 
@@ -33,7 +34,11 @@ function modulesFor(type: Draft['type']): ModuleDescriptor[] {
     { key: 'prix', label: 'Prix', icon: 'bi-currency-euro' },
   ];
   if (type === 'presentiel') base.push({ key: 'sessions', label: 'Sessions', icon: 'bi-calendar-event' });
-  else base.push({ key: 'acces', label: 'Accès', icon: 'bi-unlock' });
+  else {
+    base.push({ key: 'acces', label: 'Accès', icon: 'bi-unlock' });
+    // C2 — Learning Studio : contenu pédagogique (chapitres → leçons → ressources).
+    base.push({ key: 'contenu', label: 'Contenu', icon: 'bi-collection-play' });
+  }
   base.push({ key: 'medias', label: 'Médias', icon: 'bi-images' });
   base.push({ key: 'vitrine', label: 'Vitrine', icon: 'bi-shop' });
   return base;
@@ -191,6 +196,14 @@ export function TrainingEditor({ id }: { id?: string }) {
               </p>
             ) : null}
           </div>
+        ) : null}
+
+        {active === 'contenu' ? (
+          isNew ? (
+            <p className="cat-note">Enregistrez la formation pour ajouter chapitres et leçons.</p>
+          ) : (
+            <ChapterEditor formationId={id as string} />
+          )
         ) : null}
 
         {active === 'medias' ? (

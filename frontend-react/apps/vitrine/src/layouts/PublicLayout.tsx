@@ -9,6 +9,7 @@ const NAV = [
   { to: '/formations', label: 'Formations' },
   { to: '/produits', label: 'Produits' },
   { to: '/cartes-cadeaux', label: 'Cartes cadeaux' },
+  { to: '/mes-formations', label: 'Mes formations' },
   { to: '/panier', label: 'Panier' },
 ];
 

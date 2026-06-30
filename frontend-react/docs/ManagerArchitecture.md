@@ -411,3 +411,11 @@ chevron actif), drawer de validation (blocages cliquables). Éditeurs `ServiceEd
 calendrier M10 + QR présence). Hooks `useCatalogue.ts` (TanStack). Logique de blocage pure `validation.ts`.
 api-client `manager/catalogue.ts`. CSS `cat-` (tokens `--bs-*`, 44px, 768px, zéro table/hex). Produits non
 développés. Détail : rapport 210.
+
+## C2 — Learning Studio + Présence
+Éditeur distanciel C1 enrichi d'un module **Contenu** (`features/catalogue/learning/ChapterEditor.tsx` :
+accordion chapitres → leçons, `LessonDrawer` avec `LessonEmbed` preview + `ResourceList`). api-client
+`manager/learning.ts`. Présence : `features/learning/SessionPresencePage.tsx` (route
+`/catalogue/formations/:id/sessions/:sessionId/presence`, lien depuis la carte session) + `QrScanner`
+(html5-qrcode, import dynamique). Customer360 `FormationSection` enrichie (progression/présence). Détail :
+rapport 212.

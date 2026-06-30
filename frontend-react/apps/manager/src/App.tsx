@@ -52,6 +52,7 @@ import {
   GiftCardCataloguePage,
   ProductsUnavailablePage,
 } from './features/catalogue';
+import { SessionPresencePage } from './features/learning';
 
 // Routing manager R0 — placeholders + guards rôle (cf. rapport 147).
 // Manager = admin ou dev. /dev/* = dev uniquement. /login public.
@@ -80,6 +81,8 @@ export function App() {
             <Route path="formations" element={<TrainingsListPage />} />
             <Route path="formations/new" element={<TrainingEditorPage />} />
             <Route path="formations/:id" element={<TrainingEditorPage />} />
+            {/* C2 — Présence d'une session présentielle (scan QR + marquage) */}
+            <Route path="formations/:id/sessions/:sessionId/presence" element={<SessionPresencePage />} />
             <Route path="cartes-cadeaux" element={<GiftCardCataloguePage />} />
             <Route path="produits" element={<ProductsUnavailablePage />} />
           </Route>

@@ -51,11 +51,13 @@ import { runEmailTemplateCategoryMigration } from './automatisme/emailTemplateCa
 import { runServicePagesMigration } from './automatisme/servicePagesMigration.js';
 import { migrateRefundRequestedTemplate } from './automatisme/refundRequestedTemplateMigration.js';
 import { runNotificationConfigMigration } from './automatisme/notificationConfigMigration.js';
+import { seedSystemConfigurationFromEnv } from './services/system/systemConfigurationService.js';
 import { validateCredentialVaultKey } from './utils/credentialVault.js';
 import { seedIntegratedApisFromEnv } from './seeders/seedIntegratedApisFromEnv.js';
 import { seedGiftCardTemplates } from './seeders/seedGiftCardTemplates.js';
 import brevoWebhookRouter from './routers/brevoWebhookRouter.js';
 import communicationIdentityDevRouter from './routers/communicationIdentityDevRouter.js';
+import systemConfigurationDevRouter from './routers/systemConfigurationDevRouter.js';
 import communicationIdentityRouter from './routers/communicationIdentityRouter.js';
 import devDiagnosticRouter from './routers/devDiagnosticRouter.js';
 import { registerNotificationSubscribers, getSubscriberMode } from './subscribers/notificationEventSubscriber.js';
@@ -64,6 +66,8 @@ import { migrateEmailTemplatesToVersioning } from './scripts/migrateEmailTemplat
 import siteIdentityRouter from './routers/siteIdentityRouter.js';
 import contractRouter from './routers/contractRouter.js';
 import serviceRouter from './routers/serviceRouter.js';
+import learningManagerRouter from './routers/learningManagerRouter.js';
+import learningClientRouter from './routers/learningClientRouter.js';
 import practitionerRouter from './routers/practitionerRouter.js';
 import availabilityRouter from './routers/availabilityRouter.js';
 import gestionBookingRouter from './routers/gestionBookingRouter.js';
@@ -340,6 +344,13 @@ await runServicePagesMigration();
 await migrateRefundRequestedTemplate();
 await runNotificationConfigMigration();
 await runNotificationCategoryMigration();
+// S1 — SystemConfiguration : seed idempotent depuis le .env (parité) + chargement du
+// cache mémoire lu synchronement par le DomainResolver. Non bloquant en cas d'échec.
+try {
+  await seedSystemConfigurationFromEnv();
+} catch (systemConfigError) {
+  console.warn('[systemConfiguration] seed/boot échoué — fallback env actif :', systemConfigError?.message || systemConfigError);
+}
 await Invoice.syncIndexes();
 // Drop legacy non-sparse indexes on ContractCheckoutIntent before syncIndexes
 for (const idx of ['stripePaymentIntentId_1', 'stripeSetupIntentId_1']) {
@@ -440,6 +451,9 @@ app.use('/api/gestion/dev', mailSupervisionDevRouter);
 app.use('/api/gestion/dev/notification-templates', notificationTemplateStudioRouter);
 app.use('/api/gestion/dev/gift-card-templates', giftCardTemplateStudioRouter);
 app.use('/api/gestion/dev/notification-categories', notificationCategoryRouter);
+// S1 — Paramètres Système (config domaines/institut/localisation/fiscalité/maintenance), strict dev —
+// chemin spécifique, monté AVANT le routeur /api/gestion/dev générique.
+app.use('/api/gestion/dev/system-configuration', systemConfigurationDevRouter);
 // M3E — Supervision mail admin (roleView=admin, institut/client). Monté AVANT les routeurs
 // dev-only broad-mount sur '/api/gestion' (ex. commissionRouter requireStrictDev).
 app.use('/api/gestion/mail-deliveries', mailDeliveriesAdminRouter);
@@ -447,6 +461,8 @@ app.use('/api/gestion/send-logs', sendLogsAdminRouter);
 app.use('/api/gestion/dev', devDiagnosticRouter);
 app.use('/api/gestion/vitrine', vitrineGestionRouter);
 app.use('/api/gestion/business', businessGestionRouter);
+// C2 — Expérience apprenant montée AVANT clientRouter (préfixe spécifique /api/client/learning).
+app.use('/api/client/learning', learningClientRouter);
 app.use('/api/client', clientRouter);
 app.use('/api/dev', devRouter);
 app.use('/api/gestion/users', gestionUsersRouter);
@@ -459,6 +475,8 @@ app.use('/api/gestion/formations', formationRouter);
 app.use('/api/gestion/services', serviceRouter);
 app.use('/api/gestion/availability', availabilityRouter);
 app.use('/api/gestion/service-settings', serviceSettingsRouter);
+// C2 — Learning Studio + présence (admin/dev) monté AVANT les broad-mounts dev-only (même raison C1).
+app.use('/api/gestion/learning', learningManagerRouter);
 app.use('/api/gestion', formationModuleRouter);
 app.use('/api/gestion', formationSessionRouter);
 app.use('/api/gestion', planningRouter);

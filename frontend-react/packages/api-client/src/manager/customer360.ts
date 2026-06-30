@@ -70,7 +70,10 @@ export interface CustomerFinancial {
 
 export interface CustomerSale { id: string; saleId: string; createdAt: string | null; totalAmount: number; itemCount: number; refundStatus: string | null; refundAmount: number; items: { type: string; itemId: string | null; name: string; finalPrice: number; promotionApplied: boolean }[]; giftCardUsage: { code: string; amountUsed: number }[]; }
 export interface CustomerBooking { id: string; bookingId: string; serviceName: string; startAt: string | null; endAt: string | null; status: string; paymentType: string; paymentStatus: string; totalPrice: number; depositAmount: number; balanceDueAmount: number; balanceSettlementMode: string | null; isDeposit: boolean; saleId: string | null; cancelledAt: string | null; cancelledBy: string | null; }
-export interface CustomerFormation { id: string; formationId: string | null; name: string; type: string | null; sessionId: string | null; participationStatus: string; acquiredAt: string | null; }
+export interface CustomerFormation { id: string; formationId: string | null; name: string; type: string | null; sessionId: string | null; participationStatus: string; acquiredAt: string | null;
+  // C2 — Learning (optionnels : payloads antérieurs restent valides).
+  startedAt?: string | null; completedAt?: string | null; completedLessons?: number; lastLessonId?: string | null;
+  attendanceStatus?: 'present' | 'absent' | 'pending' | null; attendanceAt?: string | null; }
 export interface CustomerProduct { id: string; productId: string | null; name: string; acquiredAt: string | null; }
 export interface CustomerGiftCard { id: string; code: string; amount: number; balance: number; status: string; purchasedAt: string | null; }
 export interface CustomerRefund { id: string; refundId: string; saleId: string; itemType: string; amount: number; status: string; eligibleRefund: boolean; requestedAt: string | null; refundedAt: string | null; hasCreditNote: boolean; }

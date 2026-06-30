@@ -50,6 +50,12 @@ export const EVENT_CATALOG = Object.freeze({
   // --- formation (sessions) ---
   'formation.session_cancelled': { domain: 'formation', version: 1, description: 'A formation session was cancelled', payload: ['sessionId', 'formationId'] },
   'formation.session_updated': { domain: 'formation', version: 1, description: 'A formation session was updated/rescheduled', payload: ['sessionId', 'formationId'] },
+  // C2 — Learning events.
+  'formation.started': { domain: 'formation', version: 1, description: 'A client started a distanciel formation', payload: ['formationId', 'clientId'] },
+  'lesson.completed': { domain: 'formation', version: 1, description: 'A client completed a lesson', payload: ['formationId', 'lessonId', 'clientId'] },
+  'formation.completed': { domain: 'formation', version: 1, description: 'A client completed a formation', payload: ['formationId', 'clientId'] },
+  'formation.attendance_validated': { domain: 'formation', version: 1, description: 'Presence validated for a session participant', payload: ['sessionId', 'formationId', 'clientId'] },
+  'presence.confirmed': { domain: 'formation', version: 1, description: 'Presence confirmed (mail/notif)', payload: ['sessionId', 'formationId', 'clientId'] },
 
   // --- email (driven by SendLog) ---
   'email.queued': { domain: 'email', version: 1, description: 'An email was queued', payload: ['sendLogId', 'provider', 'templateKey', 'status'] },

@@ -5,6 +5,7 @@ import PDFDocument from 'pdfkit';
 
 import { getActiveGiftCardTemplate } from './giftCardTemplateService.js';
 import { generateGiftCardQrDataUrl, generateGiftCardQrPayload } from './giftCardQrService.js';
+import { resolveInstituteName } from '../system/systemConfigurationService.js';
 
 /**
  * M13 — Service de rendu carte cadeau.
@@ -20,7 +21,10 @@ import { generateGiftCardQrDataUrl, generateGiftCardQrPayload } from './giftCard
  */
 
 const STORAGE_DIR = path.join(process.cwd(), 'storage', 'giftcards');
-const INSTITUTE_NAME = String(process.env.INSTITUTE_NAME || 'Beauty Savage').trim() || 'Beauty Savage';
+// S1 — résolu au moment du rendu (config DB → fallback env), plus un const figé à l'import.
+function getInstituteName() {
+  return resolveInstituteName() || 'Beauty Savage';
+}
 
 const currencyFormatter = new Intl.NumberFormat('fr-FR', {
   style: 'currency',
@@ -63,7 +67,7 @@ export function buildGiftCardVariables(giftCard = {}, { code = '', pin = '' } = 
     message: giftCard.message || '',
     createdAt: formatDate(giftCard.purchasedAt || giftCard.createdAt),
     paymentLabel: giftCard.paymentLabel || '',
-    instituteName: INSTITUTE_NAME
+    instituteName: getInstituteName()
   };
 }
 
@@ -94,7 +98,7 @@ export function renderGiftCardDocument(template = {}, variables = {}, { qrDataUr
     '<!DOCTYPE html>',
     '<html lang="fr"><head><meta charset="utf-8" />',
     '<meta name="viewport" content="width=device-width, initial-scale=1" />',
-    `<title>Carte cadeau ${INSTITUTE_NAME}</title>`,
+    `<title>Carte cadeau ${getInstituteName()}</title>`,
     `<style>body{margin:0;padding:24px;display:flex;justify-content:center;background:#f5f4ef;}${css}</style>`,
     '</head><body>',
     fragment,
@@ -123,7 +127,7 @@ export function renderGiftCardPdf(targetPath, { variables = {}, qrDataUrl = '' }
 
       // Bandeau de marque.
       doc.fillColor('#5f4ff7').rect(0, 0, 420, 110).fill();
-      doc.fillColor('#ffffff').fontSize(18).text(variables.instituteName || INSTITUTE_NAME, left, 36);
+      doc.fillColor('#ffffff').fontSize(18).text(variables.instituteName || getInstituteName(), left, 36);
       if (variables.paymentLabel) {
         doc.fontSize(10).fillColor('#ffffff').text(variables.paymentLabel, left, 64);
       }
@@ -183,7 +187,7 @@ export async function renderGiftCardPreview(template = {}, overrides = {}) {
     message: previewData.message || 'Joyeux anniversaire !',
     createdAt: previewData.createdAt || formatDate(new Date('2026-06-30')),
     paymentLabel: previewData.paymentLabel || 'Paiement sur place',
-    instituteName: previewData.instituteName || INSTITUTE_NAME
+    instituteName: previewData.instituteName || getInstituteName()
   };
   const fakePayload = generateGiftCardQrPayload({ token: 'PREVIEW_FAKE_TOKEN_NON_FONCTIONNEL' });
   const qrDataUrl = await generateGiftCardQrDataUrl(fakePayload).catch(() => '');

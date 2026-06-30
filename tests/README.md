@@ -793,3 +793,17 @@ Front (apps/manager + packages) : `features/catalogue/validation.test.ts` (statu
 `catalogue.test.tsx` (dashboard/liste/ModuleStepper/drawer/giftcard, zéro `<table>`), `noHardcodedHex.test.ts`,
 `manager/catalogueApi.test.ts` (URLs/méthodes/envelope), `catalog/reviewsApi.test.ts` (avis vitrine). Suite
 front : 264 verts ; typecheck/lint/build OK.
+
+
+## C2 — Learning Studio + Présence (rapports 211-212)
+
+Backend `tests/p1/learningC2.test.js` : computeProgress pur (% chapitre/formation, leçons cachées ignorées),
+chapitres/leçons CRUD (distanciel only → 404 sur présentiel), accès apprenant gated par Purchase (403 sans
+achat → 200 avec), progression 0→50→100% + completedAt + idempotence, liste mes formations, présence
+(token opaque par participant, scan payload BS-PRESENCE → present, participants summary, QR invalide 404),
+permissions (client refusé sur endpoints présence manager). Routers montés avant broad-mounts dev-only.
+
+Front : `packages/ui/src/embed.test.ts` (resolveEmbed YouTube/Vimeo/Loom/Wistia/iframe + validation),
+`manager/learningApi.test.ts` + `catalog/learningApi.test.ts` (URLs/méthodes), `apps/vitrine/.../player.test.tsx`
+(vidéo embed iframe + complétion → %, zéro table), `apps/manager/.../presence.test.tsx` (participants +
+marquage), noHardcodedHex ×3. Suite front : 284 verts.

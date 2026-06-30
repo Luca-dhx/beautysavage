@@ -8,6 +8,47 @@ import { sanitizeEditorialHtml } from '../editableContentService.js';
 import { MAIL_THEME, buildThemeStyle, createMailTemplateDefinition, normalizeFunctionName, normalizeMode, sanitizeFullHtml } from './mailRenderer.js';
 
 const TEMPLATE_FUNCTIONS = {
+  // C2 — Learning : mails apprenant (éditables ensuite via le Mail Template Studio M6).
+  formation_started: createMailTemplateDefinition({
+    subject: 'Votre formation {{formationName}} a commencé',
+    siteName: '{{siteName}}',
+    eyebrow: 'Formation commencée',
+    title: 'Bonne formation {{firstName}} !',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: ['Vous avez démarré la formation <strong>{{formationName}}</strong>. Avancez à votre rythme, vos progrès sont enregistrés.'],
+    detailItems: [{ label: 'Formation', value: '{{formationName}}' }],
+    signature: '{{siteName}}'
+  }),
+  lesson_completed: createMailTemplateDefinition({
+    subject: 'Leçon terminée — {{lessonName}}',
+    siteName: '{{siteName}}',
+    eyebrow: 'Bravo',
+    title: 'Une leçon de plus, {{firstName}} !',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: ['Vous avez terminé la leçon <strong>{{lessonName}}</strong> de la formation {{formationName}}.'],
+    detailItems: [{ label: 'Leçon', value: '{{lessonName}}' }],
+    signature: '{{siteName}}'
+  }),
+  formation_completed: createMailTemplateDefinition({
+    subject: 'Félicitations — formation {{formationName}} terminée',
+    siteName: '{{siteName}}',
+    eyebrow: 'Formation terminée',
+    title: 'Bravo {{firstName}}, vous avez terminé !',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: ['Vous avez terminé l’intégralité de la formation <strong>{{formationName}}</strong>. Félicitations !'],
+    detailItems: [{ label: 'Formation', value: '{{formationName}}' }],
+    signature: '{{siteName}}'
+  }),
+  presence_confirmed: createMailTemplateDefinition({
+    subject: 'Présence confirmée — {{formationName}}',
+    siteName: '{{siteName}}',
+    eyebrow: 'Présence validée',
+    title: 'Présence confirmée, {{firstName}}',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: ['Votre présence à la session de <strong>{{formationName}}</strong> du {{sessionDate}} a bien été enregistrée.'],
+    detailItems: [{ label: 'Formation', value: '{{formationName}}' }, { label: 'Date', value: '{{sessionDate}}' }],
+    signature: '{{siteName}}'
+  }),
   vente: createMailTemplateDefinition({
     subject: 'Confirmation de votre achat chez Beauty Savage',
     siteName: 'Beauty Savage',

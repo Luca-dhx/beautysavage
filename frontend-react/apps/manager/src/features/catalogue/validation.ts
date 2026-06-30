@@ -128,7 +128,8 @@ export function validateTraining(
     // Accès immédiat sans remboursement → la renonciation légale est requise côté checkout.
     issues.push(warn('acces', 'Accès immédiat : la renonciation légale au délai de rétractation sera demandée au client.'));
   }
-  return aggregate(issues, ['identite', 'prix', 'acces'], ['medias', 'vitrine']);
+  // 'contenu' (chapitres/leçons) = optionnel pour la publication (une formation peut être livrée via accessUrl).
+  return aggregate(issues, ['identite', 'prix', 'acces'], ['contenu', 'medias', 'vitrine']);
 }
 
 // ── Cartes cadeaux ─────────────────────────────────────────────────────────────

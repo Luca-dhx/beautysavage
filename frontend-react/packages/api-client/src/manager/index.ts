@@ -15,3 +15,5 @@ export * from './giftCardLibrary';
 export * from './manualBooking';
 export * from './customerNotes';
 export * from './catalogue';
+export * from './learning';
+export * from './systemConfiguration';

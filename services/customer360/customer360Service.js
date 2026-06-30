@@ -16,6 +16,8 @@ import Notification from '../../models/Notification.js';
 import SendLog from '../../models/SendLog.js';
 import EventLog from '../../models/EventLog.js';
 import Formation from '../../models/Formation.js';
+import FormationProgress from '../../models/FormationProgress.js';
+import SessionAttendance from '../../models/SessionAttendance.js';
 import Product from '../../models/Product.js';
 import { hashRecipient } from '../sendLogService.js';
 import {
@@ -55,12 +57,18 @@ export async function buildCustomer360(customerId) {
   const saleIds = salesRaw.map(s => String(s.saleId || '').trim()).filter(Boolean);
   const recipientHash = hashRecipient(customer.email);
 
+  // C2 — sessions présentielles réservées (pour la présence) + ids learning corrélés.
+  const sessionIds = [...new Set(purchasesRaw.map(p => String(p.sessionId || '')).filter(Boolean))];
+
   // contextId corrélés (events/notifs/sendlogs) : saleId + ids DB + ids métier.
   const contextIds = [
     ...saleIds,
     ...bookingsRaw.flatMap(b => [String(b._id), b.bookingId].filter(Boolean)),
     ...refundsRaw.flatMap(r => [String(r._id), r.refundId].filter(Boolean)),
-    ...giftCardsRaw.map(g => String(g._id))
+    ...giftCardsRaw.map(g => String(g._id)),
+    // C2 — formation/session ids → les EventLog learning (formation.started/completed, présence) sont récupérés.
+    ...formationIds,
+    ...sessionIds
   ];
 
   // 3. Entités corrélées (parallèle).
@@ -81,10 +89,18 @@ export async function buildCustomer360(customerId) {
   const formationById = new Map(formations.map(f => [String(f._id), f]));
   const productById = new Map(products.map(p => [String(p._id), p]));
 
+  // C2 — progression + présence (learning), best-effort additif.
+  const [progressRaw, attendanceRaw] = await Promise.all([
+    formationIds.length ? FormationProgress.find({ userId: customer._id, formationId: { $in: formationIds } }).lean() : [],
+    sessionIds.length ? SessionAttendance.find({ userId: customer._id, sessionId: { $in: sessionIds } }).lean() : []
+  ]);
+  const progressByFormation = new Map(progressRaw.map(p => [String(p.formationId), p]));
+  const attendanceBySession = new Map(attendanceRaw.map(a => [String(a.sessionId), a]));
+
   // 4. Mapping SAFE.
   const sales = salesRaw.map(mapSale);
   const bookings = bookingsRaw.map(b => mapBooking(b));
-  const mappedFormations = purchasesRaw.filter(p => p.itemType === 'formation').map(p => mapFormation(p, formationById));
+  const mappedFormations = purchasesRaw.filter(p => p.itemType === 'formation').map(p => mapFormation(p, formationById, progressByFormation, attendanceBySession));
   const mappedProducts = purchasesRaw.filter(p => p.itemType === 'product').map(p => mapProduct(p, productById));
   const giftCards = giftCardsRaw.map(mapGiftCard);
   const refunds = refundsRaw.map(mapRefund);

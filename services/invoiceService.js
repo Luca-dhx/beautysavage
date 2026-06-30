@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import PDFDocument from 'pdfkit';
 import Invoice from '../models/Invoice.js';
 import { VAT_LEGAL_LABEL } from '../constants/tax.js';
+import { resolveInstituteName, resolveInstituteEmail } from './system/systemConfigurationService.js';
 
 const STORAGE_DIR = path.join(process.cwd(), 'storage', 'invoices');
 const TEMPLATE_PATH = path.join(process.cwd(), 'templates', 'invoice.html');
@@ -317,9 +318,9 @@ export async function createInvoiceForSale(sale) {
     saleId: sale.saleId,
     customerName: `${escapeHtml(sale.customer?.firstName || '')} ${escapeHtml(sale.customer?.lastName || '')}`.trim() || 'Client',
     customerEmail: escapeHtml(sale.customer?.email || 'non renseigné'),
-    vendorName: escapeHtml(process.env.INSTITUTE_NAME || 'Institut Beauty Savage'),
+    vendorName: escapeHtml(resolveInstituteName() || 'Institut Beauty Savage'),
     vendorEmail: escapeHtml(
-      process.env.INVOICE_CONTACT_EMAIL || process.env.MAIL_FROM || 'contact@beautysavage.fr'
+      resolveInstituteEmail() || 'contact@beautysavage.fr'
     ),
     itemsRows: buildItemsRowsHtml(items),
     totalAmount: escapeHtml(formatCurrency(sale.totalAmount)),
@@ -331,8 +332,8 @@ export async function createInvoiceForSale(sale) {
   // D2 — la carte cadeau apparaît comme ligne de RÈGLEMENT (pas une remise).
   const giftCardReceipt = buildGiftCardReceiptInfo(sale);
   await renderPdf(filePath, {
-    vendorName: process.env.INSTITUTE_NAME || 'Institut Beauty Savage',
-    vendorEmail: process.env.INVOICE_CONTACT_EMAIL || process.env.MAIL_FROM || 'contact@beautysavage.fr',
+    vendorName: resolveInstituteName() || 'Institut Beauty Savage',
+    vendorEmail: resolveInstituteEmail() || 'contact@beautysavage.fr',
     customerName: `${sale.customer?.firstName || ''} ${sale.customer?.lastName || ''}`.trim() || 'Client',
     customerEmail: sale.customer?.email || 'non renseigné',
     invoiceNumber,

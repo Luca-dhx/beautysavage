@@ -33,7 +33,7 @@ import {
   sendRefundRequestedEmail,
   sendSessionRescheduledEmail
 } from '../services/mailService.js';
-import { getAppBaseUrl } from '../utils/invoiceUrl.js';
+import { resolveVitrineUrl } from '../services/system/domainResolver.js';
 
 function sanitizeToken(value) {
   return String(value || '').trim();
@@ -222,7 +222,7 @@ export async function submitSessionCancellationRefundDecision(req, res) {
 
     const formationName = await resolveFormationName(flow);
     const trackingUrl = refundRequest?.trackingToken
-      ? `${getAppBaseUrl()}/vitrine.html?page=refund-tracking&token=${refundRequest.trackingToken}`
+      ? resolveVitrineUrl(`vitrine.html?page=refund-tracking&token=${refundRequest.trackingToken}`)
       : '';
     // SECURITY (Phase 1A): removed a debug log that exposed the public refund
     // tracking token, the full tracking URL and the client email in stdout.

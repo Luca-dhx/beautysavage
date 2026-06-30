@@ -14,6 +14,7 @@ import FormationSession from '../models/FormationSession.js';
 import Purchase from '../models/Purchase.js';
 import User from '../models/user.js';
 import { computeProgress, markLessonComplete, refreshCompletion, getOrCreateProgress } from '../services/learning/progressionService.js';
+import { getOrCreateAttestationForProgress } from '../services/learning/attestationRenderService.js';
 import {
   onFormationStarted,
   onLessonCompleted,
@@ -355,7 +356,15 @@ export async function completeLesson(req, res) {
     const user = req.sessionUser;
     if (justStarted) void onFormationStarted(user, formation);
     void onLessonCompleted(user, formation, lesson);
-    if (justCompleted) void onFormationCompleted(user, formation);
+    if (justCompleted) {
+      // C3 — génère l'attestation dès la complétion (idempotent ; le téléchargement la régénère sinon).
+      try {
+        await getOrCreateAttestationForProgress(progressDoc, { formation, user });
+      } catch (e) {
+        console.error('[learning] génération attestation', e?.message || e);
+      }
+      void onFormationCompleted(user, formation, { attestationReady: Boolean(progressDoc.attestation?.certificateId) });
+    }
 
     return res.json({
       ok: true,
@@ -399,6 +408,57 @@ export async function getMyAttendanceToken(req, res) {
     });
   } catch (err) {
     console.error('[learning] getMyAttendanceToken', err);
+    return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
+  }
+}
+
+// ═══════════════════ Attestation PDF (C3) ═══════════════════
+// Stream le PDF (téléchargement). Aucune donnée sensible dans le nom de fichier (certificateId opaque).
+function streamAttestationPdf(res, result, formationName) {
+  const safeName = String(formationName || 'formation').normalize('NFD').replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 60) || 'formation';
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="attestation-${safeName}.pdf"`);
+  return res.sendFile(result.pdfPath);
+}
+
+// Client : son attestation (formation TERMINÉE uniquement, gated par Purchase).
+export async function getClientAttestation(req, res) {
+  try {
+    const userId = req.sessionUser?._id;
+    const formation = await loadDistancielFormation(req.params.formationId);
+    if (!formation) return res.status(404).json({ ok: false, error: 'Formation introuvable.' });
+    const purchase = await findFormationPurchase(userId, formation._id);
+    if (!purchase) return res.status(403).json({ ok: false, error: 'Accès refusé.' });
+    const progress = await FormationProgress.findOne({ userId, formationId: formation._id });
+    if (!progress || !progress.completedAt) {
+      return res.status(409).json({ ok: false, error: 'Formation non terminée.', code: 'NOT_COMPLETED' });
+    }
+    const result = await getOrCreateAttestationForProgress(progress, { formation, user: req.sessionUser });
+    return streamAttestationPdf(res, result, formation.name);
+  } catch (err) {
+    console.error('[learning] getClientAttestation', err);
+    return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
+  }
+}
+
+// Manager (admin/dev) : attestation d'un client donné.
+export async function getManagerAttestation(req, res) {
+  try {
+    const { customerId, formationId } = req.params;
+    if (!isId(customerId) || !isId(formationId)) return res.status(400).json({ ok: false, error: 'Identifiant invalide.' });
+    const [formation, user] = await Promise.all([
+      Formation.findById(formationId).lean(),
+      User.findById(customerId).select('firstName lastName email').lean()
+    ]);
+    if (!formation || !user) return res.status(404).json({ ok: false, error: 'Introuvable.' });
+    const progress = await FormationProgress.findOne({ userId: customerId, formationId });
+    if (!progress || !progress.completedAt) {
+      return res.status(409).json({ ok: false, error: 'Formation non terminée.', code: 'NOT_COMPLETED' });
+    }
+    const result = await getOrCreateAttestationForProgress(progress, { formation, user });
+    return streamAttestationPdf(res, result, formation.name);
+  } catch (err) {
+    console.error('[learning] getManagerAttestation', err);
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
   }
 }

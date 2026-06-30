@@ -244,3 +244,8 @@ Lecture seule (modération admin → C2). Détail : rapport 210.
 desktop nav gauche + vidéo droite), progression serveur, téléchargements, confetti léger à 100% (coupé
 reduced-motion). api-client `catalog/learning.ts`. Accès gated serveur (Purchase). Nav « Mes formations ».
 Détail : rapport 212.
+
+## C3 — Attestation apprenant
+`FormationPlayer` : bouton « Télécharger l'attestation » à 100% (`attestationDownloadUrl`, lien authentifié),
+navigation leçon précédente/suivante. L'attestation PDF est générée à la complétion (backend pdfkit). Détail :
+rapport 216.

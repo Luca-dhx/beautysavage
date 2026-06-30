@@ -1,3 +1,8 @@
+// @deprecated C3 — Viewer distanciel legacy (FormationModule). L'expérience apprenante de référence
+// est désormais le Learning Studio React (Formation → Chapitre → Leçon → Ressource + progression
+// serveur + attestation) servie sur la vitrine authentifiée `/mes-formations`. Ce module est
+// conservé pour rétro-compatibilité uniquement et sera retiré dans une version ultérieure (voir
+// rapport 216). Ne pas faire évoluer ici : toute nouvelle fonctionnalité va côté React.
 const MY_FORMATIONS_ENDPOINT = '/api/client/me/formations';
 const MODULES_ENDPOINT = formationId => `/api/client/formations/${formationId}/modules`;
 

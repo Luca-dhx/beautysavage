@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LessonEmbed, LoadingState, ErrorState } from '@bs/ui';
 import type { LearnerLesson } from '@bs/api-client';
+import { attestationDownloadUrl } from '@bs/api-client';
 import { useMyLearningFormation, useCompleteLesson } from './hooks';
 import { Confetti } from './Confetti';
 import './learning.css';
@@ -46,6 +47,8 @@ export function FormationPlayer({ formationId }: { formationId: string }) {
   const activeLesson = orderedLessons.find((l) => l.id === activeId) || orderedLessons[0] || null;
   const activeIndex = activeLesson ? orderedLessons.findIndex((l) => l.id === activeLesson.id) : -1;
   const nextLesson = activeIndex >= 0 ? orderedLessons[activeIndex + 1] : undefined;
+  const prevLesson = activeIndex > 0 ? orderedLessons[activeIndex - 1] : undefined;
+  const isComplete = Boolean(progress.completedAt);
 
   function markDone() {
     if (!activeLesson) return;
@@ -94,6 +97,11 @@ export function FormationPlayer({ formationId }: { formationId: string }) {
           <span className="bs-lrn__progressbar" style={{ width: `${progress.formationPct}%` }} />
         </div>
         <span className="bs-lrn__pct">{progress.formationPct}% terminé</span>
+        {isComplete ? (
+          <a className="bs-btn bs-lrn__attestation" href={attestationDownloadUrl(formation.id)} target="_blank" rel="noreferrer">
+            <i className="bi bi-award" aria-hidden="true" /> Télécharger l'attestation
+          </a>
+        ) : null}
       </div>
 
       <div className="bs-lrn__layout">
@@ -118,6 +126,11 @@ export function FormationPlayer({ formationId }: { formationId: string }) {
               ) : null}
 
               <div className="bs-lrn__actions">
+                {prevLesson ? (
+                  <button type="button" className="bs-btn bs-btn--secondary" onClick={() => setActiveId(prevLesson.id)} aria-label="Leçon précédente">
+                    <i className="bi bi-arrow-left" aria-hidden="true" />
+                  </button>
+                ) : null}
                 <button type="button" className="bs-btn" disabled={complete.isPending} onClick={markDone}>
                   <i className="bi bi-check-lg" aria-hidden="true" /> {completed.has(activeLesson.id) ? 'Revoir comme terminé' : "J'ai terminé"}
                 </button>

@@ -1,3 +1,6 @@
+// @deprecated C3 — Détail module distanciel legacy. Remplacé par le Learning Studio React
+// (`/mes-formations`, lecteur Formation → Chapitre → Leçon). Conservé pour rétro-compatibilité,
+// retrait planifié (voir rapport 216). Ne pas faire évoluer ici.
 const MODULE_DETAIL_ENDPOINT = moduleId => `/api/client/modules/${moduleId}`;
 
 function escapeHtml(value = '') {

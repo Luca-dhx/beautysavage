@@ -37,3 +37,4 @@ test.txt
 # Test-generated invoice PDFs (non-fiscal snapshots) — not versioned
 storage/invoices/
 storage/giftcards/
+storage/attestations/

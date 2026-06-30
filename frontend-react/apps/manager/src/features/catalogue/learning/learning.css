@@ -25,3 +25,8 @@
 .lrn-draweractions { display: flex; justify-content: space-between; gap: var(--bs-space-2); margin-top: var(--bs-space-2); }
 
 @media (prefers-reduced-motion: reduce) { .lrn-chapter__head, .lrn-lessoncard { transition: none; } }
+
+/* C3 — Reorder up/down (mobile-first, pas uniquement drag) */
+.lrn-lessonrow { display: flex; align-items: center; gap: var(--bs-space-1); }
+.lrn-lessonrow .lrn-lessoncard { flex: 1; min-width: 0; }
+.lrn-reorder { display: inline-flex; gap: 2px; flex-shrink: 0; }

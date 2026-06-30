@@ -4121,3 +4121,22 @@ suivant ; desktop nav gauche + vidéo droite ; confetti léger à 100% coupé re
 44px, mobile-first, zéro table/hex. Tests : backend p0+p1+integration verts (+learningC2), front 284 verts,
 typecheck/lint/build OK. Limites : attestation preview only (génération → C3), reorder UI non câblée, embed
 only. Détail : rapport 212.
+
+
+## C3 — Learning Completion : attestations, QR prod, reorder, avis (rapports 215-216)
+
+Finalisation expérience formation, additif. **Attestation PDF** : `services/learning/attestationRenderService.js`
+(pdfkit comme M13 ; `getOrCreateAttestationForProgress` idempotent ; instituteName via S1 `resolveInstituteName`),
+`FormationProgress.attestation{certificateId,generatedAt}`, stockage `storage/attestations/` (gitignoré),
+endpoints `GET /api/client/learning/formations/:id/attestation` (gated completed → 409 NOT_COMPLETED) +
+`GET /api/gestion/learning/customers/:customerId/formations/:formationId/attestation` (admin/dev), généré à
+`formation.completed` + mention dans le mail. **QR scanner prod** (`features/learning/QrScanner.tsx`) : états,
+choix caméra, permission UX, fallback saisie manuelle, debounce, vibration ; token opaque jamais affiché.
+**Présence** : filtres présent/absent/en attente. **Reorder** : boutons monter/descendre (endpoints C2). **Avis** :
+`Review.status` (pending/published/rejected, défaut published, vitrine = published ou legacy), endpoints
+`/api/gestion/learning/reviews` (list) + PATCH (modération), UI `features/reviews/ReviewModerationPage`
+(route `/avis`). **Vanilla distanciel** : `@deprecated` (distancielModulesModule/myFormationModuleDetailModule),
+conservé. Client `FormationPlayer` : bouton attestation à 100% + prev/next. Customer360 `FormationSection` :
+lien attestation si terminé. Tokens --bs-* only, 44px, mobile-first, zéro table/hex. Tests : backend
+p0+p1+integration verts (+learningC3 6 cas), front 299 verts, typecheck/lint/build OK. Limites : PDF V1 pdfkit
+(pas pixel-perfect), attestation présentielle non couverte, reorder = boutons (pas drag). Détail : rapport 216.

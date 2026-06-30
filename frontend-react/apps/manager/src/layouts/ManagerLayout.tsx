@@ -9,6 +9,7 @@ const MANAGER_NAV = [
   { to: '/planning', label: 'Planning' },
   { to: '/reservations', label: 'Réservations' },
   { to: '/catalogue', label: 'Catalogue' },
+  { to: '/avis', label: 'Avis' },
   { to: '/cartes-cadeaux/templates', label: 'Modèles carte cadeau' },
   { to: '/ventes', label: 'Ventes' },
   { to: '/remboursements', label: 'Remboursements' },

@@ -428,3 +428,11 @@ Feature dev-only `features/systemSettings/SystemSettingsPage.tsx` (route `/dev/s
 Mobile-first (cibles 44px). api-client `manager/systemConfiguration.ts` (GET/PUT
 `/api/gestion/dev/system-configuration`). Backend : `SystemConfiguration` (singleton) + `DomainResolver`
 (toutes les URLs générées en découlent). Détail : rapports 213/214.
+
+## C3 — Attestations, QR prod, reorder, modération avis
+QR scanner durci (`features/learning/QrScanner.tsx` : caméra multi, permission UX, fallback saisie manuelle,
+debounce, vibration). Présence filtrée (présent/absent/en attente). Reorder chapitres/leçons (boutons
+monter/descendre dans `ChapterEditor`). Modération avis : `features/reviews/ReviewModerationPage` (route
+`/avis`, nav « Avis »), api-client `manager/learning.ts` (listReviewsForModeration/moderateReview).
+Customer360 `FormationSection` → lien attestation (`managerAttestationUrl`) si formation terminée. Détail :
+rapport 216.

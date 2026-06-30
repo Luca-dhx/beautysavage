@@ -113,3 +113,16 @@ les sessions présentielles réutilisent les cards/badges du Planning M10 (pas d
   la lib que si le scanner est ouvert), caméra arrière, anti-rebond. Token **opaque** par participant.
 - **Pas de nouvelle app cliente** : l'expérience apprenant vit dans l'app **vitrine** authentifiée
   (`features/learning/`), pas dans une `apps/client` (réutiliser plutôt que créer un nouveau pattern).
+
+## 13. Patterns Learning Completion (C3)
+- **Scan QR présence** (`QrScanner`) : états explicites (init/scanning/denied/error), **choix caméra** si
+  plusieurs, **fallback saisie manuelle toujours disponible**, debounce anti double-scan, vibration mobile,
+  bouton recommencer. Le token reste **opaque** et n'est **jamais affiché en clair** après validation (seul
+  le nom du participant). Caméra via import dynamique (lazy).
+- **Reorder mobile-first** : boutons **monter/descendre** (pas uniquement drag) — zéro dépendance lourde.
+  Le drag desktop reste optionnel.
+- **Attestation** : bouton « Télécharger l'attestation » visible uniquement à **100%** ; lien direct
+  authentifié (cookie same-origin) vers l'endpoint qui stream le PDF. Le PDF V1 est rendu en pdfkit (pas de
+  HTML pixel-perfect).
+- **Modération avis** : la vitrine n'affiche que les avis **publiés** ; cards (zéro table), filtres par
+  statut + compteurs, actions Publier/Masquer/En attente.

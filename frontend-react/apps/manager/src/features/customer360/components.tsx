@@ -1,6 +1,7 @@
 // M12 — Composants présentiels Customer 360 (mobile-first, cards, animés, accessibles).
 // Aucune couleur hex en dur (tokens --bs-* via classes c3-*). Aucune <table>. Cibles ≥44px.
 import { useEffect, useState, type ReactNode } from 'react';
+import { managerAttestationUrl } from '@bs/api-client';
 import type {
   CustomerSearchCard, TimelineItem, CustomerBooking, CustomerSale,
   CustomerFormation, CustomerProduct, CustomerGiftCard, CustomerRefund, CustomerDocument,
@@ -246,7 +247,7 @@ export function SaleSection({ sales, onSelect }: { sales: CustomerSale[]; onSele
     </div>
   );
 }
-export function FormationSection({ formations }: { formations: CustomerFormation[] }) {
+export function FormationSection({ formations, customerId }: { formations: CustomerFormation[]; customerId?: string }) {
   if (!formations.length) return <CustomerEmptyState label="Aucune formation" icon="bi-mortarboard" />;
   return (
     <div className="c3-list">
@@ -264,7 +265,14 @@ export function FormationSection({ formations }: { formations: CustomerFormation
               <strong>{f.name}</strong>
               <span className="c3-listitem__sub">{f.type || 'Formation'} · {fmtDate(f.acquiredAt)}{learningBits.length ? ` · ${learningBits.join(' · ')}` : ''}</span>
             </span>
-            <span className="c3-tag">{f.participationStatus}</span>
+            {/* C3 — attestation téléchargeable si la formation est terminée. */}
+            {f.completedAt && customerId && f.formationId ? (
+              <a className="c3-tag c3-tag--link" href={managerAttestationUrl(customerId, f.formationId)} target="_blank" rel="noreferrer" aria-label="Télécharger l'attestation">
+                <i className="bi bi-award" aria-hidden="true" /> Attestation
+              </a>
+            ) : (
+              <span className="c3-tag">{f.participationStatus}</span>
+            )}
           </div>
         );
       })}

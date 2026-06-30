@@ -1,8 +1,14 @@
 // C2 — Expérience apprenant (client, vitrine authentifiée). Lecture parcours + complétion leçon +
 // token de présence. Accès gated côté serveur (Purchase).
+import { API_BASE_URL } from '@bs/config';
 import { apiGet, apiPost } from '../apiFetch';
 
 const BASE = '/api/client/learning';
+
+// C3 — URL de téléchargement de l'attestation (lien direct authentifié par cookie same-origin).
+export function attestationDownloadUrl(formationId: string): string {
+  return `${API_BASE_URL || ''}${BASE}/formations/${encodeURIComponent(formationId)}/attestation`;
+}
 
 export interface MyLearningFormation {
   formationId: string;

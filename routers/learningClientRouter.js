@@ -7,7 +7,8 @@ import {
   listMyLearningFormations,
   getMyLearningFormation,
   completeLesson,
-  getMyAttendanceToken
+  getMyAttendanceToken,
+  getClientAttestation
 } from '../controllers/learningController.js';
 
 const router = express.Router();
@@ -17,6 +18,7 @@ router.use(requireAuth());
 router.get('/formations', listMyLearningFormations);
 router.get('/formations/:id', getMyLearningFormation);
 router.post('/lessons/:lessonId/complete', completeLesson);
+router.get('/formations/:formationId/attestation', getClientAttestation);
 router.get('/sessions/:sessionId/attendance-token', getMyAttendanceToken);
 
 export default router;

@@ -15,21 +15,32 @@ function StatusBadge({ status }: { status: SessionParticipant['status'] }) {
   return <Badge tone="muted">En attente</Badge>;
 }
 
+type PresenceFilter = 'all' | 'present' | 'absent' | 'pending';
+
 export function SessionPresencePage() {
   const { id = '', sessionId = '' } = useParams();
   const participants = useParticipants(sessionId);
   const { mark, scan } = useAttendanceMutations(sessionId);
   const [scanning, setScanning] = useState(false);
   const [flash, setFlash] = useState('');
+  const [filter, setFilter] = useState<PresenceFilter>('all');
 
   function onDecode(text: string) {
     scan.mutate(text, {
+      // Aucun token affiché : seulement le nom du participant validé.
       onSuccess: (p) => setFlash(`✓ ${p.name} — présent`),
       onError: () => setFlash('✗ QR non reconnu'),
     });
   }
 
   const data = participants.data;
+  const FILTERS: { key: PresenceFilter; label: string }[] = [
+    { key: 'all', label: 'Tous' },
+    { key: 'present', label: 'Présents' },
+    { key: 'absent', label: 'Absents' },
+    { key: 'pending', label: 'En attente' },
+  ];
+  const visibleParticipants = (data?.participants ?? []).filter((p) => filter === 'all' || p.status === filter);
 
   return (
     <div className="cat-page">
@@ -54,11 +65,22 @@ export function SessionPresencePage() {
 
       {scanning ? <QrScanner onDecode={onDecode} onClose={() => setScanning(false)} /> : null}
 
+      {data && data.participants.length > 0 ? (
+        <div className="lrn-presencefilters" role="tablist" aria-label="Filtrer la présence">
+          {FILTERS.map((f) => (
+            <button key={f.key} type="button" role="tab" aria-selected={filter === f.key}
+              className={`lrn-filter${filter === f.key ? ' lrn-filter--active' : ''}`} onClick={() => setFilter(f.key)}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       {participants.status === 'pending' ? (
         <CatalogueSkeleton rows={3} />
       ) : data && data.participants.length > 0 ? (
         <div className="lrn-participants">
-          {data.participants.map((p) => (
+          {visibleParticipants.map((p) => (
             <article key={p.userId} className="lrn-participant" data-testid="lrn-participant">
               <span className="lrn-participant__name">{p.name}</span>
               <StatusBadge status={p.status} />

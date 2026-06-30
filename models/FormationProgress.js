@@ -24,7 +24,12 @@ const formationProgressSchema = new mongoose.Schema(
       default: null
     },
     startedAt: { type: Date, default: null },
-    completedAt: { type: Date, default: null }
+    completedAt: { type: Date, default: null },
+    // C3 — Attestation générée (PDF). certificateId opaque unique ; chemin local gitignoré.
+    attestation: {
+      certificateId: { type: String, default: '' },
+      generatedAt: { type: Date, default: null }
+    }
   },
   {
     timestamps: true,

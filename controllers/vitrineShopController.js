@@ -298,7 +298,8 @@ export async function getFormationReviewStats(req, res) {
     }
     const objectId = new Types.ObjectId(formationId);
     const aggregation = await Review.aggregate([
-      { $match: { formationId: objectId } },
+      // C3 — modération : seuls les avis publiés (ou legacy sans statut) comptent en vitrine.
+      { $match: { formationId: objectId, $or: [{ status: 'published' }, { status: { $exists: false } }] } },
       {
         $group: {
           _id: null,
@@ -331,7 +332,8 @@ export async function getFormationReviews(req, res) {
       sort === 'best'
         ? { rating: -1, createdAt: -1, _id: -1 }
         : { createdAt: -1, rating: -1, _id: -1 };
-    const match = { formationId: new Types.ObjectId(formationId) };
+    // C3 — modération : vitrine = avis publiés (ou legacy sans statut).
+    const match = { formationId: new Types.ObjectId(formationId), $or: [{ status: 'published' }, { status: { $exists: false } }] };
     const cursor = Review.find(match)
       .sort(sortStage)
       .skip((page - 1) * pageSize)

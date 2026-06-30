@@ -67,3 +67,6 @@
   .bs-confetti { display: none; }
   .bs-myf__card, .bs-lrn__progressbar { transition: none; }
 }
+
+/* C3 — Bouton attestation (player) */
+.bs-lrn__attestation { display: inline-flex; align-items: center; justify-content: center; gap: var(--bs-space-1); min-height: 44px; margin-top: var(--bs-space-1); align-self: flex-start; }

@@ -54,6 +54,7 @@ import {
   ProductsUnavailablePage,
 } from './features/catalogue';
 import { SessionPresencePage } from './features/learning';
+import { ReviewModerationPage } from './features/reviews';
 
 // Routing manager R0 — placeholders + guards rôle (cf. rapport 147).
 // Manager = admin ou dev. /dev/* = dev uniquement. /login public.
@@ -89,6 +90,8 @@ export function App() {
           </Route>
           {/* M13 — Librairie de templates carte cadeau (admin/dev : sélection de l'actif, sans édition HTML) */}
           <Route path="cartes-cadeaux/templates" element={<GiftCardLibraryPage />} />
+          {/* C3 — Modération des avis */}
+          <Route path="avis" element={<ReviewModerationPage />} />
           <Route path="ventes" element={<Placeholder title="Ventes" description="Historique des ventes." />} />
           <Route path="remboursements" element={<Placeholder title="Remboursements" description="Gestion des remboursements." />} />
           <Route path="commissions" element={<Placeholder title="Commissions" description="Paiement des commissions." />} />

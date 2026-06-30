@@ -35,7 +35,7 @@ const TEMPLATE_FUNCTIONS = {
     eyebrow: 'Formation terminée',
     title: 'Bravo {{firstName}}, vous avez terminé !',
     intro: 'Bonjour {{firstName}},',
-    paragraphs: ['Vous avez terminé l’intégralité de la formation <strong>{{formationName}}</strong>. Félicitations !'],
+    paragraphs: ['Vous avez terminé l’intégralité de la formation <strong>{{formationName}}</strong>. Félicitations !', '{{attestationLine}}'],
     detailItems: [{ label: 'Formation', value: '{{formationName}}' }],
     signature: '{{siteName}}'
   }),

@@ -62,4 +62,21 @@ describe('FormationPlayer', () => {
     fireEvent.click(await screen.findByText("J'ai terminé"));
     await waitFor(() => expect(screen.getByText('50% terminé')).toBeInTheDocument());
   });
+
+  it('affiche le bouton attestation quand la formation est terminée (C3)', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
+      ...FORMATION,
+      progress: { ...FORMATION.progress, formationPct: 100, completedAt: '2026-06-30', completedLessonIds: ['l1', 'l2'] },
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/mes-formations/f1']}>
+          <FormationPlayer formationId="f1" />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const link = await screen.findByText(/Télécharger l'attestation/i);
+    expect(link.closest('a')?.getAttribute('href')).toContain('/api/client/learning/formations/f1/attestation');
+  });
 });

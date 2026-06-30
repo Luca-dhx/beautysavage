@@ -115,7 +115,7 @@ export function Customer360Page() {
             <SaleSection sales={data.sales} onSelect={onSaleSelect} />
           </Accordion>
           <Accordion title="Formations" icon="bi-mortarboard" count={data.formations.length} testid="c3-acc-formations">
-            <FormationSection formations={data.formations} />
+            <FormationSection formations={data.formations} customerId={id} />
           </Accordion>
           <Accordion title="Produits" icon="bi-box-seam" count={data.products.length} testid="c3-acc-products">
             <ProductSection products={data.products} />

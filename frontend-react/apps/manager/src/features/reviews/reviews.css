@@ -1,0 +1,12 @@
+/* C3 — Modération avis (manager). Prefixe rvm-. Tokens --bs-* only, mobile-first, 44px, zéro hex/table. */
+.rvm-filters { display: flex; gap: var(--bs-space-1); overflow-x: auto; padding-bottom: var(--bs-space-1); }
+.rvm-count { font-weight: 700; }
+.rvm-list { display: flex; flex-direction: column; gap: var(--bs-space-2); }
+.rvm-card { display: flex; flex-direction: column; gap: var(--bs-space-1); padding: var(--bs-space-3); border: 1px solid var(--bs-color-border); border-radius: var(--bs-radius); background: var(--bs-color-surface); }
+.rvm-card__head { display: flex; align-items: center; justify-content: space-between; gap: var(--bs-space-2); }
+.rvm-card__author { font-weight: 600; }
+.rvm-card__formation { font-size: 0.82rem; color: var(--bs-color-muted); }
+.rvm-stars { color: var(--bs-color-secondary); display: inline-flex; gap: 1px; }
+.rvm-card__comment { margin: 0; color: var(--bs-color-text); }
+.rvm-card__comment--empty { color: var(--bs-color-muted); font-style: italic; }
+.rvm-card__actions { display: flex; gap: var(--bs-space-1); flex-wrap: wrap; padding-top: var(--bs-space-1); }

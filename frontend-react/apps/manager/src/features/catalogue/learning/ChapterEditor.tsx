@@ -91,6 +91,15 @@ function LessonDrawer({ lesson, onClose, onSave, onDelete, busy }: {
   );
 }
 
+// Réordonne une liste d'ids en déplaçant l'élément `index` de `dir` (-1 haut, +1 bas).
+function movedOrder(ids: string[], index: number, dir: number): string[] | null {
+  const next = index + dir;
+  if (next < 0 || next >= ids.length) return null;
+  const copy = [...ids];
+  [copy[index], copy[next]] = [copy[next], copy[index]];
+  return copy;
+}
+
 // ── Éditeur principal : accordion de chapitres ───────────────────────────────────
 export function ChapterEditor({ formationId }: { formationId: string }) {
   const tree = useLearningTree(formationId);
@@ -100,9 +109,20 @@ export function ChapterEditor({ formationId }: { formationId: string }) {
   const [newChapterTitle, setNewChapterTitle] = useState('');
 
   if (tree.status === 'pending') return <CatalogueSkeleton rows={3} />;
-  const chapters = tree.data?.chapters ?? [];
+  const chapters = [...(tree.data?.chapters ?? [])].sort((a, b) => a.order - b.order);
   const lessons = tree.data?.lessons ?? [];
   const lessonsOf = (chapterId: string) => lessons.filter((l) => l.chapterId === chapterId).sort((a, b) => a.order - b.order);
+  const chapterIds = chapters.map((c) => c.id);
+
+  function moveChapter(index: number, dir: number) {
+    const next = movedOrder(chapterIds, index, dir);
+    if (next) m.reorderChapters.mutate(next);
+  }
+  function moveLesson(chapterId: string, index: number, dir: number) {
+    const ids = lessonsOf(chapterId).map((l) => l.id);
+    const next = movedOrder(ids, index, dir);
+    if (next) m.reorderLessons.mutate(next);
+  }
 
   return (
     <div className="lrn-editor">
@@ -118,7 +138,7 @@ export function ChapterEditor({ formationId }: { formationId: string }) {
         <CatalogueEmptyState icon="bi-collection-play" title="Aucun chapitre" description="Ajoutez un premier chapitre pour structurer la formation." />
       ) : (
         <div className="lrn-chapters">
-          {chapters.sort((a, b) => a.order - b.order).map((ch) => {
+          {chapters.map((ch, chIndex) => {
             const open = openChapter === ch.id;
             const chLessons = lessonsOf(ch.id);
             return (
@@ -132,13 +152,19 @@ export function ChapterEditor({ formationId }: { formationId: string }) {
                 {open ? (
                   <div className="lrn-chapter__body">
                     <div className="lrn-lessons">
-                      {chLessons.map((l) => (
-                        <button key={l.id} type="button" className="lrn-lessoncard" onClick={() => setEditingLesson(l)} data-testid="lrn-lessoncard">
-                          <i className="bi bi-play-circle" aria-hidden="true" />
-                          <span className="lrn-lessoncard__title">{l.title}</span>
-                          {l.estimatedMinutes ? <span className="lrn-lessoncard__min">{l.estimatedMinutes} min</span> : null}
-                          {l.isFree ? <span className="lrn-lessoncard__free">Offert</span> : null}
-                        </button>
+                      {chLessons.map((l, lIndex) => (
+                        <div key={l.id} className="lrn-lessonrow">
+                          <button type="button" className="lrn-lessoncard" onClick={() => setEditingLesson(l)} data-testid="lrn-lessoncard">
+                            <i className="bi bi-play-circle" aria-hidden="true" />
+                            <span className="lrn-lessoncard__title">{l.title}</span>
+                            {l.estimatedMinutes ? <span className="lrn-lessoncard__min">{l.estimatedMinutes} min</span> : null}
+                            {l.isFree ? <span className="lrn-lessoncard__free">Offert</span> : null}
+                          </button>
+                          <span className="lrn-reorder">
+                            <button type="button" className="cat-iconbtn" aria-label="Monter la leçon" disabled={lIndex === 0} onClick={() => moveLesson(ch.id, lIndex, -1)}><i className="bi bi-arrow-up" aria-hidden="true" /></button>
+                            <button type="button" className="cat-iconbtn" aria-label="Descendre la leçon" disabled={lIndex === chLessons.length - 1} onClick={() => moveLesson(ch.id, lIndex, 1)}><i className="bi bi-arrow-down" aria-hidden="true" /></button>
+                          </span>
+                        </div>
                       ))}
                       <button type="button" className="cat-btn cat-btn--ghost" onClick={() => m.createLesson.mutate({ chapterId: ch.id, title: 'Nouvelle leçon' })}>
                         <i className="bi bi-plus-lg" aria-hidden="true" /> Ajouter une leçon
@@ -146,7 +172,11 @@ export function ChapterEditor({ formationId }: { formationId: string }) {
                     </div>
                     <div className="lrn-chapteractions">
                       <CatalogueVisibilityToggle checked={ch.visible} onChange={(v) => m.updateChapter.mutate({ id: ch.id, input: { visible: v } })} label="Chapitre visible" />
-                      <button type="button" className="cat-iconbtn" aria-label="Supprimer le chapitre" onClick={() => m.deleteChapter.mutate(ch.id)}><i className="bi bi-trash" aria-hidden="true" /></button>
+                      <span className="lrn-reorder">
+                        <button type="button" className="cat-iconbtn" aria-label="Monter le chapitre" disabled={chIndex === 0} onClick={() => moveChapter(chIndex, -1)}><i className="bi bi-arrow-up" aria-hidden="true" /></button>
+                        <button type="button" className="cat-iconbtn" aria-label="Descendre le chapitre" disabled={chIndex === chapters.length - 1} onClick={() => moveChapter(chIndex, 1)}><i className="bi bi-arrow-down" aria-hidden="true" /></button>
+                        <button type="button" className="cat-iconbtn" aria-label="Supprimer le chapitre" onClick={() => m.deleteChapter.mutate(ch.id)}><i className="bi bi-trash" aria-hidden="true" /></button>
+                      </span>
                     </div>
                   </div>
                 ) : null}

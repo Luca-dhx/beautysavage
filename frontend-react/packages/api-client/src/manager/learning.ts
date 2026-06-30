@@ -1,8 +1,14 @@
 // C2 — Learning Studio + présence (manager). Chapitres/leçons CRUD, participants, présence, scan
 // QR, attestation (preview). Convention envelope-unwrap + apiGet/apiPost/apiPut/apiDelete.
-import { apiGet, apiPost, apiPut, apiDelete } from '../apiFetch';
+import { API_BASE_URL } from '@bs/config';
+import { apiGet, apiPost, apiPut, apiDelete, apiPatch } from '../apiFetch';
 
 const BASE = '/api/gestion/learning';
+
+// C3 — URL de téléchargement de l'attestation d'un client (manager, lien direct authentifié).
+export function managerAttestationUrl(customerId: string, formationId: string): string {
+  return `${API_BASE_URL || ''}${BASE}/customers/${encodeURIComponent(customerId)}/formations/${encodeURIComponent(formationId)}/attestation`;
+}
 
 export type LearningResourceType = 'pdf' | 'link' | 'document';
 
@@ -137,4 +143,36 @@ export async function previewAttestation(data?: Record<string, string>): Promise
     { data },
   );
   return res.preview;
+}
+
+// ── Modération des avis (C3) ──────────────────────────────────────────────────────
+export type ReviewStatus = 'pending' | 'published' | 'rejected';
+
+export interface ModerationReview {
+  id: string;
+  formationId: string | null;
+  formationName: string;
+  authorName: string;
+  rating: number;
+  comment: string;
+  status: ReviewStatus;
+  createdAt: string | null;
+  moderatedAt: string | null;
+}
+
+export interface ReviewModerationResult {
+  reviews: ModerationReview[];
+  counts: { pending: number; published: number; rejected: number };
+}
+
+export async function listReviewsForModeration(params?: { status?: ReviewStatus; formationId?: string }): Promise<ReviewModerationResult> {
+  const res = await apiGet<{ ok: boolean } & ReviewModerationResult>(`${BASE}/reviews`, {
+    status: params?.status,
+    formationId: params?.formationId,
+  });
+  return { reviews: res.reviews ?? [], counts: res.counts ?? { pending: 0, published: 0, rejected: 0 } };
+}
+
+export async function moderateReview(reviewId: string, status: ReviewStatus): Promise<void> {
+  await apiPatch(`${BASE}/reviews/${encodeURIComponent(reviewId)}`, { status });
 }

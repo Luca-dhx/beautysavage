@@ -807,3 +807,14 @@ Front : `packages/ui/src/embed.test.ts` (resolveEmbed YouTube/Vimeo/Loom/Wistia/
 `manager/learningApi.test.ts` + `catalog/learningApi.test.ts` (URLs/méthodes), `apps/vitrine/.../player.test.tsx`
 (vidéo embed iframe + complétion → %, zéro table), `apps/manager/.../presence.test.tsx` (participants +
 marquage), noHardcodedHex ×3. Suite front : 284 verts.
+
+
+## C3 — Attestations, QR prod, reorder, avis (rapports 215-216)
+
+Backend `tests/p1/learningC3.test.js` (6) : attestation (409 NOT_COMPLETED si non terminée → PDF
+application/pdf si terminée, idempotent client+manager, 403 sans achat), modération avis (reject masque la
+vitrine via stats/list, avis legacy sans statut reste visible, client refusé sur endpoints modération),
+reorder chapitres persiste l'ordre. Front : `manager/reviewModerationApi.test.ts` (list/PATCH + URLs
+attestation), `features/reviews/reviews.test.tsx` (cards, masquer, zéro table), `features/learning/qrScanner.test.tsx`
+(fallback saisie manuelle + debounce, caméra indisponible en jsdom), `features/learning/player.test.tsx` (bouton
+attestation à 100% + href), noHardcodedHex. Suite front : 299 verts.

@@ -253,3 +253,6 @@
   .c3-hero, .c3-tl__item, .c3-acc__body, .c3-overlay, .c3-drawer, .c3-skeleton, .gc-success { animation: none !important; }
   .c3-quickbtn, .c3-tab, .gc-seg { transition: none !important; }
 }
+
+/* C3 — tag cliquable (attestation) */
+.c3-tag--link { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; color: var(--bs-color-primary); border: 1px solid var(--bs-color-primary); min-height: 32px; padding: 0 var(--bs-space-1); border-radius: 999px; }

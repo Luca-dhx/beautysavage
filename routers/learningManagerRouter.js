@@ -20,8 +20,10 @@ import {
   scanAttendance,
   getAttestationTemplate,
   updateAttestationTemplate,
-  previewAttestation
+  previewAttestation,
+  getManagerAttestation
 } from '../controllers/learningController.js';
+import { listReviewsForModeration, moderateReview } from '../controllers/reviewModerationController.js';
 
 const router = express.Router();
 
@@ -43,9 +45,14 @@ router.get('/sessions/:sessionId/participants', listSessionParticipants);
 router.post('/sessions/:sessionId/attendance', markAttendance);
 router.post('/sessions/:sessionId/scan', scanAttendance);
 
-// Attestation (préparation C3 — preview only)
+// Attestation : template (preview studio) + génération PDF par client (C3)
 router.get('/attestation-template', getAttestationTemplate);
 router.put('/attestation-template', updateAttestationTemplate);
 router.post('/attestation-template/preview', previewAttestation);
+router.get('/customers/:customerId/formations/:formationId/attestation', getManagerAttestation);
+
+// Modération des avis
+router.get('/reviews', listReviewsForModeration);
+router.patch('/reviews/:reviewId', moderateReview);
 
 export default router;

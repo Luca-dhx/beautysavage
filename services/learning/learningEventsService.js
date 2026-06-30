@@ -77,7 +77,7 @@ export async function onLessonCompleted(user, formation, lesson) {
   });
 }
 
-export async function onFormationCompleted(user, formation) {
+export async function onFormationCompleted(user, formation, { attestationReady = false } = {}) {
   const fid = String(formation._id);
   const uid = String(user._id);
   await audit('formation.completed', fid, { clientId: uid, formationId: fid });
@@ -89,7 +89,9 @@ export async function onFormationCompleted(user, formation) {
   });
   await sendMail('formation.completed', `completed:${fid}:${uid}`, user, {
     firstName: user.firstName || '',
-    formationName: formation.name || ''
+    formationName: formation.name || '',
+    // C3 — l'attestation est téléchargeable dans « Mes formations » (lien authentifié in-app).
+    attestationLine: attestationReady ? 'Votre attestation de réussite est disponible dans « Mes formations ».' : ''
   });
 }
 

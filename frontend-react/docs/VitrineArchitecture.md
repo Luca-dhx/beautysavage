@@ -249,3 +249,9 @@ Détail : rapport 212.
 `FormationPlayer` : bouton « Télécharger l'attestation » à 100% (`attestationDownloadUrl`, lien authentifié),
 navigation leçon précédente/suivante. L'attestation PDF est générée à la complétion (backend pdfkit). Détail :
 rapport 216.
+
+## RX1 — Espace compte + frontend officiel
+Vitrine servie officiellement sous `/app` (Vite base `/app/`, flag REACT_OFFICIAL_FRONTEND, rollback OFF).
+Nouvel **espace compte client** `/mon-compte` (`pages/MyAccountPage`) : hub cards (profil + Mes formations +
+réservations/cartes/factures « bientôt ») + **déconnexion** (signOut) — comble le gap RC1 (#1). Header :
+lien « Mon compte » au lieu de l'e-mail. Détail : rapport 222.

@@ -837,3 +837,12 @@ attestation à 100% + href), noHardcodedHex. Suite front : 299 verts.
 social-links/home-settings sans 403 (commissionRouter requireStrictDev déplacé en dernier) ; les routes
 /api/gestion/commissions/* restent dev-only (admin 403, dev OK). Suppression d'un console.log debug
 (refundExecutionService) et du script npm cassé `support:cleanup`. Aucune suite cassée par les quick wins.
+
+
+## RX1 — React frontend officiel (rapports 221-222)
+
+`tests/p1/rx1ReactFrontend.test.js` : flag OFF (rollback) → `/`→/vitrine.html, /vitrine.html sert Vanilla ;
+flag ON → `/`→/app/, /vitrine.html→/app/, /gestion.html→/manager/ ; le serving React ne shadow PAS /api ;
+/app & /manager servis en SPA (200 si build, 503 sinon, jamais 404/500). Le flag REACT_OFFICIAL_FRONTEND est
+lu dynamiquement → togglé par test (restauré en afterEach). Front : `apps/vitrine/src/pages/myAccount.test.tsx`
+(espace compte : profil + hub + déconnexion signOut + non-auth, zéro table). Suite front : 302 verts.

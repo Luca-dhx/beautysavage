@@ -436,3 +436,9 @@ monter/descendre dans `ChapterEditor`). Modération avis : `features/reviews/Rev
 `/avis`, nav « Avis »), api-client `manager/learning.ts` (listReviewsForModeration/moderateReview).
 Customer360 `FormationSection` → lien attestation (`managerAttestationUrl`) si formation terminée. Détail :
 rapport 216.
+
+## RX1 — Frontend officiel
+Manager servi officiellement sous `/manager` (Vite base `/manager/`, BrowserRouter basename, flag
+REACT_OFFICIAL_FRONTEND avec rollback). Serving : `services/system/reactFrontend.js` (Express). Migration
+restante (RX2) : finance premium (ventes/commissions/remboursements en cards/timeline/drawer, sans tableaux),
+réservations, paramètres, dev tools. Détail : rapport 222 + `docs/migration/VANILLA_RETIREMENT_PLAN.md`.

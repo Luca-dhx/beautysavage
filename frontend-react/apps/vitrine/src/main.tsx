@@ -25,7 +25,8 @@ createRoot(document.getElementById('root')!).render(
       <AuthProvider>
         <VitrineThemeProvider>
           <CartProvider>
-            <BrowserRouter>
+            {/* RX1 — basename = base Vite (/app/ en prod, / en dev) pour le serving sous-chemin. */}
+            <BrowserRouter basename={import.meta.env.BASE_URL}>
               <App />
             </BrowserRouter>
           </CartProvider>

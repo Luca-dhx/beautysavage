@@ -107,6 +107,7 @@ import { requireAuth, getSessionSecret } from './utils/session.js';
 import { requireMode } from './middlewares/modeGuard.js';
 import { maintenanceGuard } from './middlewares/maintenanceGuard.js';
 import { requireGestionRole } from './middlewares/gestionRoleGuard.js';
+import { mountReactFrontend, redirectToReactWhenOfficial, isReactOfficialFrontend } from './services/system/reactFrontend.js';
 import stripeRouter from './routers/stripeRouter.js';
 import {
   countPendingStripeFeesSales,
@@ -517,6 +518,8 @@ app.use('/api/vitrine/services', vitrineServiceRouter);
 
 app.get(
   '/gestion.html',
+  // RX1 — flag ON → manager React officiel (/manager/) ; OFF → comportement Vanilla historique.
+  redirectToReactWhenOfficial('/manager/'),
   requireAuth({ redirectToLogin: true }),
   requireMode('gestion'),
   (req, res, next) => {
@@ -544,9 +547,19 @@ app.get('/maintenance', (_req, res) =>
 );
 
 app.use('/', invoiceRouter);
+
+// RX1 — React frontend officiel (progressif, rollback). Sert /app (vitrine) + /manager (manager) en
+// SPA, AVANT le static Vanilla (aucun chevauchement). Le flag REACT_OFFICIAL_FRONTEND (défaut OFF)
+// bascule les points d'entrée Vanilla vers React ; rollback = flag OFF.
+mountReactFrontend(app);
+// Bascule conditionnelle des entrées Vanilla (flag ON → redirige ; OFF → Vanilla sert).
+app.get('/vitrine.html', redirectToReactWhenOfficial('/app/'));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/', (_req, res) => res.redirect('/vitrine.html'));
+app.get('/', (_req, res) =>
+  res.redirect(isReactOfficialFrontend() ? '/app/' : '/vitrine.html')
+);
 
 // Test harness: in NODE_ENV==='test' (vitest), skip background schedulers and the
 // HTTP listener so the Express app can be imported by supertest with no open

@@ -4174,3 +4174,21 @@ Quick wins corrigés RC1 : P0 mount-order (+test), `trailerVideoUrl` (perte de d
 d'erreur (listes catalogue/Reviews/Présence), Reviews skeleton, Planning icône « Aujourd'hui » bi-dot→
 bi-calendar-check, aria-label copie System Settings, suppression debug console.log refund + script npm cassé
 support:cleanup. Tout vert. Backlog priorisé P0/P1/P2/P3 + scores de maturité (global ~5.6/10) : rapport 220.
+
+
+## RX1 — React frontend officiel (rapports 221-222)
+
+React devient l'interface OFFICIELLE (progressif, réversible) ; Vanilla → dépréciation (compat/rollback/
+migration). `services/system/reactFrontend.js` : `mountReactFrontend(app)` sert les builds Vite vitrine
+sous **/app** et manager sous **/manager** en SPA (fallback index.html, 503 si build absent), monté avant le
+static Vanilla, sans shadow de /api,/auth,Vanilla. Base Vite `/app/` + `/manager/` (override VITE_BASE),
+BrowserRouter `basename=BASE_URL`. Flag **REACT_OFFICIAL_FRONTEND** (lu dynamiquement, défaut OFF=rollback) :
+ON → `/`→/app/, /vitrine.html→/app/, /gestion.html→/manager/ ; OFF → Vanilla (React opt-in /app,/manager).
+contractGuard allowliste /app+/manager (shell chargé même contrat inactif). Démo « faire mieux » : espace
+compte client React `/mon-compte` (hub cards + déconnexion, comble gap RC1 #1) + lien header au lieu de
+l'e-mail mort. Directive UX permanente (ProductUXGuideline §15) : toute nouvelle feature = React only,
+mobile-first, moins de clics, patterns réutilisés, premium, zéro régression vs Vanilla. Tests :
+`tests/p1/rx1ReactFrontend.test.js` (rollback/bascule/non-shadow API/SPA), `myAccount.test.tsx`. Plan de
+retrait : `docs/migration/VANILLA_RETIREMENT_PLAN.md`. Reste (prochaine mission RX2) : auth React, finance
+premium (cards/timeline/drawer, sans tableaux), compte client complet, dev tools, puis flag ON + retrait
+Vanilla. Backend p0+p1+integration+audits verts, front 302+lint+build OK. Détail : rapport 222.

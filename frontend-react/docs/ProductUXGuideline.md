@@ -136,3 +136,16 @@ Patterns identifiés sur les écrans manager, à corriger en priorité :
 - **Garde unsaved** dans les éditeurs (draft local) avant navigation.
 - **Pas d'enum ingénieur** exposé à l'utilisateur (traduire statuts/types en libellés FR).
 - **Pas de champ mort** : tout champ éditable doit être persisté (ex. corrigé : `trailerVideoUrl`).
+
+## 15. Directive permanente — React est le frontend officiel (RX1)
+À partir de RX1, **toute nouvelle fonctionnalité se développe exclusivement en React** (Vanilla = compat/
+rollback/migration, jamais cible d'évolution). Chaque écran migré DOIT respecter :
+- **Mobile-first** : l'expérience téléphone est la référence (utilisable à une main, bottom-sheet, safe-area,
+  44px, reachability).
+- **Moins de clics** : simplifier chaque parcours (drawer/cards/actions contextuelles plutôt que formulaires).
+- **Réutilisation des patterns** : un seul calendrier (M10), un seul drawer, un seul stepper (CatalogueModule
+  Stepper), un seul langage visuel (tokens `--bs-*`), états loading/empty/error/success cohérents.
+- **Premium** : s'inspirer de Stripe, Linear, Notion, Qonto, Planity — **pas** d'un logiciel de gestion
+  traditionnel ; **pas de gros tableaux** (cards/timeline/graphes/badges/résumés).
+- **Zéro régression fonctionnelle** : React ne doit jamais offrir moins que Vanilla.
+- **Servir** : vitrine sous `/app`, manager sous `/manager` (flag `REACT_OFFICIAL_FRONTEND`, rollback OFF).

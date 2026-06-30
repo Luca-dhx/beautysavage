@@ -25,9 +25,14 @@ export function PublicLayout() {
               {item.label}
             </Link>
           ))}
-          <span style={{ opacity: 0.6 }}>
-            {status === 'authenticated' ? (user?.email ?? 'Connecté') : <Link to="/connexion">Connexion</Link>}
-          </span>
+          {/* RX1 — lien vers l'espace compte (déconnexion incluse) au lieu de l'e-mail mort. */}
+          {status === 'authenticated' ? (
+            <Link to="/mon-compte" title={user?.email ?? 'Mon compte'}>
+              <i className="bi bi-person-circle" aria-hidden="true" /> Mon compte
+            </Link>
+          ) : (
+            <Link to="/connexion">Connexion</Link>
+          )}
         </nav>
       }
       footer={<span>Beauty Savage — mentions légales · CGV · confidentialité (placeholders R0)</span>}

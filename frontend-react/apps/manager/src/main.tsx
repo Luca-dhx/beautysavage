@@ -24,7 +24,8 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <PanelThemeProvider>
-          <BrowserRouter>
+          {/* RX1 — basename = base Vite (/manager/ en prod, / en dev) pour le serving sous-chemin. */}
+          <BrowserRouter basename={import.meta.env.BASE_URL}>
             <App />
           </BrowserRouter>
         </PanelThemeProvider>

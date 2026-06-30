@@ -74,6 +74,13 @@ function isAlwaysAllowed(req) {
     return true;
   }
 
+  // RX1 — shells du frontend React (vitrine /app, manager /manager) : toujours servis. Comme les
+  // pages Vanilla d'entrée, le shell doit se charger même pendant la configuration du contrat ;
+  // l'état "contrat inactif" est rendu côté React via l'API /api/contract/status.
+  if (path === '/app' || path.startsWith('/app/') || path === '/manager' || path.startsWith('/manager/')) {
+    return true;
+  }
+
   // Admin/dev management routes always allowed
   for (const prefix of ADMIN_ROUTE_PREFIXES) {
     if (path.startsWith(prefix)) return true;

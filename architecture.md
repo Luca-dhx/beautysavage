@@ -1268,6 +1268,23 @@ Variables connexes observees (contexte execution):
 - **React dev** : `/dev/system` (« Parametres Systeme ») — sections incl. Domaines (validation live + copie).
 - **Migration** : `node scripts/seedSystemConfiguration.js`. Voir `Rapports/version 1/213` & `214`.
 
+## Env decommission — IntegratedAPI/CommunicationIdentity/SystemConfiguration sole sources (S1B — 2026-06-30)
+
+- **Credentials** : `integratedApiCredentialService.getCredential()` reste vault-first / fail-loud ;
+  `fallbackEnabled()` **bloque tout fallback `.env` en production** (`NODE_ENV=production`),
+  sinon dev/test uniquement si `ALLOW_ENV_CREDENTIAL_FALLBACK=true`. Stripe institut
+  (`stripe-institut`/customer_payments), Stripe dev (`stripe-dev`/platform_billing), Brevo
+  (`brevo`/messaging) lisent le coffre.
+- **Expediteur mail** : `services/mail/mailSenderResolver.js#buildSender()` (module dedie) resout
+  via CommunicationIdentity `commerciale` ; `MAIL_FROM`/`MAIL_FROM_NAME` = fallback dev-only
+  (jamais prod). `mailDomainDispatchers` l'importe (`await buildSender()`).
+- **Institut/fiscalite** : `systemConfigurationService` — accesseurs via `envFallback(name)` **gate
+  non-prod** (plus de `process.env.INSTITUTE_*`/`MAIL_FROM` direct) + agregateur `getInstituteInfo()`.
+- **Migration credentials** : `node scripts/migrateEnvCredentialsToIntegratedApi.js` (dry-run par
+  defaut, `--apply` requis, jamais de secret logge, jamais au boot). `seedIntegratedApisFromEnv({dryRun})`.
+- **`.env.example`** : `STRIPE_*`/`BREVO_API_KEY`/`MAIL_FROM*` retires (pointeurs IntegratedAPI /
+  Communication Identity / Parametres Systeme). Voir `Rapports/version 1/217` & `218`.
+
 ## Migration Stripe Invoicing (2026-03-12)
 
 - Les nouvelles ventes passent par Stripe Invoicing via `services/stripeInvoiceService.js`.

@@ -818,3 +818,14 @@ reorder chapitres persiste l'ordre. Front : `manager/reviewModerationApi.test.ts
 attestation), `features/reviews/reviews.test.tsx` (cards, masquer, zéro table), `features/learning/qrScanner.test.tsx`
 (fallback saisie manuelle + debounce, caméra indisponible en jsdom), `features/learning/player.test.tsx` (bouton
 attestation à 100% + href), noHardcodedHex. Suite front : 299 verts.
+
+## S1B — Décommission `.env` (credentials & config métier)
+- `p1/integratedApiNoEnvFallbackProd` : le fallback `.env` des credentials est refusé en
+  production (`NODE_ENV=production`), autorisé en dev/test seulement si
+  `ALLOW_ENV_CREDENTIAL_FALLBACK=true` ; sinon fail-loud.
+- `p1/communicationIdentityNoMailFrom` : l'expéditeur (`mailSenderResolver.buildSender`) vient de
+  CommunicationIdentity (`commerciale`) ; prod sans identité → `null` (jamais `MAIL_FROM`) ; dev → fallback.
+- `p1/systemConfigurationInstituteInfo` : `getInstituteInfo()` lit la config ; en prod le fallback
+  `INSTITUTE_*` est ignoré, en dev il est autorisé.
+- `p1/envDecommissionRuntime` : garde statique — aucune lecture runtime directe des variables
+  décommissionnées ; Stripe/Brevo via `getCredential`. Rapports 217/218.

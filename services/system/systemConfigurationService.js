@@ -217,43 +217,75 @@ function pick(...values) {
   return '';
 }
 
-/** Nom de l'institut (config → INSTITUTE_NAME → ''). */
+// S1B — Le fallback .env de la config institut/fiscalité est INTERDIT en production.
+// La prod doit lire SystemConfiguration (sinon chaque générateur applique son défaut
+// historique). En dev/test, l'ancienne variable .env reste un fallback de migration.
+function envFallback(name) {
+  if (String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production') return undefined;
+  return process.env[name];
+}
+
+/** Nom de l'institut (config → [dev] INSTITUTE_NAME → ''). */
 export function resolveInstituteName() {
   const inst = getCachedSystemConfiguration()?.institute;
-  return pick(inst?.name, process.env.INSTITUTE_NAME);
+  return pick(inst?.name, envFallback('INSTITUTE_NAME'));
 }
 
-/** E-mail de contact institut (config → INVOICE_CONTACT_EMAIL → MAIL_FROM → ''). */
+/** E-mail de contact institut (config → [dev] INVOICE_CONTACT_EMAIL → MAIL_FROM → ''). */
 export function resolveInstituteEmail() {
   const inst = getCachedSystemConfiguration()?.institute;
-  return pick(inst?.email, process.env.INVOICE_CONTACT_EMAIL, process.env.MAIL_FROM);
+  return pick(inst?.email, envFallback('INVOICE_CONTACT_EMAIL'), envFallback('MAIL_FROM'));
 }
 
-/** SIRET institut (config → INSTITUTE_SIRET → ''). */
+/** SIRET institut (config → [dev] INSTITUTE_SIRET → ''). */
 export function resolveInstituteSiret() {
   const inst = getCachedSystemConfiguration()?.institute;
-  return pick(inst?.siret, process.env.INSTITUTE_SIRET);
+  return pick(inst?.siret, envFallback('INSTITUTE_SIRET'));
 }
 
-/** Adresse institut (champ par champ, config → INSTITUTE_* → ''). */
+/** Téléphone institut (config → ''). */
+export function resolveInstitutePhone() {
+  const inst = getCachedSystemConfiguration()?.institute;
+  return pick(inst?.phone);
+}
+
+/** Adresse institut (champ par champ, config → [dev] INSTITUTE_* → ''). */
 export function resolveInstituteAddress() {
   const addr = getCachedSystemConfiguration()?.institute?.address || {};
   return {
-    line1: pick(addr.line1, process.env.INSTITUTE_ADDRESS_LINE1),
-    city: pick(addr.city, process.env.INSTITUTE_CITY),
-    postalCode: pick(addr.postalCode, process.env.INSTITUTE_POSTAL_CODE),
-    country: pick(addr.country, process.env.INSTITUTE_COUNTRY)
+    line1: pick(addr.line1, envFallback('INSTITUTE_ADDRESS_LINE1')),
+    line2: pick(addr.line2),
+    city: pick(addr.city, envFallback('INSTITUTE_CITY')),
+    postalCode: pick(addr.postalCode, envFallback('INSTITUTE_POSTAL_CODE')),
+    country: pick(addr.country, envFallback('INSTITUTE_COUNTRY'))
   };
 }
 
-/** Mention TVA (config → INSTITUTE_VAT_MENTION → ''). */
+/** Mention TVA (config → [dev] INSTITUTE_VAT_MENTION → ''). */
 export function resolveVatMention() {
   const tax = getCachedSystemConfiguration()?.tax;
-  return pick(tax?.vatMention, process.env.INSTITUTE_VAT_MENTION);
+  return pick(tax?.vatMention, envFallback('INSTITUTE_VAT_MENTION'));
 }
 
-/** Nom de la plateforme éditrice (config → PLATFORM_NAME → ''). */
+/** Nom de la plateforme éditrice (config → [dev] PLATFORM_NAME → ''). */
 export function resolvePlatformName() {
   const sys = getCachedSystemConfiguration()?.system;
-  return pick(sys?.platformName, process.env.PLATFORM_NAME);
+  return pick(sys?.platformName, envFallback('PLATFORM_NAME'));
+}
+
+/**
+ * S1B — Agrégateur officiel des informations institut (source unique).
+ * Utilisé par les générateurs (factures, reçus, cartes cadeaux, attestations, mails).
+ * Chaque champ peut être vide → le site d'appel applique son libellé par défaut.
+ * @returns {{ name, email, phone, siret, address:{line1,line2,city,postalCode,country}, vatMention }}
+ */
+export function getInstituteInfo() {
+  return {
+    name: resolveInstituteName(),
+    email: resolveInstituteEmail(),
+    phone: resolveInstitutePhone(),
+    siret: resolveInstituteSiret(),
+    address: resolveInstituteAddress(),
+    vatMention: resolveVatMention()
+  };
 }

@@ -37,6 +37,10 @@ const ENV_FALLBACK = {
 };
 
 function fallbackEnabled() {
+  // S1B — Le fallback .env est INTERDIT en production, quel que soit le flag :
+  // la prod doit lire le coffre (sinon fail-loud). En dev/test, il reste optionnel
+  // et n'est actif que si ALLOW_ENV_CREDENTIAL_FALLBACK==='true'.
+  if (String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production') return false;
   return String(process.env.ALLOW_ENV_CREDENTIAL_FALLBACK || '').trim() === 'true';
 }
 

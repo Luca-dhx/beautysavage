@@ -64,13 +64,16 @@ const DEFINITIONS = [
 
 /**
  * Seed/refresh the IntegratedApi vault from env. Safe to call at every boot.
- * @returns {Promise<{seeded: string[], skipped: string[], details: object[]}>}
+ * @param {{dryRun?: boolean}} [opts] dryRun=true : compute what WOULD be seeded,
+ *   without writing anything (used by the migration CLI). Never logs a secret.
+ * @returns {Promise<{seeded: string[], skipped: string[], details: object[], dryRun: boolean}>}
  */
-export async function seedIntegratedApisFromEnv() {
+export async function seedIntegratedApisFromEnv(opts = {}) {
+  const dryRun = opts.dryRun === true;
   // Without a valid vault key we cannot encrypt — do nothing (caller relies on
   // env fallback). validateCredentialVaultKey() throws in production.
   if (!validateCredentialVaultKey()) {
-    return { seeded: [], skipped: DEFINITIONS.map(d => d.slug), details: [{ reason: 'vault_key_invalid' }] };
+    return { seeded: [], skipped: DEFINITIONS.map(d => d.slug), details: [{ reason: 'vault_key_invalid' }], dryRun };
   }
 
   const result = { seeded: [], skipped: [], details: [] };
@@ -120,21 +123,23 @@ export async function seedIntegratedApisFromEnv() {
       );
       if (exists) continue;
 
-      api.credentials.push({
-        role: r.role,
-        type: r.type,
-        runtime,
-        encryptedValue: encryptCredential(rawValue),
-        lastFourChars: lastFour(rawValue),
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
+      if (!dryRun) {
+        api.credentials.push({
+          role: r.role,
+          type: r.type,
+          runtime,
+          encryptedValue: encryptCredential(rawValue),
+          lastFourChars: lastFour(rawValue),
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      }
       added += 1;
     }
 
     if (created || added > 0 || purposeBackfilled) {
-      await api.save();
+      if (!dryRun) await api.save();
       result.seeded.push(def.slug);
       result.details.push({ slug: def.slug, created, credentialsAdded: added, mode: api.mode, accountPurpose: api.accountPurpose, purposeBackfilled });
     } else {
@@ -143,8 +148,8 @@ export async function seedIntegratedApisFromEnv() {
     }
   }
 
-  console.log(`[seedIntegratedApis] seeded=[${result.seeded.join(', ')}] skipped=[${result.skipped.join(', ')}]`);
-  return result;
+  console.log(`[seedIntegratedApis]${dryRun ? ' (dry-run)' : ''} seeded=[${result.seeded.join(', ')}] skipped=[${result.skipped.join(', ')}]`);
+  return { ...result, dryRun };
 }
 
 export default seedIntegratedApisFromEnv;

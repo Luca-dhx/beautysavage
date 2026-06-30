@@ -724,6 +724,22 @@
       "Compatibilite (PARTIE 10): en l'absence de config domaines (dev/test), URLs identiques a avant (APP_BASE_URL env -> NGROK -> localhost). Seule la source change. Tests: p1/systemUrlValidation (12), p1/systemConfiguration (10), manager/systemConfigurationApi (7). Typecheck React OK"
     ]
   },
+  "s1bEnvDecommission": {
+    "date": "2026-06-30",
+    "branch": "phase-0-security-baseline",
+    "reports": [
+      "217_audit_s1b_env_decommission.md",
+      "218_rapport_s1b_env_decommission.md"
+    ],
+    "scope": [
+      "Objectif: le runtime n'a plus besoin du .env pour Stripe institut/dev, Brevo, expediteur mail, identite/adresse/fiscalite institut, domaines. Sources officielles: IntegratedAPI (accountPurpose customer_payments/platform_billing/messaging), CommunicationIdentity (support/commerciale), SystemConfiguration (S1)",
+      "Credentials: integratedApiCredentialService.fallbackEnabled() bloque le fallback .env en PRODUCTION (NODE_ENV=production -> false) quel que soit ALLOW_ENV_CREDENTIAL_FALLBACK; dev/test seulement si flag true; sinon fail-loud (erreurs typees). Stripe institut/dev + Brevo lisent deja getCredential (vault-first)",
+      "Expediteur mail: nouveau services/mail/mailSenderResolver.js#buildSender() (module dedie, extrait de mailDomainDispatchers pour testabilite/transform vitest) resout via resolveSender('commerciale') CommunicationIdentity; MAIL_FROM/MAIL_FROM_NAME = fallback dev-only (jamais prod -> null). mailDomainDispatchers importe buildSender, ~10 appels en await buildSender()",
+      "Institut/fiscalite: systemConfigurationService accesseurs via helper envFallback(name) gate non-prod (plus de process.env.INSTITUTE_*/MAIL_FROM/INVOICE_CONTACT_EMAIL direct) + agregateur getInstituteInfo(). Generateurs (factures/cartes cadeaux/attestations C3/PDF commissions) consommaient deja ces accesseurs (S1)",
+      "Migration: scripts/migrateEnvCredentialsToIntegratedApi.js (dry-run par defaut, --apply requis, jamais de secret logge, jamais au boot, indique quoi retirer du .env). seedIntegratedApisFromEnv({dryRun}). .env.example: STRIPE_*/BREVO_API_KEY/MAIL_FROM* retires (pointeurs IntegratedAPI/Communication Identity/Parametres Systeme); BREVO_WEBHOOK_SECRET conserve (secret de boot)",
+      "Tests: p1/integratedApiNoEnvFallbackProd, p1/communicationIdentityNoMailFrom, p1/systemConfigurationInstituteInfo, p1/envDecommissionRuntime (garde statique). +13 tests"
+    ]
+  },
   "phase5aEmailTemplateVersioning": {
     "date": "2026-06",
     "scope": [

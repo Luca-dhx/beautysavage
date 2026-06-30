@@ -9,28 +9,8 @@ import { resolvePublicBaseUrl, resolvePublicUrl, resolveVitrineUrl } from '../sy
 import { formatAmount, withMailThemeVars, stripHtml, replaceTemplateVariables } from './mailRenderer.js';
 import { loadTemplate } from './mailTemplateRuntime.js';
 import { postToBrevo } from './mailBrevoGateway.js';
-
-function buildSender() {
-
-  const email = String(process.env.MAIL_FROM || '').trim();
-
-  const name = String(process.env.MAIL_FROM_NAME || '').trim();
-
-  if (!email) {
-
-    return null;
-
-  }
-
-  return {
-
-    email,
-
-    name: name || undefined
-
-  };
-
-}
+// S1B — Expéditeur résolu via CommunicationIdentity (module dédié, testable).
+import { buildSender } from './mailSenderResolver.js';
 
 
 
@@ -132,7 +112,7 @@ async function sendSaleEmail(sale) {
 
     }
 
-    const sender = buildSender();
+    const sender = await buildSender();
 
     if (!sender) {
 
@@ -390,7 +370,7 @@ async function sendCommissionInvoiceEmail(invoice, invoiceDownloadUrl) {
 
     }
 
-    const sender = buildSender();
+    const sender = await buildSender();
 
     if (!sender) {
 
@@ -512,7 +492,7 @@ async function sendPasswordResetEmail(user, token) {
 
     }
 
-    const sender = buildSender();
+    const sender = await buildSender();
 
     if (!sender) {
 
@@ -621,7 +601,7 @@ async function sendEmailConfirmationCodeEmail({
       return false;
     }
 
-    const sender = buildSender();
+    const sender = await buildSender();
     if (!sender) {
       console.warn('[mailService] MAIL_FROM inutilisable, email ignore');
       return false;
@@ -716,7 +696,7 @@ async function sendStatusMail({ templateKey, toEmails, templateVars, tag, contex
 
   }
 
-  const sender = buildSender();
+  const sender = await buildSender();
 
   if (!sender) {
 
@@ -1428,7 +1408,7 @@ function escapeBookingHtml(value) {
 async function sendPremiumHtmlEmail({ toEmail, subject, htmlContent, tag = 'booking', context }) {
   const recipient = String(toEmail || '').trim();
   if (!recipient) return false;
-  const sender = buildSender();
+  const sender = await buildSender();
   if (!sender) return false;
   const payload = {
     sender,
@@ -1472,7 +1452,7 @@ async function sendBookingConfirmedEmail({ booking } = {}) {
       return false;
     }
 
-    const sender = buildSender();
+    const sender = await buildSender();
     if (!sender) {
       console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
       return false;
@@ -1642,7 +1622,7 @@ async function sendBookingCancelledEmail({
       return false;
     }
 
-    const sender = buildSender();
+    const sender = await buildSender();
     if (!sender) {
       console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
       return false;
@@ -1745,7 +1725,7 @@ async function sendBookingCancelledNotifyAdminEmail({
       return false;
     }
 
-    const sender = buildSender();
+    const sender = await buildSender();
     if (!sender) {
       console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
       return false;
@@ -1825,7 +1805,7 @@ async function sendBookingCancelledByAdminEmail({
       return false;
     }
 
-    const sender = buildSender();
+    const sender = await buildSender();
     if (!sender) {
       console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
       return false;
@@ -1894,7 +1874,7 @@ async function sendNoShowEmail({ booking } = {}) {
       return false;
     }
 
-    const sender = buildSender();
+    const sender = await buildSender();
     if (!sender) {
       console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
       return false;
@@ -1952,7 +1932,7 @@ async function sendBookingSuspendedEmail({
       return false;
     }
 
-    const sender = buildSender();
+    const sender = await buildSender();
     if (!sender) {
       console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
       return false;
@@ -2033,7 +2013,7 @@ async function sendBookingReminderEmail({ booking, hoursAhead = 24 } = {}) {
       return false;
     }
 
-    const sender = buildSender();
+    const sender = await buildSender();
     if (!sender) {
       console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
       return false;

@@ -2,7 +2,7 @@
 // (html5-qrcode) + marquage manuel présent/absent. Mobile-first.
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Badge } from '@bs/ui';
+import { Badge, ErrorState } from '@bs/ui';
 import type { SessionParticipant } from '@bs/api-client';
 import { useParticipants, useAttendanceMutations } from './useAttendance';
 import { QrScanner } from './QrScanner';
@@ -78,6 +78,8 @@ export function SessionPresencePage() {
 
       {participants.status === 'pending' ? (
         <CatalogueSkeleton rows={3} />
+      ) : participants.status === 'error' ? (
+        <ErrorState title="Impossible de charger les participants." detail="Réessayez plus tard." />
       ) : data && data.participants.length > 0 ? (
         <div className="lrn-participants">
           {visibleParticipants.map((p) => (

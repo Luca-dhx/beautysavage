@@ -88,6 +88,8 @@ export function TrainingEditor({ id }: { id?: string }) {
       price: Number(draft.price), durationDays: Number(draft.durationDays), refundDays: Number(draft.refundDays),
       coverImage: draft.coverImage, type: draft.type, accessDeliveryMode: draft.accessDeliveryMode,
       accessUrl: draft.accessUrl, accessLifetime: draft.accessLifetime, isRefundableAfterAccess: draft.isRefundableAfterAccess,
+      // RC1 quick win — la bande-annonce était éditable mais omise du payload (perte de données).
+      trailerVideoUrl: draft.trailerVideoUrl,
       status: draft.status,
     };
     try {

@@ -7,7 +7,6 @@
         "clean-port": "node scripts/cleanPort.js",
         "prestart": "npm run clean-port",
         "start": "nodemon app.js",
-        "support:cleanup": "node scripts/supportWorkflowCleanup.js",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:p0": "vitest run tests/p0",

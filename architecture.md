@@ -4157,3 +4157,20 @@ conservé. Client `FormationPlayer` : bouton attestation à 100% + prev/next. Cu
 lien attestation si terminé. Tokens --bs-* only, 44px, mobile-first, zéro table/hex. Tests : backend
 p0+p1+integration verts (+learningC3 6 cas), front 299 verts, typecheck/lint/build OK. Limites : PDF V1 pdfkit
 (pas pixel-perfect), attestation présentielle non couverte, reorder = boutons (pas drag). Détail : rapport 216.
+
+
+## RC1 — Release Candidate Mega Audit (rapports 219-220)
+
+Audit produit transverse (posture institut/client/CTO/QA). Reframing clé : **frontend-react n'est servi
+nulle part (app.js sert public/ Vanilla)** — React (C1/C2/C3) est parallèle, non déployé ; pas d'auth/compte
+client/finance en React. **P0 CONFIRMÉ + CORRIGÉ** : `commissionRouter` (broad-mount '/api/gestion' +
+requireStrictDev) shadowait promotions/boosts/social-links/practitioners/home-settings → admins 403
+(reproduit empiriquement) ; déplacé en dernier des '/api/gestion' (routes /commissions/* intactes, restent
+dev-only) + test `tests/p1/rc1MountOrder.test.js`. Patterns systémiques manager : erreurs masquées en vide,
+zéro feedback succès/toast, pas de confirmation destructive, pas de garde unsaved, enums bruts exposés,
+champs morts. Sécurité : 0 Critical/0 High (medium = emails en logs). Perf : pas de code-splitting (bundle
+456 KB), N+1 disponibilités public, index manquants. Design system 5/10 (tokens-mature/components-immature).
+Quick wins corrigés RC1 : P0 mount-order (+test), `trailerVideoUrl` (perte de données au save), états
+d'erreur (listes catalogue/Reviews/Présence), Reviews skeleton, Planning icône « Aujourd'hui » bi-dot→
+bi-calendar-check, aria-label copie System Settings, suppression debug console.log refund + script npm cassé
+support:cleanup. Tout vert. Backlog priorisé P0/P1/P2/P3 + scores de maturité (global ~5.6/10) : rapport 220.

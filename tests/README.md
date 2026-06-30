@@ -829,3 +829,11 @@ attestation à 100% + href), noHardcodedHex. Suite front : 299 verts.
   `INSTITUTE_*` est ignoré, en dev il est autorisé.
 - `p1/envDecommissionRuntime` : garde statique — aucune lecture runtime directe des variables
   décommissionnées ; Stripe/Brevo via `getCredential`. Rapports 217/218.
+
+
+## RC1 — Release Candidate audit (rapports 219-220)
+
+`tests/p1/rc1MountOrder.test.js` : régression du bug P0 mount-order — admin atteint promotions/boosts/
+social-links/home-settings sans 403 (commissionRouter requireStrictDev déplacé en dernier) ; les routes
+/api/gestion/commissions/* restent dev-only (admin 403, dev OK). Suppression d'un console.log debug
+(refundExecutionService) et du script npm cassé `support:cleanup`. Aucune suite cassée par les quick wins.

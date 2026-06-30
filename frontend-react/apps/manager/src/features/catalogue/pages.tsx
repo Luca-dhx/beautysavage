@@ -1,7 +1,7 @@
 // C1 — Catalogue Studio : layout + dashboard + listes + pages éditeurs. Mobile-first, cards
 // (zéro table), états vides/squelettes, actions dupliquer/archiver.
 import { Link, Outlet, useParams } from 'react-router-dom';
-import { Badge } from '@bs/ui';
+import { Badge, ErrorState } from '@bs/ui';
 import type { CatalogueService, CatalogueTraining } from '@bs/api-client';
 import { useServicesList, useServiceMutations, useTrainingsList, useTrainingMutations } from './useCatalogue';
 import { validateService, validateTraining } from './validation';
@@ -128,6 +128,8 @@ export function ServicesListPage() {
       </div>
       {services.status === 'pending' ? (
         <CatalogueSkeleton rows={4} />
+      ) : services.status === 'error' ? (
+        <ErrorState title="Impossible de charger les prestations." detail="Réessayez plus tard." />
       ) : services.data && services.data.length > 0 ? (
         <div className="cat-list">{services.data.map((s) => <ServiceRow key={s.id} service={s} />)}</div>
       ) : (
@@ -150,6 +152,8 @@ export function TrainingsListPage() {
       </div>
       {trainings.status === 'pending' ? (
         <CatalogueSkeleton rows={4} />
+      ) : trainings.status === 'error' ? (
+        <ErrorState title="Impossible de charger les formations." detail="Réessayez plus tard." />
       ) : trainings.data && trainings.data.length > 0 ? (
         <div className="cat-list">{trainings.data.map((t) => <TrainingRow key={t.id} training={t} />)}</div>
       ) : (

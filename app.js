@@ -481,7 +481,10 @@ app.use('/api/gestion', formationModuleRouter);
 app.use('/api/gestion', formationSessionRouter);
 app.use('/api/gestion', planningRouter);
 app.use('/api/gestion', salesRouter);
-app.use('/api/gestion', commissionRouter);
+// RC1 — commissionRouter (broad-mount '/api/gestion' avec requireStrictDev) DÉPLACÉ après tous les
+// routeurs admin spécifiques : son router.use(requireStrictDev) shadowait '/api/gestion/promotions',
+// /boosts, /clients, /social-links, /site-identity, /home-settings, /editable-content, /practitioners
+// (admins → 403, CONFIRMÉ empiriquement). Ses propres routes /commissions/* ne chevauchent rien.
 app.use('/api/gestion/promotions', promotionRouter);
 app.use('/api/vitrine/formations', vitrineFormationSessionRouter);
 app.use('/api/client/gift-cards', giftCardRouter);
@@ -500,6 +503,10 @@ app.use('/api/gestion/site-status', siteStatusGestionRouter);
 app.use('/api/gestion/editable-content', editableContentGestionRouter);
 app.use('/api/vitrine/editable-content', editableContentVitrineRouter);
 app.use('/api/gestion/practitioners', practitionerRouter);
+// RC1 — commissionRouter monté ICI (en dernier des '/api/gestion'), APRÈS tous les routeurs admin
+// spécifiques, pour que son requireStrictDev ne les shadow plus. Ses routes /commissions/* restent
+// résolues (aucun routeur antérieur ne matche /commissions/*).
+app.use('/api/gestion', commissionRouter);
 // (serviceRouter / availabilityRouter / serviceSettingsRouter montés plus haut, AVANT les
 //  broad-mounts dev-only — voir C1/M3A : commissionRouter (requireStrictDev) sur '/api/gestion'
 //  shadowait ces routeurs spécifiques pour les admins.)

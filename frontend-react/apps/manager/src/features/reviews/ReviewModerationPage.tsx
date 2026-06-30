@@ -1,9 +1,10 @@
 // C3 — Modération des avis (manager). Cards (zéro table), filtres par statut, actions
 // publier/rejeter/en attente. Mobile-first, tokens --bs-* only.
 import { useState } from 'react';
-import { Badge } from '@bs/ui';
+import { Badge, ErrorState } from '@bs/ui';
 import type { ModerationReview, ReviewStatus } from '@bs/api-client';
 import { useReviews, useModerateReview } from './useReviewModeration';
+import { CatalogueSkeleton } from '../catalogue/components';
 import './reviews.css';
 
 const FILTERS: { key: ReviewStatus | 'all'; label: string }[] = [
@@ -77,7 +78,9 @@ export function ReviewModerationPage() {
       </div>
 
       {query.isPending ? (
-        <p className="cat-note">Chargement…</p>
+        <CatalogueSkeleton rows={4} />
+      ) : query.isError ? (
+        <ErrorState title="Impossible de charger les avis." detail="Réessayez plus tard." />
       ) : query.data && query.data.reviews.length > 0 ? (
         <div className="rvm-list">
           {query.data.reviews.map((r) => (

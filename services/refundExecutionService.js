@@ -110,15 +110,6 @@ export async function sendRefundConfirmedEmailInternal(refundRequest) {
 
     const templateName = isService ? 'refund_confirmed_service' : 'refund_confirmed';
 
-    // TODO: remove after debug
-    console.log('[DEBUG refund template]', {
-      itemType: refundRequest.itemType,
-      templateName,
-      bookingFound: !!booking,
-      serviceName: booking?.serviceId?.name || '(empty)',
-      refundAmountCents: refundRequest.amount,
-    });
-
     await sendRefundConfirmedEmail({
       toEmail,
       siteName,

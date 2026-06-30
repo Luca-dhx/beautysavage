@@ -94,7 +94,7 @@ export function PlanningPage() {
     <section className="pl-page">
       <div className="pl-toolbar">
         <button type="button" className="pl-navbtn" aria-label="Précédent" onClick={() => go(-1)}><i className="bi-chevron-left" aria-hidden="true" /></button>
-        <button type="button" className="pl-navbtn" aria-label="Aujourd'hui" onClick={() => { const t = startOfDay(new Date()); setDate(t); navigate(`/planning/${toDateParam(t)}`, { replace: true }); }}><i className="bi-dot" aria-hidden="true" /></button>
+        <button type="button" className="pl-navbtn" aria-label="Aujourd'hui" onClick={() => { const t = startOfDay(new Date()); setDate(t); navigate(`/planning/${toDateParam(t)}`, { replace: true }); }}><i className="bi-calendar-check" aria-hidden="true" /></button>
         <button type="button" className="pl-navbtn" aria-label="Suivant" onClick={() => go(1)}><i className="bi-chevron-right" aria-hidden="true" /></button>
         <span className="pl-toolbar__title" data-testid="pl-title">{title}</span>
         <span className="pl-viewtoggle">

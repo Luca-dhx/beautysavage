@@ -114,6 +114,7 @@ export function SystemSettingsPage() {
               type="button"
               className="sys-copy-btn"
               title="Copier l'URL"
+              aria-label="Copier l'URL"
               disabled={!draft.domains.vitrineUrl}
               onClick={() => copy(draft.domains.vitrineUrl)}
             >
@@ -138,6 +139,7 @@ export function SystemSettingsPage() {
               type="button"
               className="sys-copy-btn"
               title="Copier l'URL"
+              aria-label="Copier l'URL"
               disabled={!draft.domains.panelUrl}
               onClick={() => copy(draft.domains.panelUrl)}
             >

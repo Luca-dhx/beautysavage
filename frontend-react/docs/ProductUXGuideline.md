@@ -126,3 +126,13 @@ les sessions présentielles réutilisent les cards/badges du Planning M10 (pas d
   HTML pixel-perfect).
 - **Modération avis** : la vitrine n'affiche que les avis **publiés** ; cards (zéro table), filtres par
   statut + compteurs, actions Publier/Masquer/En attente.
+
+## 14. Dette UX systémique à corriger (audit RC1 — rapports 219-220)
+Patterns identifiés sur les écrans manager, à corriger en priorité :
+- **Jamais d'erreur masquée en vide** : tout écran de liste/donnée DOIT distinguer `error` de `empty`
+  (un backend down ne doit jamais afficher « Aucun… »). Brancher `status === 'error'` → `<ErrorState/>`.
+- **Confirmation obligatoire sur action destructive** (suppression, annulation-remboursement, maintenance).
+- **Feedback de succès** (toast / `aria-live`) sur toute mutation — ne jamais « sembler ne rien faire ».
+- **Garde unsaved** dans les éditeurs (draft local) avant navigation.
+- **Pas d'enum ingénieur** exposé à l'utilisateur (traduire statuts/types en libellés FR).
+- **Pas de champ mort** : tout champ éditable doit être persisté (ex. corrigé : `trailerVideoUrl`).

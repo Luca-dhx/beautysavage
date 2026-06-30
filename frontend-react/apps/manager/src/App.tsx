@@ -55,7 +55,7 @@ import {
 } from './features/catalogue';
 import { SessionPresencePage } from './features/learning';
 import { ReviewModerationPage } from './features/reviews';
-import { FinanceDashboardPage } from './features/finance';
+import { FinanceDashboardPage, FinanceTimelinePage } from './features/finance';
 
 // Routing manager R0 — placeholders + guards rôle (cf. rapport 147).
 // Manager = admin ou dev. /dev/* = dev uniquement. /login public.
@@ -95,6 +95,8 @@ export function App() {
           <Route path="avis" element={<ReviewModerationPage />} />
           {/* RX2.1 — Finance Dashboard : page d'accueil financière (cards/KPIs/actions, mobile-first) */}
           <Route path="finance" element={<FinanceDashboardPage />} />
+          {/* RX2.2 — Financial Timeline : colonne vertébrale narrative (mouvements + résumé filtrable) */}
+          <Route path="finance/timeline" element={<FinanceTimelinePage />} />
           <Route path="ventes" element={<Placeholder title="Ventes" description="Historique des ventes." />} />
           <Route path="remboursements" element={<Placeholder title="Remboursements" description="Gestion des remboursements." />} />
           <Route path="commissions" element={<Placeholder title="Commissions" description="Paiement des commissions." />} />

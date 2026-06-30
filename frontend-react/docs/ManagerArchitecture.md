@@ -442,3 +442,15 @@ Manager servi officiellement sous `/manager` (Vite base `/manager/`, BrowserRout
 REACT_OFFICIAL_FRONTEND avec rollback). Serving : `services/system/reactFrontend.js` (Express). Migration
 restante (RX2) : finance premium (ventes/commissions/remboursements en cards/timeline/drawer, sans tableaux),
 réservations, paramètres, dev tools. Détail : rapport 222 + `docs/migration/VANILLA_RETIREMENT_PLAN.md`.
+
+
+## RX2 — Espace Finance (`features/finance/`)
+Feature finance React (préfixe `fin-*` / `fin-tl-*`, tokens `--bs-*`, zéro hex, mobile-first, ≥44px).
+- **RX2.1 Finance Dashboard** (`/finance`, nav « Finance ») : `FinanceDashboardPage` (héros revenu signé,
+  chips ventilation, cartes d'action navigables), `useFinanceDashboard`. api-client `manager/finance.ts`
+  (`getFinanceDashboard`, `updateRefundStatus`).
+- **RX2.2 Financial Timeline** (`/finance/timeline`, lien depuis le dashboard) : `FinanceTimelinePage`
+  (résumé sticky `FinanceTimelineSummary`, chips période/type, cards `FinanceTimelineCard`, drawer
+  `FinanceMovementDrawer`), `useFinanceTimeline`, api-client `getFinanceTimeline` + types
+  (`FinanceTimelineItem`/`…Summary`/`…Filters`/`FinanceMovementType`/`FinanceMovementStatus`). Backend autorité
+  (aucun calcul de montant côté front). Détail : `docs/RX2_2_FINANCIAL_TIMELINE_REPORT.md`.

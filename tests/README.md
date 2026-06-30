@@ -846,3 +846,20 @@ flag ON → `/`→/app/, /vitrine.html→/app/, /gestion.html→/manager/ ; le s
 /app & /manager servis en SPA (200 si build, 503 sinon, jamais 404/500). Le flag REACT_OFFICIAL_FRONTEND est
 lu dynamiquement → togglé par test (restauré en afterEach). Front : `apps/vitrine/src/pages/myAccount.test.tsx`
 (espace compte : profil + hub + déconnexion signOut + non-auth, zéro table). Suite front : 302 verts.
+
+## S1C — NGROK_DOMAIN supprimé + politique Vault uniforme (rapport 224)
+- `p1/s1cDomainResolverVaultPolicy` : garde statique (aucun fichier runtime ne lit `NGROK_DOMAIN`,
+  le resolver ne lit ni NGROK ni `APP_BASE_URL` ni `process.env`) ; DomainResolver = SystemConfiguration
+  → `http://localhost:3000` (premier boot) ; vault clé injectée → OK, clé absente → throw (tout `NODE_ENV`).
+- `p1/integratedApiEnvFallbackPolicy` (remplace `…NoEnvFallbackProd`) : fallback `.env` des credentials
+  = opt-in flag-only, **identique** dev/test/production.
+- `p1/credentialVault` : `validateCredentialVaultKey` throw uniformément (aucune logique d'environnement).
+- 9 tests Checkout hébergé : la base publique vient de `SystemConfiguration.domains` (seed en `beforeEach`),
+  plus aucun `NGROK_DOMAIN`. `tests/setup/testEnv.js` : plus aucune variable de domaine.
+
+## RX2 — Finance Experience
+- `p1/financeDashboard` : instantané dashboard (today/7d/30d, backlog soldes/remboursements/factures).
+- `p1/financeTimelineService` : mappers purs + agrégation `buildFinanceTimeline` (tous types, tri, limit).
+- `p1/financeTimelineSummary` : `computeSummary` (in/out/net/balanceDue/count/refundCount).
+- `p1/financeTimelineNoDoubleCount` : facture non comptée (lien sur la vente), carte cadeau utilisée neutre.
+- `p1/financeTimelineRoutes` : `GET /api/gestion/finance/timeline` (admin 200 mount-order, client 403, filtres).

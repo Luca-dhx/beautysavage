@@ -2,7 +2,7 @@
 // « Aujourd'hui : +2 480 € · 32 ventes · X soldes à encaisser · Y remboursements · Z factures. »
 // Cards + KPIs + actions. Jamais de tableau. Mobile = desktop.
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { FinanceRange } from '@bs/api-client';
 import { useFinanceDashboard } from './useFinance';
 import {
@@ -29,6 +29,15 @@ export function FinanceDashboardPage() {
       {data ? (
         <>
           <FinanceHero label={data.rangeLabel} revenue={data.today.revenue} salesCount={data.today.salesCount} />
+
+          <Link to="/finance/timeline" className="fin-card fin-actioncard" data-testid="fin-timeline-link">
+            <span className="fin-actioncard__icon"><i className="bi-list-ul" aria-hidden="true" /></span>
+            <span className="fin-actioncard__body">
+              <span className="fin-actioncard__value">Timeline financière</span>
+              <span className="fin-actioncard__label">Tous les mouvements, ordonnés</span>
+            </span>
+            <i className="bi-chevron-right fin-actioncard__chev" aria-hidden="true" />
+          </Link>
 
           <section className="fin-section" aria-label="Ventilation des ventes">
             <BreakdownChips breakdown={data.today.breakdown} giftCardConsumption={data.today.giftCardConsumption} />

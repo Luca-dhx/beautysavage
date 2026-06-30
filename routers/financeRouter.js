@@ -6,12 +6,14 @@ import express from 'express';
 import { requireAuth } from '../utils/session.js';
 import { requireMode } from '../middlewares/modeGuard.js';
 import { requireAdminOrDev } from '../middlewares/requireDev.js';
-import { getFinanceDashboard } from '../controllers/financeController.js';
+import { getFinanceDashboard, getFinanceTimeline } from '../controllers/financeController.js';
 
 const router = express.Router();
 
 router.use(requireAuth(), requireMode('gestion'), requireAdminOrDev);
 
 router.get('/dashboard', getFinanceDashboard);
+// RX2.2 — Financial Timeline (mouvements + résumé filtrable).
+router.get('/timeline', getFinanceTimeline);
 
 export default router;

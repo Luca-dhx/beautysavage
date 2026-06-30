@@ -258,3 +258,13 @@ Depuis la fiche client, le personnel peut : creer une carte cadeau payee sur pla
 ## Sprint P1 — Product Polish & UX (rapports 207-208)
 
 Le manager gagne en cohérence et confort mobile : navigation avec état actif et barre latérale qui se réorganise au pouce, boutons icône agrandis (44px), modale de confirmation accolée en bas sur téléphone, focus clavier visible partout, animations homogènes. Aucune fonctionnalité métier modifiée.
+
+
+## RX2 — Finance Experience (RX2.0–2.2)
+
+Le manager dispose d'un espace finance qui se lit comme Stripe/Qonto. **Tableau de bord** (`/finance`) :
+on ouvre, on comprend — revenu du jour, ventilation (prestations/formations/cartes cadeaux), et ce qu'il
+reste à faire (soldes à encaisser, remboursements à traiter, factures impayées). **Timeline financière**
+(`/finance/timeline`) : une seule liste ordonnée de tous les mouvements (paiement, acompte, solde, carte
+cadeau, remboursement, commission, facture), avec un résumé net en haut et un volet de détail au tap.
+Cards et volets, jamais de tableau, aussi agréable sur téléphone que sur ordinateur.

@@ -876,3 +876,11 @@ lu dynamiquement → togglé par test (restauré en afterEach). Front : `apps/vi
 - `p1/financeOnSitePayments` : wording mapper (full « Paiement sur place » vs acompte « Solde ») ; timeline
   inclut la prestation manuelle full on-site et exclut les annulées ; dashboard compte les manuelles full on-site.
 - `p1/financeBalanceCollectRoute` (étendu) : encaissement d'une prestation full on-site (paymentType full).
+
+## RX2.5 — Commissions premium
+- `p1/commissionPaymentTerms` : resolver termes + dates échéance/grace (respecte snapshot).
+- `p1/commissionLateStatus` : pending_due/due/grace/overdue/suspension_risk/paid/settled_zero.
+- `p1/commissionFinanceOverview` : breakdown, overview (contrat/no-contract), history, detail.
+- `p1/commissionFormationOnlyRegression` : prestation = 0 commission, formation comptée.
+- `p1/commissionFinanceTimeline` : mouvement commission (commission_view → détail, pas de double-count).
+- `p1/commissionStripeDevHostedPayment` : routes finance commission (commission_pay activé/désactivé, 403 client).

@@ -14,7 +14,7 @@ const MANAGER_NAV = [
   { to: '/finance', label: 'Finance' },
   { to: '/ventes', label: 'Ventes' },
   { to: '/remboursements', label: 'Remboursements' },
-  { to: '/commissions', label: 'Commissions' },
+  { to: '/finance/commissions', label: 'Commissions' },
   { to: '/communication', label: 'Communication' },
   { to: '/parametres', label: 'Paramètres' },
 ];

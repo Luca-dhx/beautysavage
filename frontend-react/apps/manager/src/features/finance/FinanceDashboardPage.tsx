@@ -39,6 +39,15 @@ export function FinanceDashboardPage() {
             <i className="bi-chevron-right fin-actioncard__chev" aria-hidden="true" />
           </Link>
 
+          <Link to="/finance/commissions" className="fin-card fin-actioncard" data-testid="fin-commissions-link">
+            <span className="fin-actioncard__icon"><i className="bi-bank" aria-hidden="true" /></span>
+            <span className="fin-actioncard__body">
+              <span className="fin-actioncard__value">Commissions plateforme</span>
+              <span className="fin-actioncard__label">Commission du mois, détail, paiement</span>
+            </span>
+            <i className="bi-chevron-right fin-actioncard__chev" aria-hidden="true" />
+          </Link>
+
           <section className="fin-section" aria-label="Ventilation des ventes">
             <BreakdownChips breakdown={data.today.breakdown} giftCardConsumption={data.today.giftCardConsumption} />
           </section>

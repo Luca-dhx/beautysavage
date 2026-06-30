@@ -255,10 +255,14 @@ export function mapCommissionPaymentToFinanceMovement(payment) {
       : null,
     customer: null,
     source: { model: 'CommissionPayment', id: String(payment._id) },
-    badges: [{ label: 'Plateforme', tone: 'neutral' }, ...(status === 'paid' ? [{ label: 'Payée', tone: 'success' }] : [])],
+    badges: [
+      { label: 'Plateforme', tone: 'neutral' },
+      ...(status === 'paid' ? [{ label: 'Payée', tone: 'success' }] : [{ label: 'À payer', tone: 'warning' }]),
+    ],
+    // RX2.5 — la card commission ouvre le détail premium (/finance/commissions/:year/:month).
     actions: [
+      { kind: 'commission_view', enabled: true, to: `/finance/commissions/${payment.year}/${Number(payment.month) + 1}` },
       { kind: 'invoice_view', enabled: Boolean(payment.stripeInvoicePdfUrl), url: payment.stripeInvoicePdfUrl || null },
-      { kind: 'commission_view', enabled: false },
     ],
   };
 }

@@ -6,7 +6,10 @@ import express from 'express';
 import { requireAuth } from '../utils/session.js';
 import { requireMode } from '../middlewares/modeGuard.js';
 import { requireAdminOrDev } from '../middlewares/requireDev.js';
-import { getFinanceDashboard, getFinanceTimeline, getFinanceMovementDetail } from '../controllers/financeController.js';
+import {
+  getFinanceDashboard, getFinanceTimeline, getFinanceMovementDetail,
+  getCommissionOverview, getCommissionHistory, getCommissionDetail,
+} from '../controllers/financeController.js';
 
 const router = express.Router();
 
@@ -17,5 +20,9 @@ router.get('/dashboard', getFinanceDashboard);
 router.get('/timeline', getFinanceTimeline);
 // RX2.3 — Détail d'un mouvement (breakdown paiement + profit net estimé).
 router.get('/movement-detail', getFinanceMovementDetail);
+// RX2.5 — Commissions premium (lecture). Le paiement reste sur /api/commissions/payments/:id/* (U3 hosted).
+router.get('/commissions/current', getCommissionOverview);
+router.get('/commissions/history', getCommissionHistory);
+router.get('/commissions/:year/:month', getCommissionDetail);
 
 export default router;

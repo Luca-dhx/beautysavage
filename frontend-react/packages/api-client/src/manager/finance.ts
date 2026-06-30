@@ -56,10 +56,11 @@ export type FinanceTimelineTypeFilter =
 
 export interface FinanceMovementBadge { label: string; tone: 'neutral' | 'success' | 'warning' | 'danger'; }
 export interface FinanceMovementAction {
-  kind: 'customer_view' | 'invoice_view' | 'sale_view' | 'refund_process' | 'balance_collect' | 'commission_view';
+  kind: 'customer_view' | 'invoice_view' | 'sale_view' | 'refund_process' | 'balance_collect' | 'commission_view' | 'commission_pay';
   enabled: boolean;
   to?: string | null;
   url?: string | null;
+  paymentId?: string;
 }
 export interface FinanceMovementCustomer { id: string; name: string; }
 export interface FinanceMovementSource { model: string; id: string; }
@@ -120,7 +121,7 @@ export async function getFinanceTimeline(filters: FinanceTimelineFilters = {}): 
 export type NetProfitStatus = 'complete' | 'partial' | 'not_applicable';
 export type StripeFeesStatus = 'available' | 'pending' | 'not_applicable';
 export type FinanceActionKind =
-  | 'customer_view' | 'invoice_view' | 'sale_view' | 'refund_process' | 'balance_collect' | 'commission_view';
+  | 'customer_view' | 'invoice_view' | 'sale_view' | 'refund_process' | 'balance_collect' | 'commission_view' | 'commission_pay';
 
 export interface FinancePaymentBreakdown {
   paidAmount: number;

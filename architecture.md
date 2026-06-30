@@ -4269,3 +4269,21 @@ balanceSettlementMode:'pay_on_site', status∉{cancelled,pending_payment}}` part
 encaissé », sinon « Solde … » ; badges Sur place / Réservation manuelle. React : BalanceCollectPanel +
 footer « Encaisser sur place », dashboard « À encaisser sur place ». Tests +10. Détail :
 `docs/RX2_4_ONSITE_PAYMENTS_REPORT.md`.
+
+
+## RX2.5 — Commissions premium
+
+Expérience premium des commissions plateforme SANS toucher le moteur (commissionPaymentService : formation-only,
+carry-over, idempotence). `services/finance/commissionFinanceService.js` ajoute les TERMES de paiement :
+`resolveCommissionPaymentTerms` (CommissionSettings étendu : gracePeriodDays/blockingMode/suspensionWarningAfterDays),
+`computeCommissionDueDates` (availability=1er mois suivant, dueAt=+délai, graceEndsAt=+grace),
+`resolveCommissionLateStatus` (pending_due|due|grace|overdue|suspension_risk|paid|settled_zero),
+`buildCommissionBreakdown`, getCurrentCommissionOverview/Detail/History. Snapshot dueAt/graceEndsAt/
+paymentTermsSnapshot = champs additifs CommissionPayment, lazy-persistés UNIQUEMENT par le service finance
+(moteur intact). Routes lecture `GET /api/gestion/finance/commissions/current|/history|/:year/:month` (admin/dev,
+respectent getNow/date simulée). Paiement RÉUTILISE `/api/commissions/payments/:id/create-intent` (Stripe Dev
+hébergé U3 ; settledZero si 0€). Timeline : mouvement commission enrichi (badge + commission_view → détail, pas
+de nouveaux types → pas de double-count). PATCH `/api/commissions/settings` étendu (grace/blockingMode). Blocage
+V1 = none/warning_only only (aucune suspension auto). Notifications = relances existantes conservées, aucun
+nouveau mail. React : features/finance CommissionOverviewPage (/finance/commissions) + CommissionDetailPage
+(/finance/commissions/:year/:month), fin-comm-*. Tests +47. Détail : `docs/RX2_5_COMMISSION_PREMIUM_REPORT.md`.

@@ -55,7 +55,7 @@ import {
 } from './features/catalogue';
 import { SessionPresencePage } from './features/learning';
 import { ReviewModerationPage } from './features/reviews';
-import { FinanceDashboardPage, FinanceTimelinePage } from './features/finance';
+import { FinanceDashboardPage, FinanceTimelinePage, CommissionOverviewPage, CommissionDetailPage } from './features/finance';
 
 // Routing manager R0 — placeholders + guards rôle (cf. rapport 147).
 // Manager = admin ou dev. /dev/* = dev uniquement. /login public.
@@ -97,6 +97,9 @@ export function App() {
           <Route path="finance" element={<FinanceDashboardPage />} />
           {/* RX2.2 — Financial Timeline : colonne vertébrale narrative (mouvements + résumé filtrable) */}
           <Route path="finance/timeline" element={<FinanceTimelinePage />} />
+          {/* RX2.5 — Commissions premium (commission du mois, détail, paiement Stripe Dev hébergé) */}
+          <Route path="finance/commissions" element={<CommissionOverviewPage />} />
+          <Route path="finance/commissions/:year/:month" element={<CommissionDetailPage />} />
           <Route path="ventes" element={<Placeholder title="Ventes" description="Historique des ventes." />} />
           <Route path="remboursements" element={<Placeholder title="Remboursements" description="Gestion des remboursements." />} />
           <Route path="commissions" element={<Placeholder title="Commissions" description="Paiement des commissions." />} />

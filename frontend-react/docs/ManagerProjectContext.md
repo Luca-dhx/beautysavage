@@ -285,3 +285,12 @@ Quand une prestation est réservée et payée directement à l'institut (sans pa
 maintenant clairement dans la finance : « Paiement sur place à encaisser », puis « encaissé » une fois réglé.
 On encaisse en un geste depuis le volet (CB, espèces, autre). Le tableau de bord et la timeline comptent
 exactement la même chose : ce qu'il reste à encaisser sur place, sans rien oublier.
+
+
+## RX2.5 — Commissions premium
+
+Les commissions plateforme deviennent lisibles et modernes : une card « Commission ce mois » avec le montant,
+l'échéance et un bouton « Payer » (paiement Stripe Dev hébergé), un détail clair du calcul (formations vendues,
+remboursements déduits, report du mois précédent, à payer), un statut de retard explicite (à payer, délai de
+grâce, en retard…) et un historique en cards. Si rien n'est dû : « Aucune commission à payer ce mois-ci ».
+Cards et timeline, jamais de tableau, mobile-first.

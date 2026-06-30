@@ -2,6 +2,12 @@
 import { buildFinanceDashboard } from '../services/financeService.js';
 import { buildFinanceTimeline, resolveTimelineWindow } from '../services/finance/financeTimelineService.js';
 import { buildFinanceMovementDetail } from '../services/finance/financeMovementDetailService.js';
+import {
+  getCurrentCommissionOverview,
+  getCommissionPaymentDetail,
+  getCommissionPaymentHistory,
+} from '../services/finance/commissionFinanceService.js';
+import { getNow } from '../utils/simulatedDate.js';
 
 const VALID_RANGES = new Set(['today', '7d', '30d']);
 const VALID_PERIODS = new Set(['today', 'week', 'month', 'all']);
@@ -63,5 +69,40 @@ export async function getFinanceMovementDetail(req, res) {
   } catch (error) {
     console.error('Erreur Finance Movement Detail', error);
     return res.status(500).json({ ok: false, error: 'Impossible de charger le détail du mouvement.' });
+  }
+}
+
+// RX2.5 — Commissions premium (lecture). Réutilise le moteur ; respecte la date simulée (getNow).
+export async function getCommissionOverview(req, res) {
+  try {
+    const now = await getNow();
+    const overview = await getCurrentCommissionOverview(now);
+    return res.json({ ok: true, ...overview });
+  } catch (error) {
+    console.error('Erreur Commission Overview', error);
+    return res.status(500).json({ ok: false, error: 'Impossible de charger la commission du mois.' });
+  }
+}
+
+export async function getCommissionHistory(req, res) {
+  try {
+    const now = await getNow();
+    const history = await getCommissionPaymentHistory(now);
+    return res.json({ ok: true, ...history });
+  } catch (error) {
+    console.error('Erreur Commission History', error);
+    return res.status(500).json({ ok: false, error: 'Impossible de charger l\'historique des commissions.' });
+  }
+}
+
+export async function getCommissionDetail(req, res) {
+  try {
+    const now = await getNow();
+    const result = await getCommissionPaymentDetail(req.params.year, req.params.month, now);
+    if (!result) return res.status(404).json({ ok: false, error: 'Commission introuvable.' });
+    return res.json({ ok: true, ...result });
+  } catch (error) {
+    console.error('Erreur Commission Detail', error);
+    return res.status(500).json({ ok: false, error: 'Impossible de charger le détail de la commission.' });
   }
 }

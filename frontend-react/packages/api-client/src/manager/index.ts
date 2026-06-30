@@ -10,6 +10,7 @@ export * from './notifications';
 export * from './calendar';
 export * from './customer360';
 export * from './finance';
+export * from './commissionFinance';
 export * from './giftCards';
 export * from './giftCardTemplates';
 export * from './giftCardLibrary';

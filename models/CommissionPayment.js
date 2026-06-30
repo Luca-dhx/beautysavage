@@ -64,6 +64,13 @@ const commissionPaymentSchema = new mongoose.Schema(
     stripeInvoiceId: { type: String, default: null },
     stripeInvoicePdfUrl: { type: String, default: null },
 
+    // RX2.5 — snapshot des termes de paiement (additif, nullable). Lazy-persisté UNIQUEMENT par
+    // services/finance/commissionFinanceService (jamais par le moteur commissionPaymentService) →
+    // le système commission unifié reste intact. dueAt/graceEndsAt figés au 1er affichage finance.
+    dueAt: { type: Date, default: null },
+    graceEndsAt: { type: Date, default: null },
+    paymentTermsSnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
+
     sales: { type: [commissionSaleEntrySchema], default: [] },
     refunds: { type: [commissionRefundEntrySchema], default: [] },
 

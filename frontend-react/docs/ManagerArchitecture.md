@@ -473,3 +473,14 @@ place à encaisser / encaissé ») et le dashboard (« À encaisser sur place »
 depuis le drawer (`BalanceCollectPanel` : wording adaptatif full vs solde, moyen CB/espèces/autre via
 `useMarkBalancePaid` → `markBalancePaidOnSite` généralisé). Backend = filtre unifié ONSITE_DUE partagé
 timeline+dashboard. Détail : `docs/RX2_4_ONSITE_PAYMENTS_REPORT.md`.
+
+
+## RX2.5 — Commissions premium (`features/finance/`)
+`CommissionOverviewPage` (`/finance/commissions`, nav « Commissions ») : `CommissionCurrentCard` (« Commission
+ce mois · à payer avant le … · Voir détail · Payer »), `CommissionSettingsPreview`, `CommissionHistoryList`.
+`CommissionDetailPage` (`/finance/commissions/:year/:month`) : `CommissionBreakdownCard` (carry-over visible),
+`CommissionPaymentStatusCard` (échéance/grace/statut via `CommissionLateStatusBadge`), `CommissionInvoiceCard`,
+`CommissionPaymentAction` (paiement Stripe Dev hébergé U3 : redirection si `url`, « Aucune commission à payer »
+si settledZero). api-client `manager/commissionFinance.ts` (getCommissionOverview/History/Detail +
+createCommissionPaymentIntent/checkCommissionPaymentStatus). Préfixe `fin-comm-*`, tokens --bs-*, zéro hex.
+Backend autorité (aucun calcul front). Détail : `docs/RX2_5_COMMISSION_PREMIUM_REPORT.md`.

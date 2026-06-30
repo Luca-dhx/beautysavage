@@ -352,7 +352,11 @@ export async function getCommissionSettingsHandler(req, res) {
       settings: {
         latePaymentDays: settings.latePaymentDays,
         reminders: (settings.reminders || []).map(r => ({ daysBeforeDue: r.daysBeforeDue })),
-        simulatedDate: settings.simulatedDate ? settings.simulatedDate.toISOString().slice(0, 10) : null
+        simulatedDate: settings.simulatedDate ? settings.simulatedDate.toISOString().slice(0, 10) : null,
+        // RX2.5 — termes de paiement étendus (grace period + mode de blocage).
+        gracePeriodDays: settings.gracePeriodDays ?? 0,
+        blockingMode: settings.blockingMode || 'none',
+        suspensionWarningAfterDays: settings.suspensionWarningAfterDays ?? 0
       }
     });
   } catch (error) {
@@ -423,6 +427,28 @@ export async function updateCommissionSettingsHandler(req, res) {
     settings.reminders = (settings.reminders || []).filter(
       r => r.daysBeforeDue >= 1 && r.daysBeforeDue < settings.latePaymentDays
     );
+    // RX2.5 — termes de paiement étendus (optionnels, validés).
+    if (req.body?.gracePeriodDays !== undefined) {
+      const grace = Number(req.body.gracePeriodDays);
+      if (!Number.isFinite(grace) || grace < 0) {
+        return res.status(400).json({ ok: false, error: 'gracePeriodDays invalide (≥ 0).' });
+      }
+      settings.gracePeriodDays = Math.round(grace);
+    }
+    if (req.body?.blockingMode !== undefined) {
+      const allowed = ['none', 'warning_only', 'block_purchases', 'block_manager'];
+      if (!allowed.includes(req.body.blockingMode)) {
+        return res.status(400).json({ ok: false, error: 'blockingMode invalide.' });
+      }
+      settings.blockingMode = req.body.blockingMode;
+    }
+    if (req.body?.suspensionWarningAfterDays !== undefined) {
+      const warn = Number(req.body.suspensionWarningAfterDays);
+      if (!Number.isFinite(warn) || warn < 0) {
+        return res.status(400).json({ ok: false, error: 'suspensionWarningAfterDays invalide (≥ 0).' });
+      }
+      settings.suspensionWarningAfterDays = Math.round(warn);
+    }
     settings.updatedAt = new Date();
     await settings.save();
 
@@ -430,7 +456,10 @@ export async function updateCommissionSettingsHandler(req, res) {
       ok: true,
       settings: {
         latePaymentDays: settings.latePaymentDays,
-        reminders: settings.reminders.map(r => ({ daysBeforeDue: r.daysBeforeDue }))
+        reminders: settings.reminders.map(r => ({ daysBeforeDue: r.daysBeforeDue })),
+        gracePeriodDays: settings.gracePeriodDays ?? 0,
+        blockingMode: settings.blockingMode || 'none',
+        suspensionWarningAfterDays: settings.suspensionWarningAfterDays ?? 0
       }
     });
   } catch (error) {

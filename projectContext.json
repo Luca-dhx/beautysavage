@@ -760,6 +760,19 @@
       "Tests: p1/integratedApiNoEnvFallbackProd, p1/communicationIdentityNoMailFrom, p1/systemConfigurationInstituteInfo, p1/envDecommissionRuntime (garde statique). +13 tests"
     ]
   },
+  "envMinimalBootstrap": {
+    "date": "2026-06-30",
+    "branch": "phase-0-security-baseline",
+    "reports": [
+      "223_audit_env_minimal_bootstrap.md"
+    ],
+    "scope": [
+      "Objectif: .env = bootstrap technique uniquement, zero config metier. Indispensables au boot (throw si absentes): MONGODB_URI (app.js exit), SESSION_SECRET (utils/session.js throw), PWD_PEPPER (utils/password.js throw). Optionnels techniques: PORT (defaut 3000), NODE_ENV, TZ, CREDENTIAL_VAULT_KEY (requis en prod), NGROK_DOMAIN (tunnel dev). EMAIL_VERIFICATION_SECRET non requis (fallback SESSION_SECRET)",
+      "14 variables metier retirees du .env reel (STRIPE_* x6, BREVO_API_KEY, MAIL_FROM, MAIL_FROM_NAME, INSTITUTE_* x6) -> sauvegarde .env.backup (gitignore). Constat: avec garde S1B (ALLOW_ENV_CREDENTIAL_FALLBACK absent), les 7 cles Stripe/Brevo etaient deja MORTES au runtime; MAIL_FROM*/INSTITUTE_* = fallbacks dev-only. Aucune requise au boot",
+      ".env.example reecrit minimal (3 requises + options techniques commentees + flags). Aucun changement de code source (logique inchangee). Config metier = panels Dev (IntegratedAPI/Communication Identity/Parametres Systeme) ou scripts migrate/seed",
+      "Test p1/envMinimalBootstrap: avec toutes les vars metier absentes, getInstituteInfo()/resolvePlatformName()/resolveVatMention() renvoient '' sans throw, buildSender() prod sans identite -> null; seules SESSION_SECRET/PWD_PEPPER/MONGODB_URI lèvent une erreur. Rapport 223"
+    ]
+  },
   "phase5aEmailTemplateVersioning": {
     "date": "2026-06",
     "scope": [

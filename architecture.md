@@ -1285,6 +1285,16 @@ Variables connexes observees (contexte execution):
 - **`.env.example`** : `STRIPE_*`/`BREVO_API_KEY`/`MAIL_FROM*` retires (pointeurs IntegratedAPI /
   Communication Identity / Parametres Systeme). Voir `Rapports/version 1/217` & `218`.
 
+### `.env` minimal — bootstrap technique uniquement (2026-06-30, rapport 223)
+
+- Le `.env` ne contient **plus aucune config metier**. Indispensables au boot (throw si absentes) :
+  `MONGODB_URI`, `SESSION_SECRET` (utils/session.js), `PWD_PEPPER` (utils/password.js).
+  Optionnels techniques : `PORT` (defaut 3000), `NODE_ENV`, `TZ`, `CREDENTIAL_VAULT_KEY`
+  (requis en prod), `NGROK_DOMAIN` (tunnel dev). Le reste = flags a defaut sur.
+- Les 14 variables metier (`STRIPE_*`, `BREVO_API_KEY`, `MAIL_FROM*`, `INSTITUTE_*`) sont
+  retirees du `.env` (sauvegarde `.env.backup` gitignore) — config via panels Dev / migration.
+  Garde : `tests/p1/envMinimalBootstrap.test.js`.
+
 ## Migration Stripe Invoicing (2026-03-12)
 
 - Les nouvelles ventes passent par Stripe Invoicing via `services/stripeInvoiceService.js`.

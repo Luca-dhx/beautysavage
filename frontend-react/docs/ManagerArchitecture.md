@@ -419,3 +419,12 @@ accordion chapitres → leçons, `LessonDrawer` avec `LessonEmbed` preview + `Re
 `/catalogue/formations/:id/sessions/:sessionId/presence`, lien depuis la carte session) + `QrScanner`
 (html5-qrcode, import dynamique). Customer360 `FormationSection` enrichie (progression/présence). Détail :
 rapport 212.
+
+## S1 — Paramètres Système (dev)
+Feature dev-only `features/systemSettings/SystemSettingsPage.tsx` (route `/dev/system`, nav
+« Paramètres Système »). Source unique de la config métier : sections 🌐 Domaines, 🏢 Institut,
+🌍 Localisation, 💰 Fiscalité, 🔧 Système, ⚠️ Maintenance. Domaines = validation live des URLs
+(`validateDomainUrl` : HTTPS hors localhost/dev, sans slash final), copie d'URL, repli affiché.
+Mobile-first (cibles 44px). api-client `manager/systemConfiguration.ts` (GET/PUT
+`/api/gestion/dev/system-configuration`). Backend : `SystemConfiguration` (singleton) + `DomainResolver`
+(toutes les URLs générées en découlent). Détail : rapports 213/214.

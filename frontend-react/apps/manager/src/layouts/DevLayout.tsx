@@ -6,6 +6,7 @@ const DEV_NAV = [
   { to: '/dev/contrats', label: 'Contrats' },
   { to: '/dev/commissions', label: 'Commissions' },
   { to: '/dev/integrated-api', label: 'API intégrée' },
+  { to: '/dev/system', label: 'Paramètres Système' },
   { to: '/dev/communication', label: 'Communication' },
   { to: '/dev/theme-studio', label: 'Theme Studio' },
   { to: '/dev/email-templates', label: 'Templates email' },

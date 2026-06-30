@@ -20,6 +20,7 @@ import {
   VitrineThemeEditorPage,
   PanelThemeEditorPage,
 } from './features/themeStudio';
+import { SystemSettingsPage } from './features/systemSettings';
 import {
   MailTemplateStudioLayout,
   MailTemplateStudioDashboard,
@@ -107,6 +108,8 @@ export function App() {
               <Route path="contrats" element={<Placeholder title="Contrats" description="Gestion des contrats (dev)." />} />
               <Route path="commissions" element={<Placeholder title="Commissions (dev)" description="Config commissions." />} />
               <Route path="integrated-api" element={<Placeholder title="API intégrée" description="Credentials API intégrée." />} />
+              {/* S1 — Paramètres Système (dev uniquement) : domaines + config métier globale */}
+              <Route path="system" element={<SystemSettingsPage />} />
               {/* M6 — Mail Template Studio (dev uniquement) */}
               <Route path="email-templates" element={<MailTemplateStudioLayout />}>
                 <Route index element={<MailTemplateStudioDashboard />} />

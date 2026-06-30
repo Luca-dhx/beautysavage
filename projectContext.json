@@ -697,6 +697,23 @@
       "Limites juridiques restantes (conseil): case acknowledgement explicite execution date determinee prestation cote UI; relecture des textes de renonciation. Pas d'UI modifiee, pas de React lance"
     ]
   },
+  "s1SystemConfigurationDomain": {
+    "date": "2026-06-30",
+    "branch": "phase-0-security-baseline",
+    "reports": [
+      "213_env_cleanup_audit.md",
+      "214_system_configuration_report.md"
+    ],
+    "scope": [
+      "Objectif: sortir la config metier du .env. SystemConfiguration (models/SystemConfiguration.js) = singleton (cle global, collection systemconfiguration), source officielle: sections domains (panelUrl/vitrineUrl), institute (name/email/phone/siret/address), localization (timezone/language/currency), tax (defaultVatRate/vatMention), system (platformName), maintenance (enabled/message)",
+      "services/system/systemConfigurationService.js: get-or-create singleton, cache memoire (lecture sync), updateSystemConfiguration (validation URLs, merge par section), seedSystemConfigurationFromEnv (idempotent, parite), accesseurs sync resolveInstituteName/Email/Siret/Address + resolveVatMention + resolvePlatformName (cache -> fallback env, SANS defaut metier impose: chaque site garde son defaut historique)",
+      "services/system/domainResolver.js: SEULE couche lisant APP_BASE_URL/NGROK_DOMAIN. resolveVitrine/Panel/PublicBaseUrl + resolveVitrine/Panel/PublicUrl(path). Chaine: config.domains -> APP_BASE_URL (surcharge env, hors .env) -> NGROK -> localhost:4000. panel retombe sur vitrine si vide. systemUrlValidation.js (pur): http(s), HTTPS hors localhost/dev, pas de slash final, ni ? ni #",
+      "Migration PARTIE 7/8: APP_BASE_URL n'est plus lu que par le resolver. getAppBaseUrl() (utils/invoiceUrl.js) = delegateur retro-compat. Sites migres: clientController, sessionCancellationFlow(Controller/Service), refundExecutionService, mailEventVariableBuilder, mailDomainDispatchers (reset/invoice/refund), sessionCancellationAutoRefundJob, commissionReminderJob (->resolvePanelUrl). Institut/fiscalite: invoiceVendorConfig, invoiceService, giftCardRenderService, commissionPdfService, commissionInvoiceSettingsService (lectures a l'import converties en call-time)",
+      "Boot app.js: seedSystemConfigurationFromEnv() apres migrations (charge le cache, non bloquant). Endpoints dev GET/PUT /api/gestion/dev/system-configuration (requireStrictDev, monte avant /api/gestion/dev generique). React dev /dev/system (Parametres Systeme): sections incl. Domaines (validation live + copier URL + repli affiche), mobile-first. api-client manager/systemConfiguration.ts (+validateDomainUrl)",
+      ".env: APP_BASE_URL SUPPRIME. .env.example: INSTITUTE_*/INVOICE_CONTACT_EMAIL retires (migres en base). NGROK_DOMAIN/MAIL_FROM/flags/secrets conserves. Migration: node scripts/seedSystemConfiguration.js",
+      "Compatibilite (PARTIE 10): en l'absence de config domaines (dev/test), URLs identiques a avant (APP_BASE_URL env -> NGROK -> localhost). Seule la source change. Tests: p1/systemUrlValidation (12), p1/systemConfiguration (10), manager/systemConfigurationApi (7). Typecheck React OK"
+    ]
+  },
   "phase5aEmailTemplateVersioning": {
     "date": "2026-06",
     "scope": [

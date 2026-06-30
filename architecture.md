@@ -1240,15 +1240,39 @@ Variables Stripe/facturation (désormais sourcées via le coffre, fallback `.env
 
 Variables connexes observees (contexte execution):
 
-- `INVOICE_CONTACT_EMAIL`: email de contact facture (fallback vendeur).
-- `MAIL_FROM`: fallback email vendeur si `INVOICE_CONTACT_EMAIL` absent.
-- `NGROK_DOMAIN`: construit la `returnUrl` checkout et l'URL webhook ciblee.
+- `INVOICE_CONTACT_EMAIL`: **migre vers SystemConfiguration** (S1) — voir ci-dessous. Reste lu en fallback.
+- `MAIL_FROM`: fallback email vendeur/expediteur si non configure.
+- `NGROK_DOMAIN`: tunnel dev — fallback du DomainResolver + URL webhook Stripe ciblee.
+
+## System Configuration & Domain Management (S1 — 2026-06-30)
+
+- **`models/SystemConfiguration.js`** : singleton (cle `global`, collection `systemconfiguration`),
+  source officielle de la config metier. Sections : `domains` (panelUrl/vitrineUrl),
+  `institute` (name/email/phone/siret/address), `localization` (timezone/language/currency),
+  `tax` (defaultVatRate/vatMention), `system` (platformName), `maintenance` (enabled/message).
+- **`services/system/systemConfigurationService.js`** : get-or-create singleton, cache memoire
+  (lecture synchrone), `updateSystemConfiguration` (validation URLs), `seedSystemConfigurationFromEnv`
+  (idempotent, parite), accesseurs sync `resolveInstituteName/Email/Siret/Address`, `resolveVatMention`,
+  `resolvePlatformName` (cache -> fallback env, sans defaut metier impose).
+- **`services/system/domainResolver.js`** : SEULE couche lisant `APP_BASE_URL`/`NGROK_DOMAIN`.
+  `resolveVitrineBaseUrl/resolvePanelBaseUrl/resolvePublicBaseUrl` + `resolveVitrineUrl/resolvePanelUrl/resolvePublicUrl`.
+  Chaine : config.domains -> APP_BASE_URL (surcharge env, hors .env) -> NGROK -> localhost:4000.
+  `panel` retombe sur `vitrine` si vide. **Toute URL generee** (mails, factures, QR, cartes cadeaux,
+  notifications, checkout) passe par lui.
+- **`services/system/systemUrlValidation.js`** : validation pure (http(s), HTTPS hors localhost/dev,
+  pas de slash final, ni `?`/`#`).
+- **Boot** (`app.js`) : `seedSystemConfigurationFromEnv()` apres les migrations (charge le cache, non bloquant).
+- **`APP_BASE_URL` SUPPRIME du `.env`** ; `getAppBaseUrl()` (utils/invoiceUrl.js) conserve comme delegateur
+  retro-compatible vers le resolver.
+- **Endpoints dev** : `GET/PUT /api/gestion/dev/system-configuration` (requireStrictDev).
+- **React dev** : `/dev/system` (« Parametres Systeme ») — sections incl. Domaines (validation live + copie).
+- **Migration** : `node scripts/seedSystemConfiguration.js`. Voir `Rapports/version 1/213` & `214`.
 
 ## Migration Stripe Invoicing (2026-03-12)
 
 - Les nouvelles ventes passent par Stripe Invoicing via `services/stripeInvoiceService.js`.
 - Flow applique: customer Stripe (creation/reuse via `User.stripeCustomerId`) -> invoice draft (`auto_advance: false`) -> invoice items -> finalization -> marquage paye `paid_out_of_band: true` -> persistance refs Stripe dans `Invoice`.
-- Les informations vendeur sont injectees dynamiquement par API via `config/invoiceVendorConfig.js` (nom, contact, adresse, SIRET, mention TVA depuis `.env`).
+- Les informations vendeur sont injectees dynamiquement par API via `config/invoiceVendorConfig.js` (nom, contact, adresse, SIRET, mention TVA depuis **SystemConfiguration** — S1 — avec fallback `.env`).
 - `runPostSaleSideEffects` appelle desormais `createStripeInvoiceForSale(sale, user)` en mode non bloquant: echec facture Stripe ne bloque jamais la confirmation de vente.
 - Coexistence historique maintenue:
   - anciennes factures PDFKit (`invoiceService.js`, `pdfPath`) toujours telechargeables,

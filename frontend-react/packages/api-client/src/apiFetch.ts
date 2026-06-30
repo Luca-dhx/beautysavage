@@ -78,3 +78,6 @@ export const apiGet = <T = unknown>(path: string, params?: ApiFetchOptions['para
 
 export const apiPost = <T = unknown>(path: string, body?: unknown): Promise<T> =>
   apiFetch<T>(path, { method: 'POST', body });
+
+export const apiPatch = <T = unknown>(path: string, body?: unknown): Promise<T> =>
+  apiFetch<T>(path, { method: 'PATCH', body });

@@ -43,6 +43,7 @@ import mailSupervisionDevRouter from './routers/mailSupervisionDevRouter.js';
 import { mailDeliveriesAdminRouter, sendLogsAdminRouter } from './routers/mailSupervisionRouter.js';
 import notificationCategoryRouter from './routers/notificationCategoryRouter.js';
 import notificationTemplateStudioRouter from './routers/notificationTemplateStudioRouter.js';
+import giftCardTemplateStudioRouter from './routers/giftCardTemplateStudioRouter.js';
 import { runNotificationCategoryMigration } from './automatisme/notificationCategoryMigration.js';
 import { startCommissionReminderJob } from './automatisme/commissionReminderJob.js';
 import { runBookingRemindersJob } from './automatisme/bookingRemindersJob.js';
@@ -52,6 +53,7 @@ import { migrateRefundRequestedTemplate } from './automatisme/refundRequestedTem
 import { runNotificationConfigMigration } from './automatisme/notificationConfigMigration.js';
 import { validateCredentialVaultKey } from './utils/credentialVault.js';
 import { seedIntegratedApisFromEnv } from './seeders/seedIntegratedApisFromEnv.js';
+import { seedGiftCardTemplates } from './seeders/seedGiftCardTemplates.js';
 import brevoWebhookRouter from './routers/brevoWebhookRouter.js';
 import communicationIdentityDevRouter from './routers/communicationIdentityDevRouter.js';
 import communicationIdentityRouter from './routers/communicationIdentityRouter.js';
@@ -428,10 +430,15 @@ app.use('/api/gestion', gestionBookingRouter);
 // M12 — Customer 360 (Client Hub, admin/dev). Monté ICI, AVANT les broad-mounts dev-only sur
 // '/api/gestion' (sinon shadow 403 admins, cf. M3A/M11B).
 app.use('/api/gestion/customers', customer360Router);
+// M13 — Cartes cadeaux gestion (config, manuel, débit, lookup, librairie templates ADMIN/dev). Monté
+// ICI, AVANT les broad-mounts dev-only sur '/api/gestion' (commissionRouter requireStrictDev, etc.)
+// qui sinon shadowent '/api/gestion/gift-cards/*' et renvoient 403 aux admins (cf. M3A/M11B).
+app.use('/api/gestion/gift-cards', giftCardGestionRouter);
 // M3E — Supervision mail dev (mail-deliveries + send-logs stats), strict dev — AVANT /api/gestion/dev générique.
 app.use('/api/gestion/dev', mailSupervisionDevRouter);
 // M7 — Notification Studio dev (templates + catégories), strict dev — AVANT /api/gestion/dev générique.
 app.use('/api/gestion/dev/notification-templates', notificationTemplateStudioRouter);
+app.use('/api/gestion/dev/gift-card-templates', giftCardTemplateStudioRouter);
 app.use('/api/gestion/dev/notification-categories', notificationCategoryRouter);
 // M3E — Supervision mail admin (roleView=admin, institut/client). Monté AVANT les routeurs
 // dev-only broad-mount sur '/api/gestion' (ex. commissionRouter requireStrictDev).
@@ -455,7 +462,7 @@ app.use('/api/gestion', commissionRouter);
 app.use('/api/gestion/promotions', promotionRouter);
 app.use('/api/vitrine/formations', vitrineFormationSessionRouter);
 app.use('/api/client/gift-cards', giftCardRouter);
-app.use('/api/gestion/gift-cards', giftCardGestionRouter);
+// (giftCardGestionRouter monté plus haut, AVANT les broad-mounts dev-only — voir M13/M3A.)
 app.use('/api/gestion/boosts', boostRouter);
 app.use('/api/gestion/clients', clientManagementRouter);
 app.use('/api/gestion/social-links', socialRouter);
@@ -530,6 +537,14 @@ if (process.env.NODE_ENV !== 'test') {
     console.log('[boot] EmailTemplate versioning migration:', JSON.stringify(tplMigration));
   } catch (tplError) {
     console.error('[boot] EmailTemplate versioning migration failed:', tplError?.message || tplError);
+  }
+  // M13 — Seed du template carte cadeau par défaut (idempotent). Garantit qu'il existe toujours
+  // au moins un template actif (règle "jamais zéro template actif").
+  try {
+    const gcTplSeed = await seedGiftCardTemplates();
+    console.log('[boot] GiftCardTemplate seed:', JSON.stringify(gcTplSeed));
+  } catch (gcTplError) {
+    console.error('[boot] GiftCardTemplate seed failed:', gcTplError?.message || gcTplError);
   }
   // Phase 4D/4E: EventBus -> Notification subscribers. Mode off|shadow|active via
   // EVENT_NOTIFICATION_SUBSCRIBER_MODE (default off; legacy alias

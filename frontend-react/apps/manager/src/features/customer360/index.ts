@@ -9,3 +9,6 @@ export {
   CustomerDrawer, MobileBottomActions, CustomerSkeleton, CustomerEmptyState, CustomerTabs,
   Accordion, ClientSearchCard, StatusBadge, money, fmtDate, fmtDateTime, initials,
 } from './components';
+export {
+  CreateGiftCardDrawer, ManualGiftCardDebitDrawer, ManualBookingDrawer, CustomerNoteDrawer,
+} from './m13Drawers';

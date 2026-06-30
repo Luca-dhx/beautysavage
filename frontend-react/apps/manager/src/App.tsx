@@ -35,6 +35,13 @@ import {
 } from './features/notificationTemplates';
 import { PlanningPage } from './features/planning';
 import { ClientsListPage, Customer360Page } from './features/customer360';
+import {
+  GiftCardTemplateStudioLayout,
+  GiftCardTemplateStudioDashboard,
+  GiftCardTemplateEditorPage,
+  GiftCardTemplateVersionsPage,
+} from './features/giftCardTemplates';
+import { GiftCardLibraryPage } from './features/giftCardLibrary';
 
 // Routing manager R0 — placeholders + guards rôle (cf. rapport 147).
 // Manager = admin ou dev. /dev/* = dev uniquement. /login public.
@@ -58,6 +65,8 @@ export function App() {
           <Route path="formations" element={<Placeholder title="Formations" description="Gestion des formations." />} />
           <Route path="produits" element={<Placeholder title="Produits" description="Gestion des produits." />} />
           <Route path="cartes-cadeaux" element={<Placeholder title="Cartes cadeaux" description="Gestion des cartes cadeaux." />} />
+          {/* M13 — Librairie de templates carte cadeau (admin/dev : sélection de l'actif, sans édition HTML) */}
+          <Route path="cartes-cadeaux/templates" element={<GiftCardLibraryPage />} />
           <Route path="ventes" element={<Placeholder title="Ventes" description="Historique des ventes." />} />
           <Route path="remboursements" element={<Placeholder title="Remboursements" description="Gestion des remboursements." />} />
           <Route path="commissions" element={<Placeholder title="Commissions" description="Paiement des commissions." />} />
@@ -82,6 +91,13 @@ export function App() {
                 <Route index element={<MailTemplateStudioDashboard />} />
                 <Route path=":templateKey" element={<MailTemplateEditorPage />} />
                 <Route path=":templateKey/versions" element={<TemplateVersionsPage />} />
+              </Route>
+
+              {/* M13 — Gift Card Template Studio (dev uniquement) */}
+              <Route path="gift-card-templates" element={<GiftCardTemplateStudioLayout />}>
+                <Route index element={<GiftCardTemplateStudioDashboard />} />
+                <Route path=":slug" element={<GiftCardTemplateEditorPage />} />
+                <Route path=":slug/versions" element={<GiftCardTemplateVersionsPage />} />
               </Route>
 
               {/* M7 — Notification Studio (dev uniquement) : templates + catégories */}

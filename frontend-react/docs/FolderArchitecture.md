@@ -358,3 +358,8 @@ Finalisation : endpoint report admin GLOBAL + reschedule remboursement global + 
 ## Sprint M12 — Customer 360 (Client Hub) (rapports 203-204)
 
 Fiche client agregee, point d entree du travail quotidien. Backend services/customer360/ (service+mapper+timelineBuilder) + endpoints GET /api/gestion/customers[?search=] et /:id/360 (admin/dev, monte avant broad-mounts dev-only). Front feature apps/manager/src/features/customer360/ (pages /clients + /clients/:id), api-client manager/customer360.ts. Mobile-first, cards, zero table, Motion Guideline + reduced-motion, drawer, TanStack Query. Tests +5 backend / +3 front. Limites : phone/photo absents (null), Quick Actions = liens.
+
+
+## Sprint M13 — Gift Card 360 + Manual Booking + Template Studio (rapports 205-206)
+
+Cartes cadeaux manuelles (paiement sur place, QR token opaque, debit manuel), Gift Card Template Studio (dev) + librairie admin (1 actif jamais zero), reservation manuelle prestation + verrous temporaires (TTL), notes client. Backend additif : models GiftCard enrichi / GiftCardTemplate / CustomerNote / BookingSlotLock (hold TTL) ; services/giftCard/ (qr, template, render pdfkit, mail) ; endpoints /api/gestion/gift-cards (manual, lookup, lookup-qr, manual-debit, templates) + /api/gestion/dev/gift-card-templates + /api/gestion/bookings/manual|hold. Front feature apps/manager/src/features/{customer360 drawers, giftCardTemplates, giftCardLibrary} + api-client manager/{giftCards,giftCardTemplates,giftCardLibrary,manualBooking,customerNotes}. Mobile-first, tokens --bs-*, zero hex. Tests +4 backend + front. Limites : PDF pdfkit structure (pas de rendu pixel HTML), storage non servi publiquement (PJ base64), emission manuelle sans Sale (volontaire), scan QR = payload colle.

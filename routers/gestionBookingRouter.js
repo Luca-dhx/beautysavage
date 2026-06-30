@@ -8,7 +8,10 @@ import {
   cancelBookingByAdmin,
   markBalancePaidOnSite,
   rescheduleBookingByAdmin,
-  simulateReminders
+  simulateReminders,
+  createManualBookingByAdmin,
+  holdBookingSlotByAdmin,
+  releaseBookingSlotHoldByAdmin
 } from '../controllers/serviceBookingController.js';
 
 const router = express.Router();
@@ -17,6 +20,10 @@ router.use(requireAuth(), requireMode('gestion'));
 
 // Static routes BEFORE parametric routes
 router.post('/bookings/simulate-reminders', simulateReminders);
+// M13 — réservation manuelle (paiement sur place) + holds temporaires de créneau.
+router.post('/bookings/manual', createManualBookingByAdmin);
+router.post('/bookings/hold', holdBookingSlotByAdmin);
+router.post('/bookings/hold/release', releaseBookingSlotHoldByAdmin);
 
 // Parametric routes
 router.get('/bookings/:bookingId/detail', getBookingDetail);

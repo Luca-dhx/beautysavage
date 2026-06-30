@@ -559,6 +559,69 @@ const TEMPLATE_FUNCTIONS = {
     },
     signature: '{{siteName}}'
   }),
+  // M13 — carte cadeau créée à la main par l'institut (paiement sur place). La carte (PDF) est
+  // jointe au mail. Les adresses from/to ne sont PAS ici : injectées par le moteur (commerciale→client).
+  gift_card_manual_created: createMailTemplateDefinition({
+    subject: 'Votre carte cadeau {{instituteName}}',
+    siteName: '{{siteName}}',
+    eyebrow: 'Carte cadeau',
+    title: 'Votre carte cadeau est prête, {{recipientName}} !',
+    intro: 'Bonjour {{recipientName}},',
+    paragraphs: [
+      'Une carte cadeau d\'une valeur de <strong>{{amount}}</strong> vous a été offerte par {{purchaserName}}.',
+      '{{message}}',
+      'Vous trouverez votre carte cadeau en pièce jointe de cet e-mail.'
+    ],
+    detailItems: [
+      { label: 'Code carte', value: '{{code}}' },
+      { label: 'Mot de passe', value: '{{pin}}' },
+      { label: 'Montant', value: '{{amount}}' },
+      { label: 'Règlement', value: '{{paymentLabel}}' }
+    ],
+    callout: {
+      label: 'Paiement sur place',
+      content: 'Cette carte cadeau a été réglée directement à l\'institut ({{paymentLabel}}).',
+      tone: 'accent'
+    },
+    signature: '{{instituteName}}'
+  }),
+  // M13 — débit manuel d'une carte cadeau par l'institut.
+  gift_card_manual_debited: createMailTemplateDefinition({
+    subject: 'Mouvement sur votre carte cadeau {{instituteName}}',
+    siteName: '{{siteName}}',
+    eyebrow: 'Carte cadeau',
+    title: 'Un montant a été débité de votre carte cadeau',
+    intro: 'Bonjour {{recipientName}},',
+    paragraphs: [
+      'Un montant de <strong>{{amount}}</strong> a été débité de votre carte cadeau par l\'institut.',
+      'Le solde restant de votre carte est désormais de <strong>{{balance}}</strong>.'
+    ],
+    detailItems: [
+      { label: 'Code carte', value: '{{code}}' },
+      { label: 'Montant débité', value: '{{amount}}' },
+      { label: 'Solde restant', value: '{{balance}}' },
+      { label: 'Motif', value: '{{transactionReason}}' }
+    ],
+    signature: '{{instituteName}}'
+  }),
+  // M13 — carte cadeau créée via le checkout en ligne (confirmation enrichie).
+  gift_card_online_created: createMailTemplateDefinition({
+    subject: 'Votre carte cadeau {{instituteName}}',
+    siteName: '{{siteName}}',
+    eyebrow: 'Carte cadeau',
+    title: 'Merci pour votre achat !',
+    intro: 'Bonjour {{recipientName}},',
+    paragraphs: [
+      'Votre carte cadeau d\'une valeur de <strong>{{amount}}</strong> a bien été créée.',
+      'Vous trouverez votre carte cadeau en pièce jointe et dans la rubrique « Mes cartes cadeaux ».'
+    ],
+    detailItems: [
+      { label: 'Code carte', value: '{{code}}' },
+      { label: 'Mot de passe', value: '{{pin}}' },
+      { label: 'Montant', value: '{{amount}}' }
+    ],
+    signature: '{{instituteName}}'
+  }),
   booking_reminder: createMailTemplateDefinition({
     subject: 'Rappel — Votre rendez-vous {{timeLabel}}',
     siteName: '{{siteName}}',

@@ -24,7 +24,7 @@ function statusFromIdentityError(error) {
  * Renvoie { status: 'sent'|'failed'|'skipped_template_missing'|'identity_missing'|'client_missing', ... }.
  * Ne throw jamais (erreurs converties en statut).
  */
-export async function dispatchTemplateByRoles({ templateKey, fromRole, toRole, context = {}, variables = {} } = {}) {
+export async function dispatchTemplateByRoles({ templateKey, fromRole, toRole, context = {}, variables = {}, attachments = null } = {}) {
   const template = await loadTemplate(templateKey);
   if (!template) {
     return { status: 'skipped_template_missing', detailSafe: `Template "${templateKey}" introuvable.` };
@@ -59,6 +59,12 @@ export async function dispatchTemplateByRoles({ templateKey, fromRole, toRole, c
   };
   if (html) payload.htmlContent = html;
   if (text) payload.textContent = text;
+  // M13 — pièce jointe optionnelle (ex. carte cadeau PDF). Format Brevo : [{ name, content(base64) }].
+  if (Array.isArray(attachments) && attachments.length) {
+    payload.attachment = attachments
+      .filter((att) => att && att.name && att.content)
+      .map((att) => ({ name: String(att.name), content: String(att.content) }));
+  }
 
   const ok = await postToBrevo(payload, {
     contextType: context?.contextType || null,

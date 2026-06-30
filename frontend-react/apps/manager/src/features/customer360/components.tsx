@@ -117,12 +117,12 @@ export function CustomerSummaryCards({ summary }: { summary: Customer360Summary 
 }
 
 // ── Quick Actions ──────────────────────────────────────────────────────────────
-export interface QuickAction { key: string; icon: string; label: string; onClick: () => void; }
+export interface QuickAction { key: string; icon: string; label: string; onClick: () => void; disabled?: boolean; }
 export function QuickActions({ actions }: { actions: QuickAction[] }) {
   return (
     <div className="c3-quick" data-testid="c3-quick">
       {actions.map((a) => (
-        <button type="button" key={a.key} className="c3-quickbtn" onClick={a.onClick}>
+        <button type="button" key={a.key} className="c3-quickbtn" onClick={a.onClick} disabled={a.disabled}>
           <i className={a.icon} aria-hidden="true" />
           <span>{a.label}</span>
         </button>
@@ -134,7 +134,7 @@ export function MobileBottomActions({ actions }: { actions: QuickAction[] }) {
   return (
     <div className="c3-bottombar" data-testid="c3-bottombar">
       {actions.slice(0, 4).map((a) => (
-        <button type="button" key={a.key} className="c3-bottombar__btn" aria-label={a.label} onClick={a.onClick}>
+        <button type="button" key={a.key} className="c3-bottombar__btn" aria-label={a.label} onClick={a.onClick} disabled={a.disabled}>
           <i className={a.icon} aria-hidden="true" />
           <span>{a.label}</span>
         </button>

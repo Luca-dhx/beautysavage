@@ -203,7 +203,53 @@
 @keyframes c3-slide { from { transform: translateX(100%); } to { transform: translateX(0); } }
 @keyframes c3-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
+/* M13 — Drawers d'actions (carte cadeau, débit, réservation manuelle, note). Préfixe gc-. */
+.gc-form { display: flex; flex-direction: column; gap: var(--bs-space-3); }
+.gc-field { display: flex; flex-direction: column; gap: var(--bs-space-1); }
+.gc-label { font-size: 0.85rem; font-weight: 600; }
+.gc-input, .gc-textarea {
+  padding: var(--bs-space-2) var(--bs-space-3); border: 1px solid var(--bs-color-border);
+  border-radius: var(--bs-radius); background: var(--bs-color-surface); color: var(--bs-color-text);
+  font: inherit; width: 100%; min-height: 44px;
+}
+.gc-textarea { min-height: 88px; resize: vertical; }
+.gc-input:focus, .gc-textarea:focus { outline: 2px solid var(--bs-color-primary); outline-offset: -1px; }
+
+.gc-segmented { display: flex; gap: var(--bs-space-1); }
+.gc-seg {
+  flex: 1; min-height: 44px; border: 1px solid var(--bs-color-border); border-radius: var(--bs-radius);
+  background: var(--bs-color-surface); color: var(--bs-color-text); font: inherit; cursor: pointer;
+  transition: background var(--bs-motion-fast, 160ms) var(--bs-motion-ease-out, ease);
+}
+.gc-seg--active { background: var(--bs-color-primary); color: var(--bs-color-surface); border-color: var(--bs-color-primary); }
+
+.gc-slots { display: flex; flex-wrap: wrap; gap: var(--bs-space-2); }
+.gc-slot {
+  min-height: 44px; padding: 0 var(--bs-space-3); border: 1px solid var(--bs-color-border);
+  border-radius: var(--bs-radius); background: var(--bs-color-surface); color: var(--bs-color-text); font: inherit; cursor: pointer;
+}
+.gc-slot--active { background: var(--bs-color-primary); color: var(--bs-color-surface); border-color: var(--bs-color-primary); }
+.gc-slot:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.gc-card-recap, .gc-preview { display: flex; flex-direction: column; gap: 6px; padding: var(--bs-space-2); border: 1px solid var(--bs-color-border); border-radius: var(--bs-radius); background: var(--bs-color-background); }
+
+.gc-btn--block { width: 100%; min-height: 48px; justify-content: center; }
+.gc-btn--primary { background: var(--bs-color-primary); color: var(--bs-color-surface); border-color: var(--bs-color-primary); }
+.gc-btn--primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.gc-note { font-size: 0.85rem; color: var(--bs-color-muted); display: flex; align-items: center; gap: 6px; }
+.gc-error { font-size: 0.85rem; color: var(--bs-color-danger); }
+.gc-success-inline { font-size: 0.85rem; color: var(--bs-color-success); }
+.gc-success { display: flex; flex-direction: column; gap: var(--bs-space-2); text-align: center; animation: c3-rise var(--bs-motion-fast, 160ms) var(--bs-motion-ease-out, ease); }
+.gc-success__icon { font-size: 2rem; color: var(--bs-color-success); }
+.gc-links { display: flex; gap: var(--bs-space-2); justify-content: center; }
+
+.gc-notes { display: flex; flex-direction: column; gap: var(--bs-space-2); margin-top: var(--bs-space-3); }
+.gc-note-item { border: 1px solid var(--bs-color-border); border-radius: var(--bs-radius); padding: var(--bs-space-2); background: var(--bs-color-surface); }
+.gc-note-item__body { font-size: 0.9rem; white-space: pre-wrap; }
+.gc-note-item__meta { font-size: 0.72rem; color: var(--bs-color-muted); margin-top: 4px; }
+
 @media (prefers-reduced-motion: reduce) {
-  .c3-hero, .c3-tl__item, .c3-acc__body, .c3-overlay, .c3-drawer, .c3-skeleton { animation: none !important; }
-  .c3-quickbtn, .c3-tab { transition: none !important; }
+  .c3-hero, .c3-tl__item, .c3-acc__body, .c3-overlay, .c3-drawer, .c3-skeleton, .gc-success { animation: none !important; }
+  .c3-quickbtn, .c3-tab, .gc-seg { transition: none !important; }
 }

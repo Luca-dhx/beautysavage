@@ -36,6 +36,7 @@ import {
 } from '../services/calendar/globalAvailabilityService.js';
 import { resolveInstitutePractitionerProfile } from '../services/calendar/instituteCalendarContext.js';
 import { resolveEffectiveServiceUnitPrice } from '../services/promotionService.js';
+import { createSlotHold, releaseSlotHold } from '../services/calendar/slotHoldService.js';
 
 function formatDateFR(date) {
   if (!date) return '—';
@@ -901,6 +902,151 @@ export async function rescheduleBookingByAdmin(req, res) {
     });
   } catch (error) {
     console.error('rescheduleBookingByAdmin error', error);
+    return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
+  }
+}
+
+// ─── POST /api/gestion/bookings/hold ───────────────────────────────────────
+// M13 — Pose un hold temporaire (5 min) sur un créneau quand l'admin le sélectionne dans le drawer.
+export async function holdBookingSlotByAdmin(req, res) {
+  try {
+    const adminId = getSessionUserId(req);
+    const serviceId = String(req.body?.serviceId || '').trim();
+    const { startAt, endAt } = req.body || {};
+    if (!validateObjectId(serviceId)) {
+      return res.status(400).json({ ok: false, error: 'Prestation invalide.' });
+    }
+    if (!startAt) {
+      return res.status(400).json({ ok: false, error: 'Créneau requis.' });
+    }
+    const hold = await createSlotHold({ serviceId, startAt, endAt: endAt || null, adminId, now: new Date() });
+    return res.status(201).json({ ok: true, hold });
+  } catch (error) {
+    const status = Number(error?.status) || 500;
+    if (status >= 500) console.error('holdBookingSlotByAdmin error', error);
+    return res.status(status).json({ ok: false, code: error?.code || null, error: status >= 500 ? 'Erreur serveur.' : error.message });
+  }
+}
+
+// ─── POST /api/gestion/bookings/hold/release ───────────────────────────────
+export async function releaseBookingSlotHoldByAdmin(req, res) {
+  try {
+    const holdToken = String(req.body?.holdToken || '').trim();
+    const result = await releaseSlotHold({ holdToken });
+    return res.json({ ok: true, released: result?.deletedCount || 0 });
+  } catch (error) {
+    console.error('releaseBookingSlotHoldByAdmin error', error);
+    return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
+  }
+}
+
+// ─── POST /api/gestion/bookings/manual ─────────────────────────────────────
+// M13 — Réservation MANUELLE par l'institut (paiement sur place, AUCUN Stripe). Crée directement un
+// booking `confirmed` sur le calendrier global (anti-double-booking via slot-locks permanents).
+// Le solde est dû sur place (balanceSettlementMode = pay_on_site, à régler via /balance-paid).
+export async function createManualBookingByAdmin(req, res) {
+  try {
+    const adminId = getSessionUserId(req);
+    const clientId = String(req.body?.clientId || req.body?.customerId || '').trim();
+    const serviceId = String(req.body?.serviceId || '').trim();
+    const { startAt, holdToken } = req.body || {};
+    const selectedOptions = Array.isArray(req.body?.selectedOptions) ? req.body.selectedOptions : [];
+    const note = String(req.body?.note || '').trim().slice(0, 500);
+
+    if (!validateObjectId(clientId)) return res.status(400).json({ ok: false, error: 'Client invalide.' });
+    if (!validateObjectId(serviceId)) return res.status(400).json({ ok: false, error: 'Prestation invalide.' });
+    if (!startAt) return res.status(400).json({ ok: false, error: 'Créneau requis.' });
+
+    const startDate = new Date(startAt);
+    if (Number.isNaN(startDate.getTime())) {
+      return res.status(400).json({ ok: false, error: 'Date de début invalide.' });
+    }
+
+    const [service, client, institute] = await Promise.all([
+      Service.findById(serviceId).lean(),
+      User.findById(clientId).select('firstName lastName email').lean(),
+      resolveInstitutePractitionerProfile({})
+    ]);
+    if (!service || !service.isActive || !service.isBookable) {
+      return res.status(404).json({ ok: false, error: 'Prestation introuvable ou non réservable.' });
+    }
+    if (!client) return res.status(404).json({ ok: false, error: 'Client introuvable.' });
+    if (!institute) return res.status(409).json({ ok: false, code: 'INSTITUTE_NOT_CONFIGURED', error: 'Institut non configuré.' });
+
+    const endDate = new Date(startDate.getTime() + service.duration * 60 * 1000);
+
+    // Options + prix (promotion via la source unique).
+    const normalizedOptions = [];
+    let optionsTotal = 0;
+    for (const sel of selectedOptions) {
+      const opt = (service.options || []).find(o => String(o._id) === String(sel.optionId) && o.isActive);
+      if (!opt) continue;
+      normalizedOptions.push({ optionId: opt._id, name: opt.name, price: opt.price });
+      optionsTotal += opt.price;
+    }
+    const { unitPrice: effectiveServicePrice } = await resolveEffectiveServiceUnitPrice(service);
+    const totalPrice = roundToCents(effectiveServicePrice + optionsTotal);
+
+    // Acompte éventuel (override admin), borné à [0, total]. Le reste est dû SUR PLACE.
+    let depositAmount = 0;
+    if (req.body?.depositAmount !== undefined) {
+      depositAmount = roundToCents(Math.min(Math.max(0, Number(req.body.depositAmount) || 0), totalPrice));
+    }
+    const balanceDueAmount = roundToCents(totalPrice - depositAmount);
+
+    // Libère un éventuel hold AVANT de poser les verrous permanents (évite le conflit d'unicité).
+    if (holdToken) {
+      await releaseSlotHold({ holdToken }).catch(() => {});
+    }
+
+    let result;
+    try {
+      result = await createGlobalServiceBooking({
+        bookingData: {
+          serviceId: service._id,
+          clientId,
+          bookingId: buildBookingId(),
+          startAt: startDate,
+          endAt: endDate,
+          selectedOptions: normalizedOptions,
+          totalPrice,
+          depositAmount,
+          totalSoldAmount: 0, // rien encaissé en ligne (paiement sur place)
+          balanceDueAmount,
+          balanceSettlementMode: 'pay_on_site',
+          paymentType: depositAmount > 0 ? 'deposit' : 'full',
+          paymentStatus: 'pending',
+          status: 'confirmed',
+          source: 'manual_institute',
+          paymentMode: 'on_site',
+          createdByAdminId: adminId || null,
+          manualNote: note
+        },
+        now: new Date()
+      });
+    } catch (bookingError) {
+      const status = Number(bookingError?.status) || 409;
+      return res.status(status).json({ ok: false, code: bookingError?.code || null, error: bookingError?.message || 'Créneau indisponible.' });
+    }
+
+    const { booking, practitioner } = result;
+
+    // Events : création + confirmation (le subscriber mail envoie booking_confirmed selon le flag).
+    await emitBookingEvent('booking.created', booking, {
+      actorType: adminId ? 'user' : 'system',
+      actorId: adminId ? String(adminId) : null,
+      extra: { source: 'manual_institute', paymentMode: 'on_site' }
+    });
+    await emitBookingEvent('booking.confirmed', booking);
+
+    return res.status(201).json({
+      ok: true,
+      booking: serializeBooking(booking.toObject ? booking.toObject() : booking, service, practitioner || institute),
+      paymentMode: 'on_site',
+      balanceDueAmount
+    });
+  } catch (error) {
+    console.error('createManualBookingByAdmin error', error);
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
   }
 }

@@ -12,6 +12,7 @@ const MANAGER_NAV = [
   { to: '/formations', label: 'Formations' },
   { to: '/produits', label: 'Produits' },
   { to: '/cartes-cadeaux', label: 'Cartes cadeaux' },
+  { to: '/cartes-cadeaux/templates', label: 'Modèles carte cadeau' },
   { to: '/ventes', label: 'Ventes' },
   { to: '/remboursements', label: 'Remboursements' },
   { to: '/commissions', label: 'Commissions' },

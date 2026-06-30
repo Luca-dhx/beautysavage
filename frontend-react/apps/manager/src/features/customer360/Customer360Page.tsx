@@ -2,6 +2,7 @@
 // (Activité / Détails / Finances) avec timeline + sections repliables. Mobile-first, Motion Guideline.
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { ErrorState } from '@bs/ui';
 import type { TimelineItem, CustomerBooking, CustomerSale } from '@bs/api-client';
 import { useCustomer360 } from './useCustomer360';
@@ -12,26 +13,41 @@ import {
   NotificationSection, CustomerTabs, CustomerDrawer, CustomerSkeleton, fmtDateTime, fmtDate, money,
   type C3Tab, type QuickAction,
 } from './components';
+import {
+  CreateGiftCardDrawer, ManualGiftCardDebitDrawer, ManualBookingDrawer, CustomerNoteDrawer,
+} from './m13Drawers';
 import './customer360.css';
+
+type M13Drawer = 'booking' | 'giftcard' | 'debit' | 'note' | null;
 
 type DrawerState = { title: string; rows: { label: string; value: string }[] } | null;
 
 export function Customer360Page() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const { data, isLoading, isError, refetch } = useCustomer360(id);
   const [tab, setTab] = useState<C3Tab>('activite');
   const [drawer, setDrawer] = useState<DrawerState>(null);
+  const [m13Drawer, setM13Drawer] = useState<M13Drawer>(null);
+
+  const phone = data?.summary.phone || null;
+  const invalidate360 = () => { if (id) void qc.invalidateQueries({ queryKey: ['customer360', id] }); };
+
+  const callClient = () => { if (phone) window.location.href = `tel:${phone}`; };
+  const scrollToRefunds = () => {
+    setTab('details');
+    setTimeout(() => document.querySelector('[data-testid="c3-acc-refunds"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  };
 
   const quickActions: QuickAction[] = useMemo(() => [
-    { key: 'booking', icon: 'bi-calendar-plus', label: 'Réservation', onClick: () => navigate('/planning') },
-    { key: 'sale', icon: 'bi-bag-plus', label: 'Vente', onClick: () => navigate('/ventes') },
-    { key: 'giftcard', icon: 'bi-gift', label: 'Carte cadeau', onClick: () => navigate('/cartes-cadeaux') },
-    { key: 'planning', icon: 'bi-calendar3', label: 'Planning', onClick: () => navigate('/planning') },
-    { key: 'refund', icon: 'bi-arrow-counterclockwise', label: 'Remboursement', onClick: () => navigate('/remboursements') },
-    { key: 'docs', icon: 'bi-folder2-open', label: 'Documents', onClick: () => setTab('details') },
-    { key: 'email', icon: 'bi-envelope', label: 'E-mail', onClick: () => navigate('/communication') },
-  ], [navigate]);
+    { key: 'booking', icon: 'bi-calendar-plus', label: 'Réserver', onClick: () => setM13Drawer('booking') },
+    { key: 'giftcard', icon: 'bi-gift', label: 'Créer carte cadeau', onClick: () => setM13Drawer('giftcard') },
+    { key: 'note', icon: 'bi-journal-plus', label: 'Ajouter une note', onClick: () => setM13Drawer('note') },
+    { key: 'call', icon: 'bi-telephone', label: 'Appeler le client', onClick: callClient, disabled: !phone },
+    { key: 'refund', icon: 'bi-arrow-counterclockwise', label: 'Achats remboursables', onClick: scrollToRefunds },
+    { key: 'debit', icon: 'bi-credit-card-2-back', label: 'Débit carte cadeau', onClick: () => setM13Drawer('debit') },
+  ], [phone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading) return <section className="c3-page"><CustomerSkeleton /></section>;
   if (isError || !data) {
@@ -133,6 +149,15 @@ export function Customer360Page() {
           </div>
         ) : null}
       </CustomerDrawer>
+
+      {id ? (
+        <>
+          <ManualBookingDrawer open={m13Drawer === 'booking'} customerId={id} onClose={() => setM13Drawer(null)} onDone={invalidate360} />
+          <CreateGiftCardDrawer open={m13Drawer === 'giftcard'} customerId={id} onClose={() => setM13Drawer(null)} onDone={invalidate360} />
+          <ManualGiftCardDebitDrawer open={m13Drawer === 'debit'} onClose={() => setM13Drawer(null)} onDone={invalidate360} />
+          <CustomerNoteDrawer open={m13Drawer === 'note'} customerId={id} onClose={() => setM13Drawer(null)} onDone={invalidate360} />
+        </>
+      ) : null}
     </section>
   );
 }

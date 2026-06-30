@@ -32,6 +32,20 @@ import {
   debitGiftCardBalanceAtomic,
   recreditGiftCardBalanceAtomic
 } from '../services/giftCardReservationService.js';
+import {
+  rotateGiftCardQrToken,
+  resolveGiftCardFromQrPayload
+} from '../services/giftCard/giftCardQrService.js';
+import { generateGiftCardAssets, formatGiftCardAmount } from '../services/giftCard/giftCardRenderService.js';
+import {
+  getActiveGiftCardTemplate,
+  getPublishedTemplateBySlug
+} from '../services/giftCard/giftCardTemplateService.js';
+import GiftCardTemplate from '../models/GiftCardTemplate.js';
+import { sendGiftCardEventMail } from '../services/giftCard/giftCardMailService.js';
+
+const MANUAL_GIFT_CARD_PAYMENT_LABEL = 'Paiement sur place';
+const MANUAL_GIFT_CARD_PAYMENT_METHODS = new Set(['cash', 'card', 'other']);
 
 const { Types } = mongoose;
 const GIFT_CARD_PASSWORD_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -1133,6 +1147,287 @@ function buildMissingPasswordFilter() {
       { passwordEncrypted: '' }
     ]
   };
+}
+
+function buildClientForMail(user) {
+  return {
+    email: String(user?.email || '').trim(),
+    firstName: String(user?.firstName || '').trim(),
+    lastName: String(user?.lastName || '').trim()
+  };
+}
+
+function resolveActorRole(req) {
+  return String(req.sessionUser?.role || '').trim().toLowerCase() === 'dev' ? 'dev' : 'admin';
+}
+
+/**
+ * M13 — Part 3 : création manuelle d'une carte cadeau par l'institut (paiement sur place).
+ * POST /api/gestion/gift-cards/manual
+ * Body : { customerId, recipientName, amount, manualPaymentMethod, manualPaymentNote?, templateId?, message?, purchaserName? }
+ * Aucun Stripe, aucune facture Stripe. Transaction initiale `manual_issued`, event + mail (carte PDF jointe).
+ */
+export async function createManualGiftCard(req, res) {
+  const customerId = String(req.body?.customerId || '').trim();
+  const recipientName = String(req.body?.recipientName || '').trim();
+  const amount = sanitizeNumber(req.body?.amount);
+  const manualPaymentMethod = String(req.body?.manualPaymentMethod || '').trim().toLowerCase();
+  const manualPaymentNote = String(req.body?.manualPaymentNote || '').trim();
+  const message = String(req.body?.message || '').trim();
+  const templateId = String(req.body?.templateId || '').trim();
+
+  if (!Types.ObjectId.isValid(customerId)) {
+    return res.status(400).json({ ok: false, error: 'Client invalide.' });
+  }
+  if (!recipientName) {
+    return res.status(400).json({ ok: false, error: 'Le nom du bénéficiaire est obligatoire.', code: 'RECIPIENT_NAME_REQUIRED' });
+  }
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ ok: false, error: 'Montant invalide.', code: 'GIFT_CARD_AMOUNT_INVALID' });
+  }
+  if (!MANUAL_GIFT_CARD_PAYMENT_METHODS.has(manualPaymentMethod)) {
+    return res.status(400).json({ ok: false, error: 'Mode de paiement sur place invalide.', code: 'MANUAL_PAYMENT_METHOD_INVALID' });
+  }
+
+  try {
+    const customer = await User.findById(customerId).lean();
+    if (!customer) {
+      return res.status(404).json({ ok: false, error: 'Client introuvable.' });
+    }
+
+    // Template de rendu : explicite (publié) ou template actif.
+    let template = null;
+    if (templateId && Types.ObjectId.isValid(templateId)) {
+      template = await GiftCardTemplate.findOne({ _id: templateId, status: 'published' }).lean();
+      if (!template) {
+        return res.status(404).json({ ok: false, error: 'Template introuvable ou non publié.' });
+      }
+    } else {
+      template = await getActiveGiftCardTemplate();
+    }
+
+    const purchaserName = String(req.body?.purchaserName || '').trim() || buildOwnerName(customer);
+    const code = await generateUniqueCode();
+    const now = new Date();
+
+    const giftCard = new GiftCard({
+      code,
+      userId: customerId,
+      amount,
+      balance: amount,
+      status: 'active',
+      purchasedAt: now,
+      recipientName,
+      purchaserName,
+      message,
+      creationMode: 'manual_institute',
+      paymentMode: 'on_site',
+      paymentLabel: MANUAL_GIFT_CARD_PAYMENT_LABEL,
+      activeTemplateId: template?._id || null,
+      createdByAdminId: req.sessionUser?._id || null,
+      manualPaymentMethod,
+      manualPaymentNote
+    });
+    const password = await ensureGiftCardPassword(giftCard, { save: false });
+    const { payload: qrPayload } = rotateGiftCardQrToken(giftCard);
+    await giftCard.save();
+
+    // Rendu carte (HTML + PDF) — best-effort, n'empêche pas la création si le rendu échoue.
+    let assets = null;
+    try {
+      assets = await generateGiftCardAssets(giftCard, { code, pin: password, qrPayload, template });
+      giftCard.cardVisualUrl = assets.cardVisualUrl;
+      giftCard.generatedPdfUrl = assets.generatedPdfUrl;
+      await giftCard.save();
+    } catch (renderError) {
+      console.error('Erreur rendu carte cadeau manuelle (non bloquant)', renderError?.message || renderError);
+    }
+
+    // Transaction initiale `manual_issued` (émission).
+    const transaction = await GiftCardTransaction.create({
+      giftCardId: giftCard._id,
+      transactionType: 'manual_issued',
+      source: 'manual_institute',
+      userId: customerId,
+      actorUserId: req.sessionUser?._id || null,
+      actorRole: resolveActorRole(req),
+      amount,
+      balanceBefore: 0,
+      balanceAfter: amount,
+      saleId: '',
+      note: manualPaymentNote,
+      items: []
+    });
+
+    // Event + mail (best-effort, ne casse jamais la création).
+    const mailVariables = {
+      ...(assets?.variables || {}),
+      recipientName,
+      purchaserName,
+      amount: formatGiftCardAmount(amount),
+      balance: formatGiftCardAmount(amount),
+      code,
+      pin: password,
+      message,
+      paymentLabel: MANUAL_GIFT_CARD_PAYMENT_LABEL,
+      cardLink: giftCard.cardVisualUrl || ''
+    };
+    const mailResult = await sendGiftCardEventMail({
+      eventName: 'gift_card.manual_created',
+      giftCard,
+      client: buildClientForMail(customer),
+      variables: mailVariables,
+      attachment: assets?.pdfBase64 ? { name: assets.pdfFileName, content: assets.pdfBase64 } : null,
+      eventPayload: { creationMode: 'manual_institute', paymentMode: 'on_site' },
+      actorId: req.sessionUser?._id || null
+    });
+
+    return res.status(201).json({
+      ok: true,
+      giftCard: {
+        ...buildGiftCardGestionPayload(giftCard),
+        recipientName,
+        purchaserName,
+        creationMode: 'manual_institute',
+        paymentMode: 'on_site',
+        paymentLabel: MANUAL_GIFT_CARD_PAYMENT_LABEL,
+        cardVisualUrl: giftCard.cardVisualUrl,
+        generatedPdfUrl: giftCard.generatedPdfUrl,
+        // Code + mot de passe retournés UNE FOIS à l'admin (route dev/admin sécurisée) pour impression.
+        code,
+        password
+      },
+      transaction: buildGiftCardTransactionPayload(transaction.toObject(), { forGestion: true }),
+      mail: mailResult
+    });
+  } catch (error) {
+    console.error('Erreur création manuelle carte cadeau', error);
+    const status = Number(error?.status) >= 400 && Number(error?.status) < 500 ? Number(error.status) : 500;
+    return res.status(status).json({
+      ok: false,
+      error: status === 500 ? 'Impossible de créer la carte cadeau.' : error.message,
+      code: error?.code || null
+    });
+  }
+}
+
+/**
+ * M13 — Part 4 : retrouve une carte via un QR scanné.
+ * POST /api/gestion/gift-cards/lookup-qr  Body : { qrPayload }
+ */
+export async function lookupGiftCardByQr(req, res) {
+  const qrPayload = String(req.body?.qrPayload || req.body?.payload || '').trim();
+  if (!qrPayload) {
+    return res.status(400).json({ ok: false, error: 'QR manquant.' });
+  }
+  try {
+    const card = await resolveGiftCardFromQrPayload(qrPayload, { lean: false });
+    if (!card) {
+      return res.status(404).json({ ok: false, error: 'QR invalide ou carte introuvable.', code: 'GIFT_CARD_QR_INVALID' });
+    }
+    const populated = await GiftCard.findById(card._id)
+      .populate('userId', 'email firstName lastName role')
+      .lean();
+    return res.json({ ok: true, card: buildGiftCardGestionPayload(populated) });
+  } catch (error) {
+    console.error('Erreur lookup QR carte cadeau', error);
+    return res.status(500).json({ ok: false, error: 'Impossible de lire le QR.' });
+  }
+}
+
+/**
+ * M13 — Part 4 : débit manuel par identifiant de carte, motivé (sans mot de passe).
+ * POST /api/gestion/gift-cards/:id/manual-debit  Body : { amount, reason, preview? }
+ * `preview:true` → renvoie le solde projeté SANS débiter (validation en 2 temps côté UI).
+ */
+export async function manualDebitGiftCardById(req, res) {
+  const cardId = String(req.params?.id || '').trim();
+  const amount = sanitizeNumber(req.body?.amount);
+  const reason = String(req.body?.reason || '').trim();
+  const preview = req.body?.preview === true || String(req.query?.preview || '').toLowerCase() === 'true';
+
+  if (!Types.ObjectId.isValid(cardId)) {
+    return res.status(400).json({ ok: false, error: 'Carte invalide.' });
+  }
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ ok: false, error: 'Montant invalide.', code: 'GIFT_CARD_AMOUNT_INVALID' });
+  }
+  if (!reason) {
+    return res.status(400).json({ ok: false, error: 'Le motif est obligatoire.', code: 'DEBIT_REASON_REQUIRED' });
+  }
+
+  try {
+    const card = await GiftCard.findById(cardId).populate('userId', 'email firstName lastName role');
+    if (!card) {
+      return res.status(404).json({ ok: false, error: 'Carte introuvable.' });
+    }
+    const availableBalance = getAvailableBalance(card);
+    if (card.status !== 'active' || availableBalance <= 0) {
+      return res.status(409).json({ ok: false, error: 'Carte épuisée ou inactive.', code: 'GIFT_CARD_NOT_DEBITABLE' });
+    }
+    if (amount > availableBalance) {
+      return res.status(409).json({ ok: false, error: 'Montant supérieur au solde restant.', code: 'GIFT_CARD_BALANCE_INSUFFICIENT' });
+    }
+
+    // Preview : aperçu du solde restant, aucune écriture.
+    if (preview) {
+      return res.json({
+        ok: true,
+        preview: true,
+        amount,
+        balanceBefore: availableBalance,
+        balanceAfter: Math.max(0, availableBalance - amount)
+      });
+    }
+
+    const { balanceBefore, balanceAfter } = await deductGiftCardBalance(card, amount);
+    const transaction = await GiftCardTransaction.create({
+      giftCardId: card._id,
+      transactionType: 'manual_debit',
+      source: 'manual_institute',
+      userId: card.userId?._id || card.userId,
+      actorUserId: req.sessionUser?._id || null,
+      actorRole: resolveActorRole(req),
+      amount,
+      balanceBefore,
+      balanceAfter,
+      saleId: '',
+      note: reason,
+      items: []
+    });
+
+    const owner = card.userId && typeof card.userId === 'object' ? card.userId : null;
+    const mailResult = await sendGiftCardEventMail({
+      eventName: 'gift_card.manual_debited',
+      giftCard: card,
+      client: buildClientForMail(owner),
+      variables: {
+        recipientName: card.recipientName || buildOwnerName(owner),
+        amount: formatGiftCardAmount(amount),
+        balance: formatGiftCardAmount(balanceAfter),
+        code: card.code,
+        transactionReason: reason,
+        paymentLabel: card.paymentLabel || ''
+      },
+      eventPayload: { amountEur: amount },
+      actorId: req.sessionUser?._id || null
+    });
+
+    const hydrated = await GiftCardTransaction.findById(transaction._id)
+      .populate('actorUserId', 'email firstName lastName role')
+      .populate('userId', 'email firstName lastName role')
+      .lean();
+
+    return res.json({
+      ok: true,
+      card: buildGiftCardGestionPayload(card),
+      transaction: buildGiftCardTransactionPayload(hydrated, { forGestion: true }),
+      mail: mailResult
+    });
+  } catch (error) {
+    console.error('Erreur débit manuel carte cadeau (par id)', error);
+    return res.status(500).json({ ok: false, error: 'Impossible d\'effectuer le débit manuel.' });
+  }
 }
 
 export async function generateMissingGiftCardPasswords(req, res) {

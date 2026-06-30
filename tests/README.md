@@ -757,3 +757,16 @@ Cinq fichiers tests/p1/ : adminBookingRescheduleGlobal (HTTP admin -> 200 + depl
 ## M12 — Customer 360 (rapports 203-204)
 
 Cinq fichiers tests/p1/ : customer360Service (agregation toutes sections + KPIs + 404/400), customer360Timeline (fusion multi-types + tri desc + cap + curation EventLog), customer360Financial (totalSpent/acomptes/soldes/cartes/remboursements/facture/impayees), customer360Route (HTTP admin -> 200, verifie le mount-order M3A ; recherche ; 404/400 ; client refuse), customer360Privacy (aucun secret/PII ; communications sans e-mail/hash ; identite du client expose sur sa propre fiche). Front : customer360Api.test.ts + customer360.test.tsx (recherche/navigation, hero/KPIs/quick/timeline, onglets/accordions/finances, aucune table, drawer) + noHardcodedHex.test.ts.
+
+
+## M13 — Gift Card 360 + Manual Booking + Template Studio (rapports 205-206)
+
+Quatre fichiers tests/p1/ :
+- `giftCardQrService.test.js` (pur) — le payload QR ne contient JAMAIS le code/mot de passe/montant ; token opaque + hash sha256 ; parse rejette les payloads invalides ; rotation change le hash.
+- `giftCardTemplateStudio.test.js` — seed du template par defaut ACTIF (idempotent) ; regle « jamais zero actif » (archive de l'actif interdite, 409 TEMPLATE_ACTIVE_LOCKED) ; selection de l'actif (1 seul) ; versioning draft->publish (archive l'ancien, l'actif suit) ; studio dev-only (admin 403 / dev 200) ; librairie admin (liste + activate).
+- `giftCardManualFlows.test.js` — creation manuelle (201, paymentMode=on_site, paymentLabel, code+mot de passe, transaction manual_issued, AUCUNE Sale ni Invoice Stripe, qrTokenHash sans le code, event gift_card.manual_created) ; recipientName obligatoire (400) ; debit manuel par id (motif obligatoire 400, refus > solde 409, preview sans ecriture, debit reel + event) ; lookup par code (GET) et par QR ; QR invalide 404.
+- `manualBookingFlows.test.js` — reservation manuelle (201, source=manual_institute, paymentMode=on_site, confirmed, pay_on_site, pas de Sale, verrous permanents) ; anti-double-booking (409 SLOT_UNAVAILABLE) ; hold temporaire (verrou hold + expiresAt, 2e hold refuse, release) ; confirmation avec holdToken.
+
+Note harnais : le seed du template carte cadeau ne tourne PAS en mode test (boot gate) -> les tests appellent seedGiftCardTemplates() explicitement. Le routeur gestion cartes cadeaux est monte AVANT les broad-mounts dev-only (sinon shadow 403 admin, cf. M3A).
+
+Front (apps/manager) : tests des drawers Customer 360 (creation carte / debit code+QR / reservation manuelle+hold / note), du Gift Card Template Studio (preview iframe sandbox), de la librairie admin (badge actif + modal activation), noHardcodedHex.test.ts par feature.

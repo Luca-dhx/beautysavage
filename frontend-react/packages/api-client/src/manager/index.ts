@@ -9,3 +9,8 @@ export * from './notificationTemplates';
 export * from './notifications';
 export * from './calendar';
 export * from './customer360';
+export * from './giftCards';
+export * from './giftCardTemplates';
+export * from './giftCardLibrary';
+export * from './manualBooking';
+export * from './customerNotes';

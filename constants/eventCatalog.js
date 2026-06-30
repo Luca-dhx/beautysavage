@@ -37,6 +37,10 @@ export const EVENT_CATALOG = Object.freeze({
   'gift_card.created': { domain: 'gift_card', version: 1, description: 'A gift card was created', payload: ['giftCardId'] },
   'gift_card.used': { domain: 'gift_card', version: 1, description: 'A gift card was used (debited)', payload: ['giftCardId'] },
   'gift_card.recredited': { domain: 'gift_card', version: 1, description: 'A gift card portion was re-credited (refund)', payload: ['saleId', 'amountEur', 'cardCount'] },
+  // M13 — cartes cadeaux manuelles (institut, paiement sur place) + débit manuel + achat en ligne.
+  'gift_card.online_created': { domain: 'gift_card', version: 1, description: 'A gift card was created via the online checkout', payload: ['giftCardId'] },
+  'gift_card.manual_created': { domain: 'gift_card', version: 1, description: 'A gift card was created manually by the institute (paid on site)', payload: ['giftCardId', 'creationMode', 'paymentMode'] },
+  'gift_card.manual_debited': { domain: 'gift_card', version: 1, description: 'A gift card was debited manually by the institute', payload: ['giftCardId', 'amountEur'] },
 
   // --- commission ---
   'commission.available': { domain: 'commission', version: 1, description: 'A commission became payable', payload: ['commissionPaymentId', 'month', 'year'] },

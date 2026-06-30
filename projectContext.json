@@ -10710,5 +10710,16 @@
       "architecture.md",
       "projectContext.json"
     ]
+  },
+  "m13GiftCardManualFlows": {
+    "description": "M13 (2026-06-30) — Gift Card 360 + Manual Booking + Gift Card Template Studio. Cartes cadeaux manuelles (paiement sur place, AUCUN Stripe/facture/Sale), QR code (token opaque, jamais le secret), debit manuel motive, Studio dev de templates carte cadeau + librairie admin (1 actif jamais zero), generation carte HTML+PDF, mails evenementiels (from/to non hardcodes), reservation manuelle prestation + verrous temporaires (TTL). Additif/non destructif.",
+    "reports": [
+      "Rapports/version 1/205_audit_gift_card_360_manual_flows.md",
+      "Rapports/version 1/206_rapport_gift_card_360_manual_flows.md"
+    ],
+    "backend": "models: GiftCard (+recipientName/purchaserName/creationMode/paymentMode/paymentLabel/activeTemplateId/qrTokenHash/qrPayloadVersion/createdByAdminId/manualPaymentMethod/manualPaymentNote/cardVisualUrl/generatedPdfUrl), GiftCardTransaction (+manual_issued/source), ServiceBooking (+source/paymentMode/createdByAdminId/manualNote), BookingSlotLock (+lockType/expiresAt TTL/holdToken), GiftCardTemplate (nouveau, versioning + 1 actif via index partiels), CustomerNote (nouveau). services/giftCard/: giftCardQrService, giftCardTemplateService, giftCardRenderService (pdfkit), giftCardMailService. seeders/seedGiftCardTemplates (idempotent, boot). Endpoints /api/gestion/gift-cards: POST /manual, GET|POST /lookup, POST /lookup-qr, POST /:id/manual-debit, GET /templates(+/active,/:id/preview), POST /templates/:id/activate (admin+dev, monte AVANT broad-mounts dev cf M3A). Studio dev-only /api/gestion/dev/gift-card-templates (requireStrictDev). Booking: POST /bookings/manual + /bookings/hold(+/release). Notes: /api/gestion/customers/:id/notes. Mails: events gift_card.online_created/manual_created/manual_debited + 3 regles mailDispatchRules (commerciale->client) + 3 templates defaut ; dispatchTemplateByRoles +attachments (Brevo).",
+    "frontend": "@bs/api-client/manager: giftCards/giftCardTemplates/giftCardLibrary/manualBooking/customerNotes. Customer 360 drawers CreateGiftCard/ManualGiftCardDebit/ManualBooking/CustomerNote + actions Reserver/Creer carte cadeau/Ajouter note/Appeler/Achats remboursables. Gift Card Template Studio dev-only (editeur HTML/CSS + preview iframe sandbox QR factice + versions/rollback). Librairie admin /cartes-cadeaux/templates (preview, badge actif, modal activation, sans edition HTML). Mobile-first, tokens --bs-*, zero hex.",
+    "tests": "Backend +4 (giftCardQrService, giftCardTemplateStudio, giftCardManualFlows, manualBookingFlows). Front: drawers/studio/library/noHardcodedHex.",
+    "limits": "PDF pdfkit structure (pas de rendu pixel du HTML template) ; storage/giftcards non servi publiquement (PJ base64) ; emission manuelle sans Sale (volontaire, ne pollue pas revenus/commissions) ; scan QR = payload colle (camera hors perimetre) ; practitionerId toujours legacy."
   }
 }

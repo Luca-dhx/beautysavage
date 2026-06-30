@@ -59,6 +59,36 @@ export const MAIL_DISPATCH_RULES = [
     contextType: 'commission_payment',
     enabled: true,
     directSenderExists: true // sendCommissionReminderEmail → shadow
+  },
+  // M13 — cartes cadeaux. Aucun envoi direct legacy → le moteur par rôles est l'unique chemin
+  // (directSenderExists:false). commerciale → client. Le from/to N'EST PAS hardcodé : ces règles
+  // sont l'unique source d'autorité, consommées par giftCardMailService via getMailDispatchRule().
+  {
+    eventName: 'gift_card.manual_created',
+    templateKey: 'gift_card_manual_created',
+    fromRole: 'commerciale',
+    toRole: 'client',
+    contextType: 'gift_card',
+    enabled: true,
+    directSenderExists: false
+  },
+  {
+    eventName: 'gift_card.manual_debited',
+    templateKey: 'gift_card_manual_debited',
+    fromRole: 'commerciale',
+    toRole: 'client',
+    contextType: 'gift_card',
+    enabled: true,
+    directSenderExists: false
+  },
+  {
+    eventName: 'gift_card.online_created',
+    templateKey: 'gift_card_online_created',
+    fromRole: 'commerciale',
+    toRole: 'client',
+    contextType: 'gift_card',
+    enabled: true,
+    directSenderExists: false
   }
 ];
 

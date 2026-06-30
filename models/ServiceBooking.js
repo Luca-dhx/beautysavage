@@ -75,6 +75,27 @@ const serviceBookingSchema = new mongoose.Schema({
 
   saleId: { type: String, default: null, trim: true },
 
+  // M13 — origine de la réservation et mode de règlement.
+  //  - source 'online'           : checkout client habituel (défaut, rétro-compatible).
+  //  - source 'manual_institute' : créée au comptoir par l'admin (paiement sur place, pas de Stripe).
+  source: {
+    type: String,
+    enum: ['online', 'manual_institute'],
+    default: 'online'
+  },
+  paymentMode: {
+    type: String,
+    enum: ['stripe', 'on_site'],
+    default: 'stripe'
+  },
+  // Admin créateur (réservation manuelle) — traçabilité.
+  createdByAdminId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  manualNote: { type: String, trim: true, default: '' },
+
   remindersSent: [{ type: String }],
 
   createdAt: { type: Date, default: Date.now },

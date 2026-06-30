@@ -226,3 +226,8 @@ Finalisation : endpoint report admin GLOBAL + reschedule remboursement global + 
 - **Backend** : POST /api/gestion/bookings/:id/reschedule (rescheduleBookingByAdmin -> rescheduleGlobalServiceBooking, deplacement EN PLACE, validation+slot-lock globaux, audit booking.rescheduled + booking.confirmed). Reschedule remboursement (sessionCancellationFlowService) -> createGlobalServiceBooking. Mount-order corrige (gestionBookingRouter avant broad-mounts dev-only, M3A). scripts/cleanupPractitionerLegacy.js (dry-run/apply/force-prod, consolidation+archivage, index global opt-in). Index ServiceBooking {startAt,status}.
 
 **Vitrine** : aucun impact direct (le report est une action manager). Le checkout reste branche au global (M11A) ; practitionerId legacy ignore.
+
+
+## Sprint P1 — Product Polish & UX (rapports 207-208)
+
+Vitrine : couche @bs/ui/polish appliquée globalement (focus visible, cibles 44px, anti-overflow, scrollbar, micro-interactions, presets motion). Correction sémantique : GiftCardsPage utilise un vrai <Button disabled> (plus de <span className="bs-btn"> factice). Primitives partagées (Badge/Chip/Skeleton/Spinner) disponibles pour les prochains écrans. QueryClient vitrine déjà optimisé (retry1/staleTime). Aucun changement métier. Réf : docs/ProductUXGuideline.md. Limites : FormField/Input/Checkbox partagés à extraire (login/checkout gardent les inputs natifs).

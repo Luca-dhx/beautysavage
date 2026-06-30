@@ -34,7 +34,7 @@
   padding: 6px var(--bs-space-3);
   font-size: 0.8rem;
   cursor: pointer;
-  min-height: 36px;
+  min-height: 44px; /* P1 — cible tactile WCAG 2.1 AA */
 }
 .pl-viewbtn--active { background: var(--bs-color-primary); color: var(--bs-color-surface); border-color: var(--bs-color-primary); }
 
@@ -48,7 +48,7 @@
   padding: 4px var(--bs-space-3);
   font-size: 0.78rem;
   cursor: pointer;
-  min-height: 32px;
+  min-height: 44px; /* P1 — cible tactile WCAG 2.1 AA */
   transition: all var(--bs-motion-fast) var(--bs-motion-ease-out);
 }
 .pl-filter--active { background: var(--bs-color-accent); color: var(--bs-color-surface); border-color: var(--bs-color-accent); }
@@ -146,7 +146,7 @@
 .pl-drawer__body { flex: 1; overflow-y: auto; overflow-x: hidden; padding: var(--bs-space-3); display: flex; flex-direction: column; gap: var(--bs-space-3); }
 .pl-iconbtn {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 36px; min-height: 36px;
+  min-width: 44px; min-height: 44px; /* P1 — cible tactile WCAG 2.1 AA */
   border: 1px solid var(--bs-color-border); border-radius: var(--bs-radius);
   background: transparent; color: var(--bs-color-text); cursor: pointer;
 }

@@ -1,4 +1,4 @@
-import { Link, Outlet } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import { AppShell, Button } from '@bs/ui';
 import { useAuth, roleLabel } from '@bs/auth';
 import { NotificationBell, NotificationMotionProvider } from '../features/notifications';
@@ -39,20 +39,23 @@ export function ManagerLayout() {
       }
       footer={<span>Espace de gestion (placeholders R0)</span>}
     >
-      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 180 }}>
+      <a href="#manager-main" className="bs-skip-link">
+        Aller au contenu
+      </a>
+      <div className="bs-sidebar-layout">
+        <nav className="bs-sidebar" aria-label="Navigation principale">
           {MANAGER_NAV.map((item) => (
-            <Link key={item.to} to={item.to}>
+            <NavLink key={item.to} to={item.to} end={item.to === '/'} className="bs-nav-link">
               {item.label}
-            </Link>
+            </NavLink>
           ))}
           {isDev ? (
-            <Link to="/dev" style={{ marginTop: 12, fontWeight: 600 }}>
+            <NavLink to="/dev" className="bs-nav-link" style={{ fontWeight: 600 }}>
               Développeur
-            </Link>
+            </NavLink>
           ) : null}
         </nav>
-        <div style={{ flex: 1 }}>
+        <div className="bs-sidebar-layout__main" id="manager-main">
           <Outlet />
         </div>
       </div>

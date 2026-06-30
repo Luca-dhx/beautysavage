@@ -253,3 +253,8 @@ Pour le personnel : on ouvre un client et on voit tout (resume + KPIs + timeline
 ## Sprint M13 — Gift Card 360 + Manual Booking + Template Studio (rapports 205-206)
 
 Depuis la fiche client, le personnel peut : creer une carte cadeau payee sur place (codes + QR + carte PDF envoyee par mail), debiter une carte a la main (par code ou QR colle, avec motif et apercu du solde), prendre une reservation au comptoir (paiement sur place, creneau verrouille 5 min pendant la saisie), et ajouter une note interne. Cote dev : un Studio de templates de carte cadeau (HTML/CSS + preview live, versions) ; cote admin : une librairie pour choisir le template actif (sans editer le HTML, toujours un actif). Mobile-first, anime, sans tableau.
+
+
+## Sprint P1 — Product Polish & UX (rapports 207-208)
+
+Le manager gagne en cohérence et confort mobile : navigation avec état actif et barre latérale qui se réorganise au pouce, boutons icône agrandis (44px), modale de confirmation accolée en bas sur téléphone, focus clavier visible partout, animations homogènes. Aucune fonctionnalité métier modifiée.

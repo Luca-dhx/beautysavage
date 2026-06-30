@@ -45,6 +45,17 @@
 .gcl-modal__actions { display: flex; justify-content: flex-end; gap: var(--bs-space-2); }
 .gcl-modal__actions .bs-btn { min-height: 44px; }
 
+/* P1 — sur mobile, la modale de confirmation se dock en bas (atteignable au pouce). */
+@media (max-width: 640px) {
+  .gcl-modal {
+    left: 0; right: 0; bottom: 0; top: auto;
+    transform: none;
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+    animation: bs-sheet var(--bs-motion-normal, 240ms) var(--bs-motion-ease-out, ease) both;
+  }
+}
+
 @keyframes gcl-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes gcl-pop { from { opacity: 0; transform: translate(-50%, -48%) scale(0.98); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 

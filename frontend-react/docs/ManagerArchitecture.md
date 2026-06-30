@@ -395,3 +395,8 @@ Finalisation : endpoint report admin GLOBAL + reschedule remboursement global + 
 **Librairie admin** (/cartes-cadeaux/templates, admin+dev) : cartes templates visibles + preview (iframe srcDoc), badge "Actif", "Choisir ce template" -> modal confirmation -> POST /templates/:id/activate. Admin ne peut PAS editer le HTML ; impossible de tomber a zero actif.
 **Gift Card Template Studio (dev-only, /dev/gift-card-templates)** : feature apps/manager/src/features/giftCardTemplates/ — editeur HTML/CSS + preview live (POST /preview -> iframe sandbox, QR factice), toggle mobile/desktop, versions + draft/publish/rollback. Aucun envoi reel.
 **api-client** : packages/api-client/src/manager/ giftCards.ts, giftCardTemplates.ts, giftCardLibrary.ts, manualBooking.ts, customerNotes.ts. CSS prefixes dedies, tokens --bs-* (zero hex), Motion Guideline + reduced-motion, cibles >=44px, mobile-first, zero table.
+
+
+## Sprint P1 — Product Polish & UX (rapports 207-208)
+
+Manager : adoption de la couche @bs/ui/polish (focus visible global, micro-interactions, primitives, presets motion). Corrections ciblées : ManagerLayout/DevLayout en NavLink + .bs-nav-link.active (état « vous êtes ici »), sidebar responsive (.bs-sidebar-layout/.bs-sidebar : colonne desktop → rangée wrap mobile, suppression minWidth:180), skip-link, ajout du lien dev « Modèles carte cadeau » (M13 manquant) ; cibles tactiles 44px (pl-viewbtn/pl-filter/pl-iconbtn, nc-iconbtn) ; modale giftCardLibrary en bottom-sheet ≤640px ; défauts de cache TanStack Query (retry1/no-refetch-focus/staleTime). Aucun changement métier. Réf : docs/ProductUXGuideline.md.

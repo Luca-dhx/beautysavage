@@ -36,7 +36,7 @@ describe('Planning report UI (M11B)', () => {
     expect(screen.getByTestId('pl-reschedule-form')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('pl-reschedule-submit'));
     await waitFor(() => expect(onReschedule).toHaveBeenCalledTimes(1));
-    const payload = onReschedule.mock.calls[0][1] as { newStartAt: string; newEndAt: string };
+    const payload = (onReschedule.mock.calls[0] as unknown[])[1] as { newStartAt: string; newEndAt: string };
     expect(payload.newStartAt).toContain('2026-07-01T10:00');
     expect(typeof payload.newEndAt).toBe('string');
     await waitFor(() => expect(screen.getByTestId('pl-reschedule-success')).toBeInTheDocument());

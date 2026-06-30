@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@bs/auth';
 import '@bs/ui/tokens.css';
+import '@bs/ui/polish.css';
 import { VitrineThemeProvider } from './features/theme/VitrineThemeProvider';
 import { CartProvider } from './features/cart/CartProvider';
 import { App } from './App';

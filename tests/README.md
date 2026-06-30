@@ -770,3 +770,11 @@ Quatre fichiers tests/p1/ :
 Note harnais : le seed du template carte cadeau ne tourne PAS en mode test (boot gate) -> les tests appellent seedGiftCardTemplates() explicitement. Le routeur gestion cartes cadeaux est monte AVANT les broad-mounts dev-only (sinon shadow 403 admin, cf. M3A).
 
 Front (apps/manager) : tests des drawers Customer 360 (creation carte / debit code+QR / reservation manuelle+hold / note), du Gift Card Template Studio (preview iframe sandbox), de la librairie admin (badge actif + modal activation), noHardcodedHex.test.ts par feature.
+
+
+## Sprint P1 — Product Polish & UX (rapports 207-208)
+
+Front uniquement (aucun test backend ajouté ; suites backend inchangées et vertes). Nouveaux tests @bs/ui :
+- packages/ui/src/polish/polish.test.tsx (9) — presets de motion (+ vide en reduced-motion), primitives harmonisées (Badge/Chip/IconButton/Skeleton/Spinner : rôles, aria-pressed/busy, aria-label obligatoire), garde zéro-hex sur components.tsx.
+- packages/ui/src/polish/polishCss.test.ts (8) — contrats de polish.css : focus-visible global, cible tactile 44px, overflow-x:clip (et PAS hidden → préserve sticky), skip-link, shimmer tokenisé (--bs-motion-shimmer), presets @keyframes, état nav actif.
+2 erreurs typecheck pré-existantes corrigées (planningReschedule.test.tsx, M11B). React : 54 fichiers / 237 tests verts, lint/typecheck/build OK.

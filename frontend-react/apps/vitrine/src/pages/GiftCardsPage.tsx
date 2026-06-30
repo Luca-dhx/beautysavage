@@ -1,4 +1,4 @@
-import { Card, MediaImage, SectionHeader, LoadingState, ErrorState } from '@bs/ui';
+import { Card, MediaImage, SectionHeader, LoadingState, ErrorState, Button } from '@bs/ui';
 import { resolveMediaUrl, formatPrice } from '@bs/api-client';
 import { usePublicGiftCards } from '../features/catalog/hooks/usePublicGiftCards';
 
@@ -18,9 +18,9 @@ export function GiftCardsPage() {
           <p>Montant minimum : {formatPrice(data.minAmount)}</p>
           {data.description ? <p>{data.description}</p> : null}
           <p>
-            <span className="bs-btn" aria-disabled="true" style={{ pointerEvents: 'none', opacity: 0.6 }}>
+            <Button type="button" disabled>
               Achat bientôt disponible
-            </span>
+            </Button>
           </p>
         </Card>
       ) : null}

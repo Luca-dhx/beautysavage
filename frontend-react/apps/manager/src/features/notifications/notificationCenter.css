@@ -128,8 +128,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
-  min-height: 36px;
+  min-width: 44px;
+  min-height: 44px; /* P1 — cible tactile WCAG 2.1 AA */
   border: 1px solid var(--bs-color-border);
   border-radius: var(--bs-radius);
   background: transparent;

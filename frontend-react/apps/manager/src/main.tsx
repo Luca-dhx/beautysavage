@@ -4,10 +4,20 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@bs/auth';
 import '@bs/ui/tokens.css';
+import '@bs/ui/polish.css';
 import { PanelThemeProvider } from './features/theme/PanelThemeProvider';
 import { App } from './App';
 
-const queryClient = new QueryClient();
+// Sprint P1 — défauts de cache cohérents (perf perçue). Les hooks features gardent leurs staleTime propres.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 30_000,
+    },
+  },
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -275,3 +275,8 @@ Portee transverse (backend + manager front). Le checkout (M11A) et le calendrier
 ## Sprint M12 — Customer 360 (rapports 203-204)
 
 Un ecran unique pour tout savoir et tout faire sur un client (identite, achats, prestations, formations, produits, cartes cadeaux, remboursements, factures, documents, communications, notifications, timeline, finances) sans changer de page. Pense telephone, fluide, organise par cartes, sans tableau. Recherche rapide -> fiche. Limites : telephone/photo non encore stockes ; actions rapides = raccourcis vers les ecrans existants.
+
+
+## Sprint P1 — Product Polish & UX (rapports 207-208)
+
+Revue UX/UI transversale (aucune fonctionnalité métier). On crée @bs/ui/polish (focus, 44px tactile, anti-overflow, micro-interactions, primitives, presets motion) appliqué globalement + corrections sûres (nav active + sidebar responsive, fausse button vitrine corrigée, modale librairie en bottom-sheet mobile, lien dev manquant ajouté, cache TanStack Query). ProductUXGuideline.md devient la référence officielle avec une directive permanente (mobile-first + cohérence parfaite tel/desktop). Tout vert, zéro régression.

@@ -129,3 +129,8 @@ Cote vitrine React : le panier et le paiement n ont plus besoin de selectionner 
 Le report (decalage) d un creneau est desormais possible directement depuis le planning, pour les admins. La reservation reste la meme (paiement inchange, aucun remboursement declenche), seul l horaire change. Toutes les creations de reservation passent par l institut unique ; le prestataire n existe plus cote serveur (un ancien identifiant est accepte mais ignore). Un script volontaire (jamais automatique) permet de consolider/archiver l heritage. Limites : suppression definitive des champs legacy reportee a une migration ulterieure ; pas de glisser-deposer ni de vue mois.
 
 Cote vitrine : inchange (le report est une action du manager). La reservation cote client passe toujours par l institut unique.
+
+
+## Sprint P1 — Product Polish & UX (rapports 207-208)
+
+La vitrine bénéficie du polish global (focus clavier visible, cibles tactiles, scroll sans débordement horizontal, animations cohérentes et coupées si l'utilisateur réduit les animations). Le bouton « Achat bientôt disponible » des cartes cadeaux est désormais un vrai bouton désactivé. Aucune fonctionnalité métier modifiée.

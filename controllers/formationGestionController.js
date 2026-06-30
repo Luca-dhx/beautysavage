@@ -53,6 +53,11 @@ function buildPayload(doc, options = {}) {
     whatsappGroupTitle: doc.whatsappGroupTitle || '',
     whatsappGroupUrl: doc.whatsappGroupUrl || null,
     type: doc.type,
+    // C1 — champs distanciel (accès) exposés pour l'éditeur Catalogue Studio.
+    accessDeliveryMode: doc.accessDeliveryMode || 'manual',
+    accessUrl: doc.accessUrl || '',
+    accessLifetime: doc.accessLifetime !== false,
+    isRefundableAfterAccess: Boolean(doc.isRefundableAfterAccess),
     status: doc.status,
     soldCount,
     purchasedUsersCount,
@@ -446,6 +451,79 @@ export async function listFormations(_req, res) {
   }
 }
 
+// C1 — Lecture d'une formation unique (additif). L'API manager n'exposait que la liste ;
+// l'éditeur React a besoin d'un GET ciblé (mêmes stats live que la liste).
+export async function getFormation(req, res) {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ ok: false, error: 'Identifiant invalide.' });
+  }
+  try {
+    const formation = await Formation.findById(id).lean();
+    if (!formation) {
+      return res.status(404).json({ ok: false, error: 'Formation introuvable.' });
+    }
+    const payload = await buildSinglePayloadWithLiveStats(formation);
+    return res.json({ ok: true, formation: payload });
+  } catch (error) {
+    console.error('Impossible de lire la formation', error);
+    return res.status(500).json({ ok: false, error: 'Impossible de lire la formation.' });
+  }
+}
+
+// C1 — Duplication d'une formation (additif). La copie est créée en brouillon (status=draft),
+// avec un nom unique. Sessions et modules pédagogiques ne sont PAS copiés (contenu/planning
+// propres à chaque formation) — documenté côté Studio.
+export async function duplicateFormation(req, res) {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ ok: false, error: 'Identifiant invalide.' });
+  }
+  try {
+    const source = await Formation.findById(id).lean();
+    if (!source) {
+      return res.status(404).json({ ok: false, error: 'Formation introuvable.' });
+    }
+    let copyName = `${source.name} (copie)`;
+    let suffix = 1;
+    while (await Formation.exists({ name: copyName })) {
+      suffix += 1;
+      copyName = `${source.name} (copie ${suffix})`;
+    }
+    const clone = new Formation({
+      name: copyName,
+      description: source.description || '',
+      formalities: source.formalities || '',
+      durationDays: source.durationDays || 1,
+      refundDays: source.refundDays ?? 7,
+      price: source.price || 0,
+      coverImage: source.coverImage || '',
+      trailerVideoTitle: source.trailerVideoTitle || '',
+      trailerVideoUrl: source.trailerVideoUrl || '',
+      whatsappGroupTitle: source.whatsappGroupTitle || '',
+      whatsappGroupUrl: source.whatsappGroupUrl || null,
+      type: source.type,
+      accessDeliveryMode: source.accessDeliveryMode || 'manual',
+      accessUrl: source.accessUrl || '',
+      accessLifetime: source.accessLifetime !== false,
+      accessExpiresAt: source.accessExpiresAt || null,
+      isRefundableAfterAccess: Boolean(source.isRefundableAfterAccess),
+      status: 'draft',
+      active: true,
+      options: Array.isArray(source.options) ? source.options.map(o => ({ ...o, _id: undefined })) : []
+    });
+    await clone.save();
+    const payload = await buildSinglePayloadWithLiveStats(clone.toObject());
+    return res.status(201).json({ ok: true, formation: payload });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ ok: false, error: 'Une formation porte deja ce nom.' });
+    }
+    console.error('Impossible de dupliquer la formation', error);
+    return res.status(500).json({ ok: false, error: 'Impossible de dupliquer la formation.' });
+  }
+}
+
 export async function createFormation(req, res) {
   const name = String(req.body?.name || '').trim();
   if (!name) {
@@ -537,6 +615,19 @@ export async function updateFormation(req, res) {
     }
     if (typeof req.body?.whatsappGroupTitle === 'string') {
       formation.whatsappGroupTitle = sanitizeMetaTitle(req.body.whatsappGroupTitle);
+    }
+    // C1 — champs distanciel (accès) éditables depuis le Catalogue Studio.
+    if (req.body?.accessDeliveryMode !== undefined) {
+      formation.accessDeliveryMode = req.body.accessDeliveryMode === 'immediate' ? 'immediate' : 'manual';
+    }
+    if (typeof req.body?.accessUrl === 'string') {
+      formation.accessUrl = req.body.accessUrl.trim();
+    }
+    if (req.body?.accessLifetime !== undefined) {
+      formation.accessLifetime = Boolean(req.body.accessLifetime);
+    }
+    if (req.body?.isRefundableAfterAccess !== undefined) {
+      formation.isRefundableAfterAccess = Boolean(req.body.isRefundableAfterAccess);
     }
     await formation.save();
     const payload = await buildSinglePayloadWithLiveStats(formation.toObject());

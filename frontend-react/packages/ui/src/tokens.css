@@ -364,3 +364,24 @@ body {
 .bs-hero h1 {
   margin: 0 0 var(--bs-space-2);
 }
+
+/* C1 — Notation « patte de chien » (vitrine). Zéro hex : tokens --bs-* uniquement. */
+.bs-paws { display: inline-flex; align-items: center; gap: 2px; }
+.bs-paws__text { margin-left: var(--bs-space-1); font-size: 0.85rem; color: var(--bs-color-muted); }
+.bs-paw { width: 18px; height: 18px; fill: var(--bs-color-border); transition: fill var(--bs-motion-fast) var(--bs-motion-ease-out); }
+.bs-paw--on { fill: var(--bs-color-secondary); }
+.bs-paws--compact .bs-paw { width: 14px; height: 14px; }
+@media (prefers-reduced-motion: reduce) { .bs-paw { transition: none; } }
+
+/* C1 — Section avis vitrine. */
+.bs-reviews { margin-top: var(--bs-space-4); display: flex; flex-direction: column; gap: var(--bs-space-3); }
+.bs-reviews__head { display: flex; align-items: center; justify-content: space-between; gap: var(--bs-space-2); flex-wrap: wrap; }
+.bs-reviews__title { margin: 0; font-size: 1.2rem; color: var(--bs-color-text); }
+.bs-reviews__sort { display: inline-flex; gap: var(--bs-space-1); }
+.bs-reviews__tab { min-height: 44px; padding: 0 var(--bs-space-2); border: 1px solid var(--bs-color-border); border-radius: 999px; background: var(--bs-color-surface); color: var(--bs-color-muted); cursor: pointer; font-size: 0.85rem; }
+.bs-reviews__tab--active { background: var(--bs-color-primary); color: var(--bs-color-surface); border-color: var(--bs-color-primary); }
+.bs-reviews__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--bs-space-2); }
+.bs-review { display: flex; flex-direction: column; gap: var(--bs-space-1); padding: var(--bs-space-3); border: 1px solid var(--bs-color-border); border-radius: var(--bs-radius); background: var(--bs-color-surface); }
+.bs-review__comment { margin: 0; color: var(--bs-color-text); }
+.bs-review__date { font-size: 0.78rem; color: var(--bs-color-muted); }
+.bs-reviews__more { margin: 0; font-size: 0.82rem; color: var(--bs-color-muted); text-align: center; }

@@ -74,3 +74,27 @@ les écrans lourds, `memo` ciblé, images dimensionnées. Aucune régression fon
 - [ ] Primitives partagées réutilisées (pas de duplication).
 - [ ] États loading/empty/error fournis et cohérents.
 - [ ] Tests + lint + typecheck + build verts.
+
+## 11. Pattern officiel — `CatalogueModuleStepper` (C1)
+Pattern d'édition de toute fiche catalogue (prestation, formation, cartes cadeaux). Modernise le système
+Vanilla « onglets/icônes » (cf. rapport 209) en corrigeant son manque #1 : **aucun statut par module**.
+
+**Structure** :
+- **Header sticky** (`CatalogueStatusHeader`) : titre + badge de visibilité (brouillon/publié/archivé),
+  **barre de progression** (modules complets / total), CTA `Enregistrer` toujours visible, accès au
+  **drawer de validation**.
+- **Stepper** (`CatalogueModuleStepper`) : modules en **chips horizontales scrollables (mobile)** /
+  **rail vertical (desktop, ≥768px)**. Chaque module porte une **icône + point de statut** coloré
+  (`complete` vert / `incomplete` orange / `error` rouge / `optional` gris) et un **chevron** sur le module
+  actif (`aria-current="step"`).
+- **Panneau** : le contenu du module actif (champs `CatField`/`cat-input`).
+- **Drawer de validation** (`CatalogueValidationDrawer`) : bottom-sheet mobile / panneau desktop listant
+  les **blocants (error)** et **recommandations (warning)**, chaque ligne navigue vers son module.
+
+**Statut par module** : dérivé de fonctions pures (`validation.ts`) — jamais de logique métier dans le JSX.
+`publishable = errorCount === 0`. La publication (vitrine active / statut publié) est **bloquée** tant que
+des erreurs subsistent (`canSave` le reflète).
+
+**Règles** : tokens `--bs-*` only (préfixe `cat-`), 44px, mobile-first 768px, zéro `<table>`, zéro hex,
+`prefers-reduced-motion`, primitives `@bs/ui` réutilisées. Un **seul pattern calendrier** dans le produit :
+les sessions présentielles réutilisent les cards/badges du Planning M10 (pas de calendrier divergent).

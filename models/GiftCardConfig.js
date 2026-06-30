@@ -8,6 +8,16 @@ const giftCardConfigSchema = new mongoose.Schema(
       min: 0,
       default: 50
     },
+    // C1 — borne haute optionnelle (0 = illimité) + montants suggérés vitrine.
+    maxAmount: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    presetAmounts: {
+      type: [Number],
+      default: []
+    },
     description: {
       type: String,
       trim: true,

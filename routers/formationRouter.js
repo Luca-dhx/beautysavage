@@ -9,9 +9,11 @@ import { requireDev } from '../middlewares/requireDev.js';
 import { requireMode } from '../middlewares/modeGuard.js';
 import {
   listFormations,
+  getFormation,
   createFormation,
   updateFormation,
   deleteFormation,
+  duplicateFormation,
   listDeletedFormationHistory,
   uploadFormationCover,
   listFormationReviewsForGestion
@@ -72,7 +74,9 @@ router.use(requireAuth(), requireMode('gestion'), requireDev);
 router.get('/', listFormations);
 router.get('/deleted-history', listDeletedFormationHistory);
 router.get('/:id/reviews', listFormationReviewsForGestion);
+router.get('/:id', getFormation);
 router.post('/', createFormation);
+router.post('/:id/duplicate', duplicateFormation);
 router.put('/:id', updateFormation);
 router.delete('/:id', deleteFormation);
 router.post('/upload-cover', (req, res) => {

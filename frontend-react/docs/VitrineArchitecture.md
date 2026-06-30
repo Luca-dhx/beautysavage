@@ -231,3 +231,9 @@ Finalisation : endpoint report admin GLOBAL + reschedule remboursement global + 
 ## Sprint P1 — Product Polish & UX (rapports 207-208)
 
 Vitrine : couche @bs/ui/polish appliquée globalement (focus visible, cibles 44px, anti-overflow, scrollbar, micro-interactions, presets motion). Correction sémantique : GiftCardsPage utilise un vrai <Button disabled> (plus de <span className="bs-btn"> factice). Primitives partagées (Badge/Chip/Skeleton/Spinner) disponibles pour les prochains écrans. QueryClient vitrine déjà optimisé (retry1/staleTime). Aucun changement métier. Réf : docs/ProductUXGuideline.md. Limites : FormField/Input/Checkbox partagés à extraire (login/checkout gardent les inputs natifs).
+
+## C1 — Avis & notation patte de chien
+Détail formation : section **avis** (`features/catalog/components/TrainingReviews.tsx`) — stats moyenne +
+nombre, tri récent/meilleur, liste. Notation **patte de chien** portée dans `@bs/ui` (`PawRating`, identité
+Beauty Savage). api-client `catalog/reviews.ts` (endpoints publics `/api/vitrine/formations/:id/reviews[/stats]`).
+Lecture seule (modération admin → C2). Détail : rapport 210.

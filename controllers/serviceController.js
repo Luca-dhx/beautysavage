@@ -38,6 +38,7 @@ function buildServicePayload(doc) {
     paymentType: doc.paymentType,
     depositType: doc.depositType,
     depositValue: doc.depositValue,
+    balanceSettlementMode: doc.balanceSettlementMode || 'none',
     capacity: doc.capacity,
     bufferTime: doc.bufferTime,
     promotion: doc.promotion || {},
@@ -86,7 +87,7 @@ export async function getService(req, res) {
 export async function createService(req, res) {
   try {
     const { name, description, shortDescription, duration, price, isActive, isBookable,
-      paymentType, depositType, depositValue, capacity, bufferTime, cancellationDays,
+      paymentType, depositType, depositValue, balanceSettlementMode, capacity, bufferTime, cancellationDays,
       options, promotion, boost } = req.body;
 
     if (!name || !name.trim()) {
@@ -119,6 +120,7 @@ export async function createService(req, res) {
       paymentType: ['full', 'deposit', 'free'].includes(paymentType) ? paymentType : 'full',
       depositType: ['percentage', 'fixed'].includes(depositType) ? depositType : 'percentage',
       depositValue: parseNumber(depositValue, 0),
+      balanceSettlementMode: ['none', 'pay_on_site'].includes(balanceSettlementMode) ? balanceSettlementMode : 'none',
       capacity: Math.max(1, parseNumber(capacity, 1)),
       bufferTime: parseNumber(bufferTime, 0),
       cancellationDays: parseNumber(cancellationDays, 7),
@@ -146,7 +148,7 @@ export async function updateService(req, res) {
 
     const {
       name, description, shortDescription, duration, price, isActive, isBookable,
-      paymentType, depositType, depositValue, capacity, bufferTime, cancellationDays,
+      paymentType, depositType, depositValue, balanceSettlementMode, capacity, bufferTime, cancellationDays,
       options, promotion, boost,
       bookingLeadDays, allowClientChoosePractitioner
     } = req.body;
@@ -165,6 +167,9 @@ export async function updateService(req, res) {
       doc.depositType = depositType;
     }
     if (depositValue !== undefined) doc.depositValue = parseNumber(depositValue, 0);
+    if (balanceSettlementMode !== undefined && ['none', 'pay_on_site'].includes(balanceSettlementMode)) {
+      doc.balanceSettlementMode = balanceSettlementMode;
+    }
     if (capacity !== undefined) doc.capacity = Math.max(1, parseNumber(capacity, 1));
     if (bufferTime !== undefined) doc.bufferTime = parseNumber(bufferTime, 0);
     if (cancellationDays !== undefined) doc.cancellationDays = parseNumber(cancellationDays, 7);
@@ -195,6 +200,60 @@ export async function deleteService(req, res) {
     return res.json({ ok: true });
   } catch (err) {
     console.error('[serviceController] deleteService', err);
+    return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
+  }
+}
+
+// C1 — Duplication d'une prestation (additif). La copie est créée en brouillon (isActive=false),
+// avec un slug unique et un boost réinitialisé, pour éviter toute publication accidentelle.
+export async function duplicateService(req, res) {
+  try {
+    const source = await Service.findById(req.params.id).lean();
+    if (!source) return res.status(404).json({ ok: false, error: 'Prestation introuvable.' });
+
+    const copyName = `${source.name} (copie)`;
+    const baseSlug = slugify(copyName) || `${source.slug || 'prestation'}-copie`;
+    let slug = baseSlug;
+    let suffix = 0;
+    while (await Service.exists({ slug })) {
+      suffix += 1;
+      slug = `${baseSlug}-${suffix}`;
+    }
+
+    const clone = await Service.create({
+      name: copyName,
+      slug,
+      description: source.description || '',
+      shortDescription: source.shortDescription || '',
+      duration: source.duration,
+      price: source.price,
+      photos: Array.isArray(source.photos) ? [...source.photos] : [],
+      isActive: false,
+      isBookable: source.isBookable !== false,
+      paymentType: source.paymentType || 'full',
+      depositType: source.depositType || 'percentage',
+      depositValue: source.depositValue || 0,
+      balanceSettlementMode: source.balanceSettlementMode || 'none',
+      capacity: source.capacity || 1,
+      bufferTime: source.bufferTime || 0,
+      cancellationDays: source.cancellationDays ?? 7,
+      bookingLeadDays: source.bookingLeadDays ?? 0,
+      allowClientChoosePractitioner: source.allowClientChoosePractitioner !== false,
+      options: (source.options || []).map(o => ({
+        name: o.name, description: o.description || '', price: o.price, isActive: o.isActive !== false
+      })),
+      promotion: { isActive: false, type: 'percentage', value: 0, startDate: null, endDate: null },
+      boost: { isActive: false, order: 0 },
+      createdBy: req.sessionUser?._id || null,
+      updatedBy: req.sessionUser?._id || null
+    });
+
+    return res.status(201).json({ ok: true, service: buildServicePayload(clone) });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ ok: false, error: 'Un slug identique existe déjà.' });
+    }
+    console.error('[serviceController] duplicateService', err);
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
   }
 }

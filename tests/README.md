@@ -778,3 +778,18 @@ Front uniquement (aucun test backend ajouté ; suites backend inchangées et ver
 - packages/ui/src/polish/polish.test.tsx (9) — presets de motion (+ vide en reduced-motion), primitives harmonisées (Badge/Chip/IconButton/Skeleton/Spinner : rôles, aria-pressed/busy, aria-label obligatoire), garde zéro-hex sur components.tsx.
 - packages/ui/src/polish/polishCss.test.ts (8) — contrats de polish.css : focus-visible global, cible tactile 44px, overflow-x:clip (et PAS hidden → préserve sticky), skip-link, shimmer tokenisé (--bs-motion-shimmer), presets @keyframes, état nav actif.
 2 erreurs typecheck pré-existantes corrigées (planningReschedule.test.tsx, M11B). React : 54 fichiers / 237 tests verts, lint/typecheck/build OK.
+
+
+## C1 — Catalogue Studio + Vitrine (rapports 209-210)
+
+Backend : `tests/p1/catalogueC1.test.js` — duplication prestation (brouillon, slug unique) & formation
+(draft, nom unique), single-GET formation (+404), `balanceSettlementMode` (paiement sur place), config
+cartes cadeaux `maxAmount`/`presetAmounts` (tri/dédup, min>max → 400), QR session (opaque, idempotent,
+régénérable, payload `BS-SESSION:<id>:<token>`), permission client refusée. Note : correctif mount-order
+(serviceRouter/availabilityRouter/serviceSettingsRouter remontés avant les broad-mounts dev-only —
+`commissionRouter` requireStrictDev shadowait `/services` pour les admins). Suites p0+p1+integration : 699 verts.
+
+Front (apps/manager + packages) : `features/catalogue/validation.test.ts` (statuts par module + blocages),
+`catalogue.test.tsx` (dashboard/liste/ModuleStepper/drawer/giftcard, zéro `<table>`), `noHardcodedHex.test.ts`,
+`manager/catalogueApi.test.ts` (URLs/méthodes/envelope), `catalog/reviewsApi.test.ts` (avis vitrine). Suite
+front : 264 verts ; typecheck/lint/build OK.

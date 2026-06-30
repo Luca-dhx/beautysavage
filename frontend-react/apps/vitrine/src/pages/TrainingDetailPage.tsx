@@ -3,6 +3,7 @@ import { Card, MediaImage, PriceLabel, LoadingState, ErrorState } from '@bs/ui';
 import { resolveMediaUrl } from '@bs/api-client';
 import { usePublicTraining } from '../features/catalog/hooks/usePublicTrainings';
 import { trainingPriceProps } from '../features/catalog/priceProps';
+import { TrainingReviews } from '../features/catalog/components/TrainingReviews';
 
 export function TrainingDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +29,7 @@ export function TrainingDetailPage() {
           <div dangerouslySetInnerHTML={{ __html: data.editorialHtml }} />
         ) : null}
       </Card>
+      {id ? <TrainingReviews trainingId={id} /> : null}
     </article>
   );
 }

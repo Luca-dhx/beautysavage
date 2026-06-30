@@ -14,3 +14,4 @@ export * from './giftCardTemplates';
 export * from './giftCardLibrary';
 export * from './manualBooking';
 export * from './customerNotes';
+export * from './catalogue';

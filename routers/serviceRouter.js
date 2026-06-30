@@ -12,6 +12,7 @@ import {
   createService,
   updateService,
   deleteService,
+  duplicateService,
   uploadServicePhoto,
   deleteServicePhoto,
   patchServiceBoost,
@@ -87,6 +88,7 @@ router.post('/', createService);
 router.get('/:id', getService);
 router.put('/:id', updateService);
 router.delete('/:id', deleteService);
+router.post('/:id/duplicate', duplicateService);
 router.post('/:id/upload-photo', handleUpload, uploadServicePhoto);
 router.delete('/:id/photos/:photoIndex', deleteServicePhoto);
 router.patch('/:id/boost', patchServiceBoost);

@@ -4041,3 +4041,30 @@ Cartes cadeaux manuelles (paiement sur place), QR code, debit manuel, Gift Card 
 ## Sprint P1 — Product Polish & UX (rapports 207-208)
 
 Revue UX/UI transversale React (vitrine + manager + @bs/ui). AUCUN changement métier/backend. Couche @bs/ui/polish : polish.css global (focus-visible uniforme via :where(), --bs-tap-target 44px, overflow-x:clip qui préserve sticky, scrollbar fine, micro-interactions bouton, skip-link, .bs-nav-link actif, primitives bs-badge/chip/skeleton/spinner/icon-btn/device-btn/message, layout sidebar responsive, presets @keyframes entrée/sortie/sheet/slide/dialog/accordion/pop/shake/toast) + polish/motion.ts (Durations/Easings/MOTION_PRESET_CLASS/motionPreset/microTransition) + polish/components.tsx (Badge/Chip/IconButton/Skeleton/Spinner). Importé dans apps/*/main.tsx. Corrections : nav active + sidebar responsive (ManagerLayout/DevLayout NavLink, +lien dev gift-card-templates), cibles 44px (planning/notifications), fausse button vitrine→Button disabled, modale librairie bottom-sheet mobile, cache TanStack Query manager, fix 2 erreurs typecheck pré-existantes (M11B). Référence : frontend-react/docs/ProductUXGuideline.md + directive permanente (mobile-first, parité tel/desktop). Tests +17 front (polish) → react 237 verts, lint/typecheck/build OK ; backend inchangé (suites vertes). Limites : fragmentation CSS résiduelle (migration incrémentale), FormField/Input/Checkbox partagés à venir, drawer communication desktop à revoir.
+
+
+## C1 — Catalogue Studio + Vitrine Catalogue (rapports 209-210)
+
+Module Catalogue manager React + amélioration vitrine. Périmètre : prestations, formations
+présentielles/distancielles, cartes cadeaux. **Produits désactivés** (placeholder).
+
+Backend additif (sûr admin/dev) : `GET /api/gestion/formations/:id` (single-get) ; duplication
+`POST /api/gestion/services/:id/duplicate` & `.../formations/:id/duplicate` (copie en brouillon, slug/nom
+unique) ; `balanceSettlementMode` (paiement sur place) + champs distanciel (`accessDeliveryMode/accessUrl/
+accessLifetime/isRefundableAfterAccess`) exposés/éditables ; `GiftCardConfig.maxAmount` + `presetAmounts`
+(min≤max, triés/dédupliqués) ; **QR présence session** `POST /api/gestion/formations/:id/sessions/:sessionId/qr`
+(token opaque `qrToken`+`qrGeneratedAt`, payload `BS-SESSION:<id>:<token>`, idempotent/régénérable, pas de
+caméra/certificat → C2). **Correctif mount-order** : serviceRouter/availabilityRouter/serviceSettingsRouter
+remontés AVANT les broad-mounts dev-only (`commissionRouter` requireStrictDev shadowait `/services` pour les
+admins → 403). Tests `tests/p1/catalogueC1.test.js`.
+
+Front : api-client `manager/catalogue.ts` (+`apiPut/apiDelete`) et `catalog/reviews.ts`. Feature
+`apps/manager/src/features/catalogue/` — pattern **CatalogueModuleStepper** (header sticky + statut/badge,
+stepper chips mobile/rail desktop avec **statut par module** + chevron actif, drawer de validation),
+éditeurs Service/Training(type-aware)/GiftCard, `TrainingSessionEditor` (réutilise calendrier M10 + QR),
+`validation.ts` (pur, statuts complete/incomplete/error/optional + publishable). Routes `/catalogue/*`,
+nav « Catalogue ». Vitrine : `PawRating` (patte de chien, @bs/ui) + section avis (`TrainingReviews`) sur le
+détail formation. Règles : `cat-`/`bs-*` tokens only, 44px, mobile-first 768px, zéro `<table>`, zéro hex,
+reduced-motion. Pattern officiel : ProductUXGuideline §11. Tests : backend 699 verts ; front 264 verts ;
+typecheck/lint/build OK (`@types/node` ajouté en devDep — réparait un typecheck pré-existant P1). Limites :
+modules pédagogiques distanciel + upload médias intégré + scan caméra/attestation + modération avis → C2.

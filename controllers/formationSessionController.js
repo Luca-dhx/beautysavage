@@ -1,3 +1,5 @@
+import crypto from 'node:crypto';
+
 import mongoose from 'mongoose';
 
 import Formation from '../models/Formation.js';
@@ -279,8 +281,28 @@ export function buildSessionPayload(doc, { instructorName = null, isCurrentUserI
     createdAt: doc.createdAt,
     instructorId: doc.instructorId?.toString() || null,
     instructorName: instructorName || null,
-    isCurrentUserInstructor
+    isCurrentUserInstructor,
+    qr: buildSessionQrInfo(doc)
   };
+}
+
+// C1 — Construit l'objet QR de présence exposé dans le payload (admin/dev only).
+export function buildSessionQrInfo(doc) {
+  const token = String(doc?.qrToken || '');
+  if (!token) {
+    return { hasToken: false, token: null, payload: null, generatedAt: null };
+  }
+  return {
+    hasToken: true,
+    token,
+    payload: buildSessionQrPayload(doc._id?.toString(), token),
+    generatedAt: doc.qrGeneratedAt || null
+  };
+}
+
+// Format de payload encodé dans le QR. Opaque, sans donnée personnelle.
+export function buildSessionQrPayload(sessionId, token) {
+  return `BS-SESSION:${sessionId}:${token}`;
 }
 
 async function resolveInstructorName(instructorId) {
@@ -501,6 +523,37 @@ export async function listSessions(req, res) {
   } catch (error) {
     console.error('Impossible de lister les sessions', error);
     return res.status(500).json({ ok: false, error: 'Impossible de lire les sessions.' });
+  }
+}
+
+// C1 — Génère (ou régénère) le QR de présence d'une session présentielle.
+// Token opaque, jamais dérivé d'une donnée sensible. Idempotent : si un token existe déjà et
+// que `regenerate` n'est pas demandé, on renvoie l'existant.
+export async function generateSessionQr(req, res) {
+  try {
+    const formationId = String(req.params.id || '').trim();
+    const sessionId = String(req.params.sessionId || '').trim();
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ ok: false, error: 'Identifiant de session invalide.' });
+    }
+    const formation = await loadPresentielFormation(formationId);
+    if (!formation) {
+      return res.status(404).json({ ok: false, error: 'Formation presentielle introuvable.' });
+    }
+    const session = await FormationSession.findOne({ _id: sessionId, formationId: formation._id });
+    if (!session) {
+      return res.status(404).json({ ok: false, error: 'Session introuvable.' });
+    }
+    const regenerate = req.body?.regenerate === true;
+    if (!session.qrToken || regenerate) {
+      session.qrToken = crypto.randomBytes(16).toString('hex');
+      session.qrGeneratedAt = new Date();
+      await session.save();
+    }
+    return res.json({ ok: true, qr: buildSessionQrInfo(session.toObject()) });
+  } catch (error) {
+    console.error('Impossible de generer le QR de session', error);
+    return res.status(500).json({ ok: false, error: 'Impossible de generer le QR.' });
   }
 }
 

@@ -44,6 +44,16 @@
     "m11bGlobalCalendarFinalization": "completed",
     "m12Customer360": "completed"
   },
+  "c1CatalogueStudio": {
+    "date": "2026-06-30",
+    "branch": "phase-0-security-baseline",
+    "reports": [
+      "209_audit_catalogue_vanilla_backend.md",
+      "210_rapport_catalogue_studio_vitrine.md"
+    ],
+    "summary": "Catalogue Studio React (manager) + amelioration vitrine. Perimetre : prestations, formations presentielles/distancielles, cartes cadeaux. PRODUITS DESACTIVES (placeholder). Backend ADDITIF : GET formation single, duplication service/formation (brouillon), balanceSettlementMode + champs distanciel exposes, GiftCardConfig maxAmount/presetAmounts, QR presence session (token opaque, idempotent, pas de camera/certificat -> C2). Correctif mount-order : serviceRouter/availability/service-settings remontes avant broad-mounts dev-only (commissionRouter requireStrictDev shadowait /services pour admins -> 403). Front : api-client manager/catalogue.ts + catalog/reviews.ts ; feature catalogue/ avec pattern CatalogueModuleStepper (statut par module, chevron actif, drawer validation), editeurs Service/Training(type-aware)/GiftCard, TrainingSessionEditor (reutilise calendrier M10 + QR), validation.ts pur. Routes /catalogue/*. Vitrine : PawRating (patte de chien @bs/ui) + section avis (TrainingReviews) sur detail formation. Tokens --bs-* only, 44px, mobile-first 768px, zero table, zero hex. Tests : backend 699 verts, front 264 verts, typecheck/lint/build OK (@types/node ajoute devDep). Pattern officiel : ProductUXGuideline 11. Prochaine : C2 (modules pedagogiques distanciel, upload medias integre, scan QR camera + attestation, moderation avis).",
+    "nextMission": "C2 — modules pedagogiques distanciel + upload medias integre + scan QR camera/attestation + moderation avis"
+  },
   "m2MailEventDispatch": {
     "date": "2026-06-28",
     "branch": "phase-0-security-baseline",

@@ -400,3 +400,14 @@ Finalisation : endpoint report admin GLOBAL + reschedule remboursement global + 
 ## Sprint P1 — Product Polish & UX (rapports 207-208)
 
 Manager : adoption de la couche @bs/ui/polish (focus visible global, micro-interactions, primitives, presets motion). Corrections ciblées : ManagerLayout/DevLayout en NavLink + .bs-nav-link.active (état « vous êtes ici »), sidebar responsive (.bs-sidebar-layout/.bs-sidebar : colonne desktop → rangée wrap mobile, suppression minWidth:180), skip-link, ajout du lien dev « Modèles carte cadeau » (M13 manquant) ; cibles tactiles 44px (pl-viewbtn/pl-filter/pl-iconbtn, nc-iconbtn) ; modale giftCardLibrary en bottom-sheet ≤640px ; défauts de cache TanStack Query (retry1/no-refetch-focus/staleTime). Aucun changement métier. Réf : docs/ProductUXGuideline.md.
+
+## C1 — Catalogue Studio (`features/catalogue/`)
+Module Catalogue manager : routes `/catalogue` (dashboard) · `/catalogue/prestations[/new|/:id]` ·
+`/catalogue/formations[/new|/:id]` · `/catalogue/cartes-cadeaux` · `/catalogue/produits` (placeholder
+désactivé). Nav « Catalogue ». Pattern **CatalogueModuleStepper** (ProductUXGuideline §11) : header sticky
+(statut/visibilité/progression/CTA), stepper modules (chips mobile / rail desktop, **statut par module** +
+chevron actif), drawer de validation (blocages cliquables). Éditeurs `ServiceEditor`, `TrainingEditor`
+(type-aware présentiel/distanciel), `GiftCardCatalogueEditor`, `TrainingSessionEditor` (réutilise le
+calendrier M10 + QR présence). Hooks `useCatalogue.ts` (TanStack). Logique de blocage pure `validation.ts`.
+api-client `manager/catalogue.ts`. CSS `cat-` (tokens `--bs-*`, 44px, 768px, zéro table/hex). Produits non
+développés. Détail : rapport 210.

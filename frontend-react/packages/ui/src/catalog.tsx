@@ -101,3 +101,43 @@ export function CatalogueCard({ title, media, badge, meta, price, description, a
     </article>
   );
 }
+
+// C1 — Notation « patte de chien » (identité Beauty Savage). Icône premium retravaillée, rendue
+// via currentColor + token --bs-color-secondary pour les pattes actives. Accessible (aria-label).
+function Paw({ filled }: { filled: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`bs-paw${filled ? ' bs-paw--on' : ''}`} aria-hidden="true" focusable="false">
+      <circle cx="5" cy="6" r="2.6" />
+      <circle cx="9.2" cy="4.4" r="2.4" />
+      <circle cx="14.8" cy="4.4" r="2.4" />
+      <circle cx="19" cy="6" r="2.6" />
+      <path d="M12 14c-2.6 0-4.7 1.8-4.7 4.4 0 1.2 1 2 2.4 2h4.6c1.4 0 2.4-.8 2.4-2C16.7 15.8 14.6 14 12 14z" />
+    </svg>
+  );
+}
+
+export interface PawRatingProps {
+  /** Note moyenne 0–5. */
+  value: number;
+  /** Nombre d'avis (affiché à côté si fourni). */
+  count?: number;
+  /** Compact = pas de texte, juste les pattes (pour les cartes). */
+  compact?: boolean;
+}
+
+export function PawRating({ value, count, compact = false }: PawRatingProps) {
+  const rounded = Math.round(value);
+  const label = `${value.toFixed(1)} sur 5${count !== undefined ? `, ${count} avis` : ''}`;
+  return (
+    <span className={`bs-paws${compact ? ' bs-paws--compact' : ''}`} role="img" aria-label={label}>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Paw key={i} filled={i < rounded} />
+      ))}
+      {!compact ? (
+        <span className="bs-paws__text" aria-hidden="true">
+          {value.toFixed(1)}{count !== undefined ? ` · ${count} avis` : ''}
+        </span>
+      ) : null}
+    </span>
+  );
+}

@@ -9,6 +9,7 @@ import {
   createSession,
   updateSession,
   deleteSession,
+  generateSessionQr,
   getSessionConflicts,
   getConflictsReport
 } from '../controllers/formationSessionController.js';
@@ -24,6 +25,7 @@ router.get('/formations/:id/sessions', listSessions);
 router.get('/formations/:id/canceled-sessions', listCanceledSessions);
 router.post('/formations/:id/sessions', createSession);
 router.put('/formations/:id/sessions/:sessionId', updateSession);
+router.post('/formations/:id/sessions/:sessionId/qr', generateSessionQr);
 router.delete('/formations/:id/sessions/:sessionId', deleteSession);
 
 export default router;

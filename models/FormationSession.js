@@ -103,6 +103,16 @@ const formationSessionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null
+    },
+    // C1 — QR de présence (MVP). Token opaque propre à la session, encodé dans le QR affiché le
+    // jour de la formation. Pas de caméra ni de certificat en C1 (préparé pour C2).
+    qrToken: {
+      type: String,
+      default: ''
+    },
+    qrGeneratedAt: {
+      type: Date,
+      default: null
     }
   },
   {

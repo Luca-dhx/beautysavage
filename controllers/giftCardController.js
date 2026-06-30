@@ -527,6 +527,26 @@ export async function updateGiftCardConfig(req, res) {
       }
       candidate.minAmount = minAmount;
     }
+    if (req.body?.maxAmount !== undefined) {
+      const maxAmount = sanitizeNumber(req.body.maxAmount);
+      if (maxAmount < 0) {
+        return res.status(400).json({ ok: false, error: 'Montant maximal invalide.' });
+      }
+      candidate.maxAmount = maxAmount;
+    }
+    if (req.body?.presetAmounts !== undefined) {
+      const raw = Array.isArray(req.body.presetAmounts) ? req.body.presetAmounts : [];
+      const presets = [...new Set(
+        raw.map(v => sanitizeNumber(v)).filter(n => Number.isFinite(n) && n > 0)
+      )].sort((a, b) => a - b);
+      candidate.presetAmounts = presets;
+    }
+    // Cohérence min ≤ max (si max défini > 0).
+    const effectiveMin = candidate.minAmount;
+    const effectiveMax = candidate.maxAmount;
+    if (effectiveMin !== undefined && effectiveMax !== undefined && effectiveMax > 0 && effectiveMin > effectiveMax) {
+      return res.status(400).json({ ok: false, error: 'Le montant minimal dépasse le montant maximal.' });
+    }
     if (req.body?.description !== undefined) {
       candidate.description = String(req.body.description || '').trim();
     }

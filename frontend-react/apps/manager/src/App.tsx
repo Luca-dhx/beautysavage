@@ -42,6 +42,16 @@ import {
   GiftCardTemplateVersionsPage,
 } from './features/giftCardTemplates';
 import { GiftCardLibraryPage } from './features/giftCardLibrary';
+import {
+  CatalogueLayout,
+  CatalogueDashboard,
+  ServicesListPage,
+  ServiceEditorPage,
+  TrainingsListPage,
+  TrainingEditorPage,
+  GiftCardCataloguePage,
+  ProductsUnavailablePage,
+} from './features/catalogue';
 
 // Routing manager R0 — placeholders + guards rôle (cf. rapport 147).
 // Manager = admin ou dev. /dev/* = dev uniquement. /login public.
@@ -61,10 +71,18 @@ export function App() {
           <Route path="clients" element={<ClientsListPage />} />
           <Route path="clients/:id" element={<Customer360Page />} />
           <Route path="reservations" element={<Placeholder title="Réservations" description="Réservations de prestations." />} />
-          <Route path="prestations" element={<Placeholder title="Prestations" description="Gestion des prestations." />} />
-          <Route path="formations" element={<Placeholder title="Formations" description="Gestion des formations." />} />
-          <Route path="produits" element={<Placeholder title="Produits" description="Gestion des produits." />} />
-          <Route path="cartes-cadeaux" element={<Placeholder title="Cartes cadeaux" description="Gestion des cartes cadeaux." />} />
+          {/* C1 — Catalogue Studio (prestations, formations, cartes cadeaux ; produits désactivés) */}
+          <Route path="catalogue" element={<CatalogueLayout />}>
+            <Route index element={<CatalogueDashboard />} />
+            <Route path="prestations" element={<ServicesListPage />} />
+            <Route path="prestations/new" element={<ServiceEditorPage />} />
+            <Route path="prestations/:id" element={<ServiceEditorPage />} />
+            <Route path="formations" element={<TrainingsListPage />} />
+            <Route path="formations/new" element={<TrainingEditorPage />} />
+            <Route path="formations/:id" element={<TrainingEditorPage />} />
+            <Route path="cartes-cadeaux" element={<GiftCardCataloguePage />} />
+            <Route path="produits" element={<ProductsUnavailablePage />} />
+          </Route>
           {/* M13 — Librairie de templates carte cadeau (admin/dev : sélection de l'actif, sans édition HTML) */}
           <Route path="cartes-cadeaux/templates" element={<GiftCardLibraryPage />} />
           <Route path="ventes" element={<Placeholder title="Ventes" description="Historique des ventes." />} />

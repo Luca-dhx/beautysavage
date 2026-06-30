@@ -454,6 +454,11 @@ app.use('/api/gestion/admins', adminsRouter);
 app.use('/api/gestion/themes', themeRouter);
 app.use('/api/gestion/ui-config', uiConfigRouter);
 app.use('/api/gestion/formations', formationRouter);
+// C1 — Catalogue : prestations + disponibilités + réglages montés AVANT les broad-mounts dev-only
+// ('/api/gestion' commissionRouter = requireStrictDev) pour rester accessibles aux admins.
+app.use('/api/gestion/services', serviceRouter);
+app.use('/api/gestion/availability', availabilityRouter);
+app.use('/api/gestion/service-settings', serviceSettingsRouter);
 app.use('/api/gestion', formationModuleRouter);
 app.use('/api/gestion', formationSessionRouter);
 app.use('/api/gestion', planningRouter);
@@ -476,11 +481,11 @@ app.use('/api/theme', themePublicRouter);
 app.use('/api/gestion/site-status', siteStatusGestionRouter);
 app.use('/api/gestion/editable-content', editableContentGestionRouter);
 app.use('/api/vitrine/editable-content', editableContentVitrineRouter);
-app.use('/api/gestion/services', serviceRouter);
 app.use('/api/gestion/practitioners', practitionerRouter);
-app.use('/api/gestion/availability', availabilityRouter);
+// (serviceRouter / availabilityRouter / serviceSettingsRouter montés plus haut, AVANT les
+//  broad-mounts dev-only — voir C1/M3A : commissionRouter (requireStrictDev) sur '/api/gestion'
+//  shadowait ces routeurs spécifiques pour les admins.)
 // (gestionBookingRouter monté plus haut, AVANT les broad-mounts dev-only — voir M11B/M3A.)
-app.use('/api/gestion/service-settings', serviceSettingsRouter);
 // (notificationRouter monté plus haut, AVANT les routeurs dev-only broad-mount — voir M3A.)
 app.use('/api/vitrine/availability', vitrineAvailabilityRouter);
 app.use('/api/vitrine/services', vitrineServiceRouter);

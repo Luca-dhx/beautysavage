@@ -5,9 +5,11 @@
 // encryption (GCM) so any tampering of the ciphertext is detected at decrypt.
 //
 // Key: env CREDENTIAL_VAULT_KEY = 64 hex chars (32 bytes / 256 bits).
-//   - production  : missing/invalid key => HARD boot failure (validateCredentialVaultKey throws)
-//   - non-prod    : missing/invalid key => warning (vault disabled, callers fall back per policy)
-//   - test        : a fake 64-hex key is injected by tests/setup/testEnv.js
+//   POLITIQUE UNIFORME (S1C) — IDENTIQUE dans TOUS les environnements (aucun if NODE_ENV) :
+//   le backend REFUSE de démarrer si la clé est absente/invalide (validateCredentialVaultKey throws).
+//   - tests  : injectent leur propre clé (tests/setup/testEnv.js).
+//   - dev    : le développeur fournit sa clé locale.
+//   - prod   : la production fournit sa clé de production.
 //
 // Storage format: "ivB64.authTagB64.ciphertextB64" (separator '.' is outside base64).
 //
@@ -32,9 +34,9 @@ export function isValidKeyHex(hex) {
 }
 
 /**
- * Validate the vault key at boot.
- * @returns {boolean} true if a valid key is present.
- * @throws {Error} in production when the key is absent/invalid (blocking boot).
+ * Validate the vault key at boot. Politique UNIFORME : aucune logique d'environnement.
+ * @returns {boolean} true if a valid key is present (sinon throw — jamais de retour false).
+ * @throws {Error} when the key is absent/invalid (blocks boot, in EVERY environment).
  */
 export function validateCredentialVaultKey() {
   const hex = readKeyHex();
@@ -42,12 +44,9 @@ export function validateCredentialVaultKey() {
     console.log('[credentialVault] CREDENTIAL_VAULT_KEY present and valid.');
     return true;
   }
-  const msg = `${KEY_ENV} is missing or not a 64-char hex string (32 bytes).`;
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error(`[credentialVault] ${msg} Refusing to boot in production.`);
-  }
-  console.warn(`[credentialVault] ${msg} Vault disabled until configured (non-production).`);
-  return false;
+  throw new Error(
+    `[credentialVault] ${KEY_ENV} is missing or not a 64-char hex string (32 bytes). Refusing to boot.`
+  );
 }
 
 function keyBufferFromHex(hex, label = KEY_ENV) {

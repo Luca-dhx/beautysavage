@@ -56,11 +56,11 @@ describe('SystemConfiguration & DomainResolver', () => {
     expect(res.error).toMatch(/HTTPS/);
   });
 
-  it('DomainResolver retombe sur l’environnement quand non configuré', () => {
-    const envBase = (process.env.APP_BASE_URL || '').replace(/\/+$/, '');
-    expect(resolveVitrineBaseUrl()).toBe(envBase);
-    expect(resolvePublicBaseUrl()).toBe(envBase);
-    expect(getAppBaseUrl()).toBe(envBase);
+  it('DomainResolver retombe sur localhost (premier boot) quand non configuré', () => {
+    const DEFAULT = 'http://localhost:3000';
+    expect(resolveVitrineBaseUrl()).toBe(DEFAULT);
+    expect(resolvePublicBaseUrl()).toBe(DEFAULT);
+    expect(getAppBaseUrl()).toBe(DEFAULT);
   });
 
   it('DomainResolver utilise la configuration quand présente', async () => {
@@ -80,15 +80,15 @@ describe('SystemConfiguration & DomainResolver', () => {
     expect(resolvePanelBaseUrl()).toBe('https://beautysavage.fr');
   });
 
-  it('seedSystemConfigurationFromEnv migre APP_BASE_URL et reste idempotent', async () => {
+  it('seedSystemConfigurationFromEnv ne seede AUCUN domaine et reste idempotent', async () => {
     const prevName = process.env.INSTITUTE_NAME;
     process.env.INSTITUTE_NAME = 'Seed Institut';
     try {
       const first = await seedSystemConfigurationFromEnv();
       expect(first.institute.name).toBe('Seed Institut');
-      // APP_BASE_URL (test env) migré vers domains.vitrineUrl (normalisé).
-      const expected = (process.env.APP_BASE_URL || '').replace(/\/+$/, '');
-      expect(first.domains.vitrineUrl).toBe(expected);
+      // S1C — les domaines ne sont JAMAIS seedés depuis l'env (administrés au panel Dev).
+      expect(first.domains.vitrineUrl).toBe('');
+      expect(first.domains.panelUrl).toBe('');
 
       // Idempotent : un 2e seed ne modifie pas une valeur déjà posée.
       process.env.INSTITUTE_NAME = 'Autre Nom';

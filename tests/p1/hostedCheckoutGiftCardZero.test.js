@@ -2,6 +2,7 @@
 // Sprint U2 — Carte cadeau (flag hosted) : 100 % → mode "free" (aucune Session Stripe) ;
 // partielle → Session Stripe pour le RESTE à payer (carte cadeau jamais un discount Stripe).
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { updateSystemConfiguration, invalidateSystemConfigurationCache } from '../../services/system/systemConfigurationService.js';
 
 const h = vi.hoisted(() => ({ stripe: null, sessionArgs: null, sessionCreateCalls: 0 }));
 vi.mock('../../services/stripe/stripeConfigService.js', async orig => {
@@ -23,10 +24,10 @@ async function login(agent) {
 
 describe('U2 — carte cadeau hosted (0 € vs partiel)', () => {
   let agent, fx, prevFlag, prevNgrok;
-  beforeAll(async () => { agent = await getAgent(); prevNgrok = process.env.NGROK_DOMAIN; process.env.NGROK_DOMAIN = 'test.ngrok.app'; });
-  afterAll(async () => { await stopMemoryDb(); process.env.NGROK_DOMAIN = prevNgrok; });
+  beforeAll(async () => { agent = await getAgent(); });
+  afterAll(async () => { await stopMemoryDb(); invalidateSystemConfigurationCache(); });
   beforeEach(async () => {
-    await clearDatabase(); fx = await seedTestData();
+    await clearDatabase(); await updateSystemConfiguration({ domains: { vitrineUrl: 'https://test.ngrok.app' } }); fx = await seedTestData();
     prevFlag = process.env.CHECKOUT_HOSTED; process.env.CHECKOUT_HOSTED = 'true';
     h.sessionArgs = null; h.sessionCreateCalls = 0;
     h.stripe = {

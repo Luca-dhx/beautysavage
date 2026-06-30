@@ -37,10 +37,10 @@ const ENV_FALLBACK = {
 };
 
 function fallbackEnabled() {
-  // S1B — Le fallback .env est INTERDIT en production, quel que soit le flag :
-  // la prod doit lire le coffre (sinon fail-loud). En dev/test, il reste optionnel
-  // et n'est actif que si ALLOW_ENV_CREDENTIAL_FALLBACK==='true'.
-  if (String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production') return false;
+  // S1C — politique UNIFORME (aucune logique d'environnement). Le fallback .env des
+  // credentials est un opt-in EXPLICITE : actif si et seulement si
+  // ALLOW_ENV_CREDENTIAL_FALLBACK==='true'. La sécurité vient de la clé de coffre,
+  // désormais OBLIGATOIRE au boot (le coffre est toujours la source officielle).
   return String(process.env.ALLOW_ENV_CREDENTIAL_FALLBACK || '').trim() === 'true';
 }
 

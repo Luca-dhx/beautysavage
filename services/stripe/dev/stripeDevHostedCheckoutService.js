@@ -4,10 +4,13 @@
 // client Dev provient du shim (mockable). Aucune logique métier : pures créations de session.
 
 import { getStripeDevClient } from '../../../utils/stripeDevClient.js';
+import { resolvePublicUrl } from '../../system/domainResolver.js';
 
+// S1C — les retours du Checkout plateforme (pages /gestion.html servies à la racine du
+// domaine public) viennent de SystemConfiguration via le DomainResolver (localhost au
+// premier boot). Plus aucune dépendance au tunnel de dev.
 function devUrl(pathAndQuery) {
-  const base = process.env.NGROK_DOMAIN ? `https://${process.env.NGROK_DOMAIN}` : '';
-  return `${base}${pathAndQuery}`;
+  return resolvePublicUrl(pathAndQuery);
 }
 
 async function devClientOrThrow() {

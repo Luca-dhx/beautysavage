@@ -2,6 +2,7 @@
 // Sprint U3 — Feature flag PLATFORM_CHECKOUT_HOSTED : false ⇒ ancien flow Dev (clientSecret) ;
 // true ⇒ Stripe Checkout hébergé (url). Cas commission.
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { updateSystemConfiguration, invalidateSystemConfigurationCache } from '../../services/system/systemConfigurationService.js';
 import mongoose from 'mongoose';
 
 const h = vi.hoisted(() => ({ client: null }));
@@ -30,9 +31,9 @@ async function pendingPayment() {
 
 describe('U3 — flag PLATFORM_CHECKOUT_HOSTED (commission)', () => {
   let prev, prevNgrok;
-  beforeAll(async () => { const uri = await startMemoryDb(); await mongoose.connect(uri, { dbName: 'beautysavage-database' }); prevNgrok = process.env.NGROK_DOMAIN; process.env.NGROK_DOMAIN = 'test.ngrok.app'; });
-  afterAll(async () => { await stopMemoryDb(); process.env.NGROK_DOMAIN = prevNgrok; });
-  beforeEach(async () => { await clearDatabase(); await UnifiedCheckout.syncIndexes(); h.client = fakeClient(); prev = process.env.PLATFORM_CHECKOUT_HOSTED; });
+  beforeAll(async () => { const uri = await startMemoryDb(); await mongoose.connect(uri, { dbName: 'beautysavage-database' }); });
+  afterAll(async () => { await stopMemoryDb(); invalidateSystemConfigurationCache(); });
+  beforeEach(async () => { await clearDatabase(); await updateSystemConfiguration({ domains: { vitrineUrl: 'https://test.ngrok.app' } }); await UnifiedCheckout.syncIndexes(); h.client = fakeClient(); prev = process.env.PLATFORM_CHECKOUT_HOSTED; });
   afterEach(() => { process.env.PLATFORM_CHECKOUT_HOSTED = prev; });
 
   it('flag false → clientSecret (ancien flow Dev inchangé)', async () => {

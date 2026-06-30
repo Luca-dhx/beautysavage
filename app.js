@@ -52,6 +52,7 @@ import { runServicePagesMigration } from './automatisme/servicePagesMigration.js
 import { migrateRefundRequestedTemplate } from './automatisme/refundRequestedTemplateMigration.js';
 import { runNotificationConfigMigration } from './automatisme/notificationConfigMigration.js';
 import { seedSystemConfigurationFromEnv } from './services/system/systemConfigurationService.js';
+import { resolvePublicBaseUrl } from './services/system/domainResolver.js';
 import { validateCredentialVaultKey } from './utils/credentialVault.js';
 import { seedIntegratedApisFromEnv } from './seeders/seedIntegratedApisFromEnv.js';
 import { seedGiftCardTemplates } from './seeders/seedGiftCardTemplates.js';
@@ -620,25 +621,14 @@ startGiftCardRecreditRecoveryScheduler();
 const PORT = Number(process.env.PORT || 3000);
 app.listen(PORT, () => {
   console.log(`Serveur demarre http://localhost:${PORT}`);
-  const ngrokDomain = process.env.NGROK_DOMAIN;
-  if (ngrokDomain) {
-    console.log(`\u{1F517} Stripe Institut webhook : https://${ngrokDomain}/api/stripe/webhook`);
-    console.log('\u{1F449} Colle cette URL dans ton dashboard Stripe Institut');
-    console.log('');
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('  STRIPE DEV WEBHOOK — Evenements a configurer');
-    console.log(`  URL : https://${ngrokDomain}/api/stripe/dev-webhook`);
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('  payment_intent.succeeded       -> Frais lancement payes');
-    console.log('  setup_intent.succeeded         -> Souscription mensualite');
-    console.log('  invoice.payment_succeeded      -> Mensualite payee -> contrat actif');
-    console.log('  invoice.payment_failed         -> Echec paiement mensuel');
-    console.log('  customer.subscription.updated  -> Mise a jour periode');
-    console.log('  customer.subscription.deleted  -> Resiliation -> contrat annule');
-    console.log('═══════════════════════════════════════════════════════');
-  } else {
-      console.warn('[Stripe] NGROK_DOMAIN non defini dans .env — webhooks Stripe non configures');
-    }
+  // S1C — base publique = SystemConfiguration (Paramètres Système) via le DomainResolver
+  // (localhost au premier boot). Plus aucune dépendance au tunnel de dev.
+  const publicBase = resolvePublicBaseUrl();
+  console.log(`\u{1F517} Stripe Institut webhook : ${publicBase}/api/stripe/webhook`);
+  console.log(`\u{1F517} Stripe Dev webhook     : ${publicBase}/api/stripe/dev-webhook`);
+  console.log('\u{1F449} Configure ces URLs dans tes dashboards Stripe (Institut + Developer).');
+  console.log('   Dev webhook events : payment_intent.succeeded, setup_intent.succeeded,');
+  console.log('   invoice.payment_succeeded/failed, customer.subscription.updated/deleted.');
   });
 }
 

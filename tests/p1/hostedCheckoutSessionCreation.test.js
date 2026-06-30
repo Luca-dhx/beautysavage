@@ -3,6 +3,7 @@
 // serveur (carte cadeau JAMAIS un discount), metadata unifiedCheckoutId/checkoutId/kind,
 // success/cancel url, et persistance d'un UnifiedCheckout payment_pending.
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { updateSystemConfiguration, invalidateSystemConfigurationCache } from '../../services/system/systemConfigurationService.js';
 
 const h = vi.hoisted(() => ({ stripe: null, sessionArgs: null }));
 vi.mock('../../services/stripe/stripeConfigService.js', async orig => {
@@ -25,10 +26,10 @@ async function login(agent) {
 
 describe('U2 — création Stripe Checkout Session hébergée', () => {
   let agent, fx, prevFlag, prevNgrok;
-  beforeAll(async () => { agent = await getAgent(); prevNgrok = process.env.NGROK_DOMAIN; process.env.NGROK_DOMAIN = 'test.ngrok.app'; });
-  afterAll(async () => { await stopMemoryDb(); process.env.NGROK_DOMAIN = prevNgrok; });
+  beforeAll(async () => { agent = await getAgent(); });
+  afterAll(async () => { await stopMemoryDb(); invalidateSystemConfigurationCache(); });
   beforeEach(async () => {
-    await clearDatabase(); await UnifiedCheckout.syncIndexes(); fx = await seedTestData();
+    await clearDatabase(); await updateSystemConfiguration({ domains: { vitrineUrl: 'https://test.ngrok.app' } }); await UnifiedCheckout.syncIndexes(); fx = await seedTestData();
     prevFlag = process.env.CHECKOUT_HOSTED; process.env.CHECKOUT_HOSTED = 'true';
     h.sessionArgs = null;
     h.stripe = {

@@ -2,6 +2,7 @@
 // Sprint U3 — Frais de lancement hébergés : UnifiedCheckout kind=launch_fee + Session Dev +
 // ContractCheckoutIntent(type:launch) avec le PaymentIntent → webhook Dev existant finalise.
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { updateSystemConfiguration, invalidateSystemConfigurationCache } from '../../services/system/systemConfigurationService.js';
 import mongoose from 'mongoose';
 
 const h = vi.hoisted(() => ({ client: null, sessionArgs: null }));
@@ -18,10 +19,10 @@ const ADMIN = new mongoose.Types.ObjectId();
 
 describe('U3 — launch fee hosted checkout', () => {
   let prevFlag, prevNgrok;
-  beforeAll(async () => { const uri = await startMemoryDb(); await mongoose.connect(uri, { dbName: 'beautysavage-database' }); prevNgrok = process.env.NGROK_DOMAIN; process.env.NGROK_DOMAIN = 'test.ngrok.app'; });
-  afterAll(async () => { await stopMemoryDb(); process.env.NGROK_DOMAIN = prevNgrok; });
+  beforeAll(async () => { const uri = await startMemoryDb(); await mongoose.connect(uri, { dbName: 'beautysavage-database' }); });
+  afterAll(async () => { await stopMemoryDb(); invalidateSystemConfigurationCache(); });
   beforeEach(async () => {
-    await clearDatabase(); await UnifiedCheckout.syncIndexes();
+    await clearDatabase(); await updateSystemConfiguration({ domains: { vitrineUrl: 'https://test.ngrok.app' } }); await UnifiedCheckout.syncIndexes();
     h.sessionArgs = null;
     h.client = {
       paymentIntents: { create: async () => ({ id: 'pi_elem', client_secret: 'cs' }), retrieve: async id => ({ id, status: 'requires_payment_method' }) },

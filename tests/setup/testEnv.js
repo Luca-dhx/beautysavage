@@ -35,11 +35,9 @@ process.env.CREDENTIAL_VAULT_KEY =
   process.env.CREDENTIAL_VAULT_KEY || '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff';
 process.env.ALLOW_ENV_CREDENTIAL_FALLBACK = 'true';
 
-// Misc
-process.env.APP_BASE_URL = 'http://localhost:3000';
-
-// Ensure no NGROK domain so we never build prod return_urls
-delete process.env.NGROK_DOMAIN;
+// S1C — Plus aucune variable de domaine en env (ni APP_BASE_URL ni NGROK_DOMAIN). Le
+// DomainResolver retombe sur http://localhost:3000 tant qu'aucune SystemConfiguration n'existe ;
+// les tests qui veulent une base publique précise seedent SystemConfiguration.domains.
 
 // MONGODB_URI is injected per-file by tests/setup/testDb.js (in-memory server).
 // Remove any value here so app.js cannot connect to a real database if testDb

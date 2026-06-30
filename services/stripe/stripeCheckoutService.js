@@ -28,6 +28,7 @@ import {
   releaseGiftCardReservationsForPaymentIntent
 } from '../giftCardReservationService.js';
 import { getStripeClient } from './stripeConfigService.js';
+import { resolveVitrineBaseUrl } from '../system/domainResolver.js';
 import { buildPaymentIntentCheckoutMetadata, roundToCents } from './stripeMetadataService.js';
 // Sprint U2 — checkout Stripe HÉBERGÉ (feature flag) + moteur UnifiedCheckout.
 import { isCheckoutHostedEnabled } from '../checkout/unified/unifiedCheckoutConfig.js';
@@ -37,7 +38,7 @@ import { updateCheckout } from '../checkout/unified/unifiedCheckoutRepository.js
 // R2C — URLs de retour du Checkout hébergé. Si `CHECKOUT_RETURN_BASE_URL` (env, http(s) absolue) est
 // défini → retour vers les pages React /paiement/succes|annule ; sinon → URLs Vanilla (inchangées).
 // La base vient UNIQUEMENT de l'env (jamais du client) → pas de risque d'open redirect.
-function buildHostedReturnUrls(ngrokDomain, checkoutId) {
+function buildHostedReturnUrls(publicBase, checkoutId) {
   const base = String(process.env.CHECKOUT_RETURN_BASE_URL || '').trim().replace(/\/+$/, '');
   if (base && /^https?:\/\//i.test(base)) {
     const cid = checkoutId ? `&checkoutId=${encodeURIComponent(String(checkoutId))}` : '';
@@ -47,8 +48,8 @@ function buildHostedReturnUrls(ngrokDomain, checkoutId) {
     };
   }
   return {
-    success_url: `https://${ngrokDomain}/vitrine.html?slug=payment&checkout_session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `https://${ngrokDomain}/vitrine.html?slug=checkout`
+    success_url: `${publicBase}/vitrine.html?slug=payment&checkout_session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${publicBase}/vitrine.html?slug=checkout`
   };
 }
 
@@ -530,10 +531,9 @@ export async function createCheckoutSessionFromRequest(req) {
     }
   }
 
-  const ngrokDomain = process.env.NGROK_DOMAIN;
-  if (!ngrokDomain) {
-    return { status: 500, json: { ok: false, error: 'NGROK_DOMAIN manquant dans .env' } };
-  }
+  // S1C — la base publique vient de SystemConfiguration (vitrineUrl) via le DomainResolver
+  // (localhost au premier boot). Plus aucune dépendance au tunnel de dev.
+  const publicBase = resolveVitrineBaseUrl();
 
   const clientIp = extractClientIp(req);
   const stripe = await getStripeClient();
@@ -569,7 +569,7 @@ export async function createCheckoutSessionFromRequest(req) {
   // discount Stripe : Stripe n'encaisse que `amountToPay` (catalogue − promo − carte cadeau).
   if (isCheckoutHostedEnabled()) {
     return createHostedCheckoutResult({
-      checkoutState, userId, clientIp, serverPricing, amountToPay, amountCents, ngrokDomain, stripe
+      checkoutState, userId, clientIp, serverPricing, amountToPay, amountCents, publicBase, stripe
     });
   }
 
@@ -637,7 +637,7 @@ export async function createCheckoutSessionFromRequest(req) {
       checkoutState: persistedCheckoutState
     });
 
-    const returnUrl = `https://${ngrokDomain}/vitrine.html?slug=payment`;
+    const returnUrl = `${publicBase}/vitrine.html?slug=payment`;
 
     return {
       status: 200,
@@ -704,7 +704,7 @@ export async function createCheckoutSessionFromRequest(req) {
  * La carte cadeau n'est JAMAIS un discount Stripe : Stripe n'encaisse que `amountToPay`.
  */
 async function createHostedCheckoutResult({
-  checkoutState, userId, clientIp, serverPricing, amountToPay, amountCents, ngrokDomain, stripe
+  checkoutState, userId, clientIp, serverPricing, amountToPay, amountCents, publicBase, stripe
 }) {
   // 0 € → aucune Stripe Session ; finalisation via finalize-free (inchangé).
   if (amountToPay <= 0) {
@@ -775,7 +775,7 @@ async function createHostedCheckoutResult({
         kind: checkout.kind,
         idempotencyKey: intent._id?.toString() || ''
       },
-      ...buildHostedReturnUrls(ngrokDomain, checkout.checkoutId)
+      ...buildHostedReturnUrls(publicBase, checkout.checkoutId)
     });
     sessionId = String(session?.id || '').trim();
     createdPaymentIntentId = String(session?.payment_intent || '').trim();

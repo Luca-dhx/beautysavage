@@ -51,18 +51,24 @@ describe('credentialVault', () => {
     expect(validateCredentialVaultKey()).toBe(true);
   });
 
-  it('blocks (throws) in production when the key is missing/invalid', () => {
+  it('S1C — refuse de démarrer (throw) si clé absente/invalide, dans TOUT environnement', () => {
     const prevEnv = process.env.NODE_ENV;
     const prevKey = process.env.CREDENTIAL_VAULT_KEY;
     try {
-      process.env.NODE_ENV = 'production';
-      delete process.env.CREDENTIAL_VAULT_KEY;
-      expect(() => validateCredentialVaultKey()).toThrow(/Refusing to boot/i);
+      // Politique uniforme : aucune logique d'environnement. On teste dev/test ET production.
+      for (const env of ['test', 'development', 'production', undefined]) {
+        if (env === undefined) delete process.env.NODE_ENV;
+        else process.env.NODE_ENV = env;
 
-      process.env.CREDENTIAL_VAULT_KEY = 'too-short';
-      expect(() => validateCredentialVaultKey()).toThrow(/Refusing to boot/i);
+        delete process.env.CREDENTIAL_VAULT_KEY;
+        expect(() => validateCredentialVaultKey()).toThrow(/Refusing to boot/i);
+
+        process.env.CREDENTIAL_VAULT_KEY = 'too-short';
+        expect(() => validateCredentialVaultKey()).toThrow(/Refusing to boot/i);
+      }
     } finally {
-      process.env.NODE_ENV = prevEnv;
+      if (prevEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = prevEnv;
       if (prevKey === undefined) delete process.env.CREDENTIAL_VAULT_KEY;
       else process.env.CREDENTIAL_VAULT_KEY = prevKey;
     }

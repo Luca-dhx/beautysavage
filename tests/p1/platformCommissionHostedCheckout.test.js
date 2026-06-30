@@ -2,6 +2,7 @@
 // Sprint U3 — Commission hébergée : UnifiedCheckout kind=commission + Session Dev avec metadata
 // (unifiedCheckoutId, commissionPaymentId) ; cas netAmountDue=0 → settled_zero (aucune Session).
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { updateSystemConfiguration, invalidateSystemConfigurationCache } from '../../services/system/systemConfigurationService.js';
 import mongoose from 'mongoose';
 
 const h = vi.hoisted(() => ({ client: null, sessionArgs: null, sessionCalls: 0 }));
@@ -20,10 +21,10 @@ function mockRes() { return { statusCode: 200, body: null, status(c) { this.stat
 
 describe('U3 — commission hosted checkout', () => {
   let prevNgrok;
-  beforeAll(async () => { const uri = await startMemoryDb(); await mongoose.connect(uri, { dbName: 'beautysavage-database' }); prevNgrok = process.env.NGROK_DOMAIN; process.env.NGROK_DOMAIN = 'test.ngrok.app'; });
-  afterAll(async () => { await stopMemoryDb(); process.env.NGROK_DOMAIN = prevNgrok; });
+  beforeAll(async () => { const uri = await startMemoryDb(); await mongoose.connect(uri, { dbName: 'beautysavage-database' }); });
+  afterAll(async () => { await stopMemoryDb(); invalidateSystemConfigurationCache(); });
   beforeEach(async () => {
-    await clearDatabase(); await UnifiedCheckout.syncIndexes();
+    await clearDatabase(); await updateSystemConfiguration({ domains: { vitrineUrl: 'https://test.ngrok.app' } }); await UnifiedCheckout.syncIndexes();
     h.sessionArgs = null; h.sessionCalls = 0;
     h.client = {
       paymentIntents: { create: async () => ({ id: 'pi', client_secret: 'cs', amount: 2000 }), retrieve: async id => ({ id, status: 'requires_payment_method', amount: 2000 }), cancel: async () => ({}) },

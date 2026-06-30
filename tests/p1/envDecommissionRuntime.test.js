@@ -19,10 +19,11 @@ describe('S1B — décommission runtime des variables .env métier', () => {
     expect(code).toContain('export function getInstituteInfo(');
   });
 
-  it('le fallback credential est gardé par NODE_ENV=production', () => {
+  it('S1C — le fallback credential est UNIFORME (flag-only, aucune logique NODE_ENV)', () => {
     const code = src('../../services/integratedApiCredentialService.js');
-    const fn = code.slice(code.indexOf('function fallbackEnabled()'));
-    expect(fn).toMatch(/NODE_ENV[\s\S]*production/);
+    const fn = code.slice(code.indexOf('function fallbackEnabled()'), code.indexOf('const _warnedFallback'));
+    expect(fn).toMatch(/ALLOW_ENV_CREDENTIAL_FALLBACK/);
+    expect(fn).not.toMatch(/NODE_ENV/);
   });
 
   it('buildSender (mailSenderResolver) est migré vers CommunicationIdentity + fallback MAIL_FROM gaté non-prod', () => {

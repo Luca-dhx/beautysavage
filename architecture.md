@@ -152,8 +152,9 @@
 - Statut autorisant un nouvel achat: `Purchase.participationStatus = 'canceled'`.
 - Le modele `Sale` ne porte pas le statut actif/inactif source de verite pour ce controle; la decision se base sur `Purchase`.
 ### Procedure tests locaux
-1. Lancer ngrok : `ngrok http --domain=<NGROK_DOMAIN> 3000`
-2. Demarrer le serveur : l'URL webhook est affichee dans la console au demarrage.
+1. Lancer ngrok (`ngrok http 3000`) puis renseigner l'URL dans **Dev Panel → Paramètres Système**
+   (URL vitrine = `https://xxxx.ngrok-free.app`, URL panel = `…/manager`). S1C : plus de `NGROK_DOMAIN` en `.env`.
+2. Demarrer le serveur : l'URL webhook (depuis SystemConfiguration) est affichee dans la console au demarrage.
 3. Coller l'URL dans le dashboard Stripe > Webhooks > Endpoint, selectionner les events `payment_intent.succeeded` et `payment_intent.payment_failed`.
 4. Utiliser la carte test `4242 4242 4242 4242` (succes) ou `4000 0000 0000 9995` (refus).
 
@@ -1294,6 +1295,23 @@ Variables connexes observees (contexte execution):
 - Les 14 variables metier (`STRIPE_*`, `BREVO_API_KEY`, `MAIL_FROM*`, `INSTITUTE_*`) sont
   retirees du `.env` (sauvegarde `.env.backup` gitignore) — config via panels Dev / migration.
   Garde : `tests/p1/envMinimalBootstrap.test.js`.
+
+### S1C — NGROK_DOMAIN supprimé + politique Vault uniforme (2026-06-30, rapport 224)
+
+> **RÈGLE OFFICIELLE** : le `.env` ne sert qu'au **bootstrap technique**. Toute configuration
+> métier (domaines, identités, institut, credentials) vit **en base** et s'administre depuis
+> le **panel Dev**.
+
+- **DomainResolver** (`services/system/domainResolver.js`, 49 lignes) : résolution minimale —
+  `SystemConfiguration.domains` (vitrineUrl/panelUrl) → `http://localhost:3000` (premier boot
+  uniquement). **Plus aucun** `NGROK_DOMAIN` / `APP_BASE_URL` / variable d'environnement de domaine.
+  Les retours/​webhooks Stripe (`stripeCheckoutService`, `stripeDevHostedCheckoutService`, log `app.js`)
+  passent par le resolver. Pour ngrok : URL vitrine + URL panel dans Paramètres Système.
+- **Vault — politique UNIFORME** (aucune logique `NODE_ENV`) : `validateCredentialVaultKey()` **throw**
+  si `CREDENTIAL_VAULT_KEY` absente/invalide → le backend **refuse de démarrer**, identique partout.
+  `fallbackEnabled()` = `ALLOW_ENV_CREDENTIAL_FALLBACK==='true'` (opt-in explicite, sans `NODE_ENV`).
+- **`.env` minimal final** : `MONGODB_URI`, `SESSION_SECRET`, `PWD_PEPPER`, `CREDENTIAL_VAULT_KEY`
+  (4 obligatoires) + `PORT`/`NODE_ENV`/`TZ` (optionnels). Tests : `tests/p1/s1cDomainResolverVaultPolicy.test.js`.
 
 ## Migration Stripe Invoicing (2026-03-12)
 
@@ -3091,8 +3109,8 @@ Stripe Dev, Brevo) chiffrés au repos, lus via un contrat unique fail-loud.
   (role, runtime).
 - `utils/credentialVault.js` — AES-256-GCM. `encryptCredential` /
   `decryptCredential` (format `iv.authTag.ciphertext`, IV aléatoire),
-  `validateCredentialVaultKey` (clé `CREDENTIAL_VAULT_KEY` = 64 hex ; **boot
-  bloquant en production** si absente/invalide).
+  `validateCredentialVaultKey` (clé `CREDENTIAL_VAULT_KEY` = 64 hex ; S1C : **boot
+  bloquant PARTOUT** si absente/invalide — politique uniforme, aucune logique NODE_ENV).
 - `services/integratedApiCredentialService.js` — `getCredential(slug,{role,
   runtime})`, `getCredentials(slug,{runtime})`, `setIntegratedApiMode(slug,mode)`.
   Ordre : **vault prioritaire** → fallback `.env` **uniquement si**
@@ -4202,3 +4220,23 @@ mobile-first, moins de clics, patterns réutilisés, premium, zéro régression 
 retrait : `docs/migration/VANILLA_RETIREMENT_PLAN.md`. Reste (prochaine mission RX2) : auth React, finance
 premium (cards/timeline/drawer, sans tableaux), compte client complet, dev tools, puis flag ON + retrait
 Vanilla. Backend p0+p1+integration+audits verts, front 302+lint+build OK. Détail : rapport 222.
+
+
+## RX2 — Finance Experience (RX2.0/2.1/2.2)
+
+Espace finance React premium (cards/KPIs/timeline/drawer, jamais de tableaux). Audits :
+`docs/RX2_FINANCE_AUDIT.md`, `docs/RX2_FINANCIAL_TIMELINE_AUDIT.md` ; rapport `docs/RX2_2_FINANCIAL_TIMELINE_REPORT.md`.
+
+**RX2.0/2.1** — Finance Dashboard. B1 : route `POST /api/gestion/refunds/:refundId/status`
+(`updateRefundStatus` existait mais n'était montée nulle part → admin ne pouvait actionner aucun
+remboursement). `services/financeService.buildFinanceDashboard` + `GET /api/gestion/finance/dashboard`
+(today/7d/30d : revenu, ventilation, conso GC + backlog soldes/remboursements/factures impayées).
+`financeRouter` admin/dev monté AVANT les broad-mounts dev-only (sinon shadow 403, cf. M12/M3A).
+
+**RX2.2** — Financial Timeline. `services/finance/financeTimelineService.buildFinanceTimeline` +
+`GET /api/gestion/finance/timeline?period=&type=&status=&limit=` : mouvements narratifs
+(sale/deposit/balance_due/balance_paid/refund/gift_card_*/commission/invoice) avec `direction` in/out/neutral,
+`summary` recalculé (netAmount/grossIn/grossOut/balanceDueAmount/count/refundCount). Sources de vérité réelles,
+**no double-count** (facture = lien sur la vente, carte cadeau utilisée = neutral, gift_card_issue = cartes
+manuelles seules, commission = CommissionPayment). Actions structurées (`refund_process`/`balance_collect`/…)
+préparent RX2.3. Tests backend +21 (service/summary/noDoubleCount/routes). Backend 794 verts, audits 36/20.

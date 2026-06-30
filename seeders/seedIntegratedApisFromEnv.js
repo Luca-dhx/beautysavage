@@ -70,11 +70,9 @@ const DEFINITIONS = [
  */
 export async function seedIntegratedApisFromEnv(opts = {}) {
   const dryRun = opts.dryRun === true;
-  // Without a valid vault key we cannot encrypt — do nothing (caller relies on
-  // env fallback). validateCredentialVaultKey() throws in production.
-  if (!validateCredentialVaultKey()) {
-    return { seeded: [], skipped: DEFINITIONS.map(d => d.slug), details: [{ reason: 'vault_key_invalid' }], dryRun };
-  }
+  // S1C — politique uniforme : sans clé de coffre valide, on REFUSE (throw), quel que soit
+  // l'environnement (le boot a déjà appelé validateCredentialVaultKey en amont).
+  validateCredentialVaultKey();
 
   const result = { seeded: [], skipped: [], details: [] };
 

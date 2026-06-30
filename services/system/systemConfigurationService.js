@@ -172,14 +172,8 @@ export async function seedSystemConfigurationFromEnv() {
     }
   };
 
-  // 🌐 Domaines — APP_BASE_URL (legacy) → vitrineUrl. Tolérant HTTP (dev/localhost/ngrok).
-  if (!doc.domains.vitrineUrl && env.APP_BASE_URL) {
-    const res = normalizeDomainUrl(env.APP_BASE_URL, { allowInsecure: true, label: 'APP_BASE_URL' });
-    if (res.ok) {
-      doc.domains.vitrineUrl = res.value;
-      dirty = true;
-    }
-  }
+  // 🌐 Domaines — administrés au panel Dev (Paramètres Système). Plus aucun seed depuis l'env
+  // (ni APP_BASE_URL ni NGROK_DOMAIN) : au premier boot, le DomainResolver retombe sur localhost.
 
   // 🏢 Institut
   setIfEmpty(doc.institute, 'name', env.INSTITUTE_NAME);

@@ -2,6 +2,7 @@
 // Sprint U2 — Feature flag CHECKOUT_HOSTED : false ⇒ Stripe Elements (clientSecret) inchangé ;
 // true ⇒ Stripe Checkout hébergé (url). Le client Stripe est mocké via le config service.
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { updateSystemConfiguration, invalidateSystemConfigurationCache } from '../../services/system/systemConfigurationService.js';
 
 const h = vi.hoisted(() => ({ stripe: null }));
 vi.mock('../../services/stripe/stripeConfigService.js', async orig => {
@@ -37,11 +38,9 @@ describe('U2 — feature flag CHECKOUT_HOSTED', () => {
   let agent, fx, prevFlag, prevNgrok;
   beforeAll(async () => {
     agent = await getAgent();
-    prevNgrok = process.env.NGROK_DOMAIN;
-    process.env.NGROK_DOMAIN = 'test.ngrok.app';
   });
-  afterAll(async () => { await stopMemoryDb(); process.env.NGROK_DOMAIN = prevNgrok; });
-  beforeEach(async () => { await clearDatabase(); fx = await seedTestData(); h.stripe = fakeStripe(); prevFlag = process.env.CHECKOUT_HOSTED; });
+  afterAll(async () => { await stopMemoryDb(); invalidateSystemConfigurationCache(); });
+  beforeEach(async () => { await clearDatabase(); await updateSystemConfiguration({ domains: { vitrineUrl: 'https://test.ngrok.app' } }); fx = await seedTestData(); h.stripe = fakeStripe(); prevFlag = process.env.CHECKOUT_HOSTED; });
   afterEach(() => { process.env.CHECKOUT_HOSTED = prevFlag; });
 
   function productState() {

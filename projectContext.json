@@ -773,6 +773,21 @@
       "Test p1/envMinimalBootstrap: avec toutes les vars metier absentes, getInstituteInfo()/resolvePlatformName()/resolveVatMention() renvoient '' sans throw, buildSender() prod sans identite -> null; seules SESSION_SECRET/PWD_PEPPER/MONGODB_URI lèvent une erreur. Rapport 223"
     ]
   },
+  "s1cNgrokRemovalVaultPolicy": {
+    "date": "2026-06-30",
+    "branch": "phase-0-security-baseline",
+    "reports": [
+      "224_audit_s1c_ngrok_removal_vault_policy.md"
+    ],
+    "scope": [
+      "REGLE OFFICIELLE: le .env ne sert qu'au bootstrap technique; toute config metier (domaines/identites/institut/credentials) vit en base, administrable au panel Dev.",
+      "NGROK_DOMAIN SUPPRIME du runtime: stripeCheckoutService (resolveVitrineBaseUrl, plus de 500), stripeDevHostedCheckoutService (resolvePublicUrl), app.js log webhook (resolvePublicBaseUrl), domainResolver (reecrit). Plus aucune lecture/ref active (anciens rapports gitignores conserves comme archives).",
+      "DomainResolver reecrit (49 lignes): SystemConfiguration.domains (vitrineUrl/panelUrl) -> http://localhost:3000 (premier boot uniquement). Plus de NGROK/APP_BASE_URL/env/fallbacks multiples. panel retombe sur vitrine. Pour ngrok: URL vitrine + URL panel (=.../manager) au panel Dev. seedSystemConfigurationFromEnv ne seede plus aucun domaine.",
+      "Vault politique UNIFORME (aucun if NODE_ENV): validateCredentialVaultKey() throw PARTOUT si cle absente/invalide (refus de boot, identique dev/prod); fallbackEnabled()=ALLOW_ENV_CREDENTIAL_FALLBACK==='true' (flag-only). Tests injectent leur cle, dev cle locale, prod cle prod. Exception documentee hors vault: mailSenderResolver/envFallback gardent garde NODE_ENV (config metier, vars deja retirees du .env).",
+      ".env minimal final: MONGODB_URI/SESSION_SECRET/PWD_PEPPER/CREDENTIAL_VAULT_KEY (4 obligatoires, throw si absentes) + PORT/NODE_ENV/TZ (optionnels). Cle de coffre dev ajoutee au .env reel, NGROK retire. .env.example reecrit.",
+      "Tests: p1/s1cDomainResolverVaultPolicy (NGROK absent garde statique, resolver localhost/config, vault throw/OK), p1/integratedApiEnvFallbackPolicy (remplace NoEnvFallbackProd, flag-only tout env), credentialVault (throw uniforme), systemConfiguration (localhost + seed sans domaine), 9 tests checkout migres sur SystemConfiguration.domains, testEnv sans var domaine. Rapport 224"
+    ]
+  },
   "phase5aEmailTemplateVersioning": {
     "date": "2026-06",
     "scope": [
@@ -10828,5 +10843,15 @@
     "tests": "Front +17 : polish.test.tsx (9), polishCss.test.ts (8). 2 erreurs typecheck pre-existantes corrigees (M11B). React 54 fichiers/237 tests verts, lint/typecheck/build OK. Backend inchange.",
     "guideline": "frontend-react/docs/ProductUXGuideline.md — reference officielle. Directive permanente : toute nouvelle interface/composant/feature doit respecter Product UX Guideline + Motion Guideline + mobile-first ; parite tel/desktop + coherence parfaite obligatoires pour valider une page.",
     "limits": "Fragmentation CSS residuelle (11 prefixes, migration incrementale via primitives partagees) ; FormField/Input/Checkbox partages a extraire ; drawer communication masquage desktop a revoir ; pas de tests visuels/viewport automatises."
+  },
+  "rx2FinanceExperience": {
+    "description": "EPIC RX2 (2026-06-30) — Finance Experience : espace financier React premium (cards/KPIs/timeline/drawer, jamais de tableaux ; inspiration Stripe/Qonto/Pennylane/Revolut/Linear). RX2.0/2.1 = Finance Dashboard + correction route remboursement admin (B1). RX2.2 = Financial Timeline (colonne vertebrale narrative). Backend = autorite, aucun calcul de montant cote front, aucun montant invente, aucun double-count.",
+    "audits": ["docs/RX2_FINANCE_AUDIT.md", "docs/RX2_FINANCIAL_TIMELINE_AUDIT.md", "docs/RX2_2_FINANCIAL_TIMELINE_REPORT.md"],
+    "backend": "B1: route POST /api/gestion/refunds/:refundId/status (updateRefundStatus existait mais n'etait montee nulle part). services/financeService.buildFinanceDashboard + GET /api/gestion/finance/dashboard (today/7d/30d : revenu/ventilation/conso GC + backlog soldes/remboursements/factures impayees). services/finance/financeTimelineService.buildFinanceTimeline + GET /api/gestion/finance/timeline?period=&type=&status=&limit= : mouvements (sale/deposit/balance_due/balance_paid/refund/gift_card_issue|usage|manual_debit/commission/invoice), direction in/out/neutral, summary (netAmount/grossIn/grossOut/balanceDueAmount/count/refundCount). financeRouter (admin+dev) monte AVANT broad-mounts dev-only.",
+    "noDoubleCount": "Facture = lien invoice_view sur la vente (ligne uniquement si type=invoice, neutral) ; carte cadeau utilisee = moyen de paiement (neutral, deja dans Sale.totalAmount) ; gift_card_issue = cartes MANUELLES seules (cartes en ligne = Sale) ; acompte+solde = total ; commission = CommissionPayment (pas CommissionTransaction).",
+    "frontend": "@bs/api-client/manager/finance.ts (getFinanceDashboard, getFinanceTimeline, updateRefundStatus + types). features/finance/ (prefixe fin-*/fin-tl-*, tokens --bs-*, zero hex, mobile-first, >=44px, reduced-motion) : FinanceDashboardPage (/finance, nav Finance), FinanceTimelinePage (/finance/timeline) avec resume sticky + chips periode/type + cards + FinanceMovementDrawer. Actions structurees (refund_process/balance_collect/customer_view/invoice_view) preparent RX2.3.",
+    "tests": "Backend +28 (financeDashboard 7, financeTimelineService/Summary/NoDoubleCount/Routes 21). Front +18 (finance dashboard 5+hex, financeTimeline 6, financeTimelineApi 3, financeApi 3, hex). Backend 794 verts + audits 36/20, react 320 verts, typecheck/lint/build OK.",
+    "limits": "netAmount = flux de transactions (pas tresorerie : carte cadeau prepayee comptee a l'emission + dans la vente qui la consomme -> Analytics Phase 9) ; prestations 100% sur place sans Sale/balancePaidAt non representees (RX2.4) ; split prestations/formations au niveau item differe ; frais Stripe non agreges ici ; avoirs = lien sur le mouvement refund (section dediee RX2.9).",
+    "next": "RX2.3 — Paiements + drawer remboursement 1-clic (exploite refund_process/balance_collect + route B1)."
   }
 }

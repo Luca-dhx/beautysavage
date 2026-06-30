@@ -2,6 +2,7 @@
 // R2C — success_url/cancel_url du Checkout hébergé : fallback Vanilla par défaut, React si
 // CHECKOUT_RETURN_BASE_URL (http(s) absolue) est défini. Aucune autre modif de comportement.
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { updateSystemConfiguration, invalidateSystemConfigurationCache } from '../../services/system/systemConfigurationService.js';
 
 const h = vi.hoisted(() => ({ stripe: null, sessionArgs: null }));
 vi.mock('../../services/stripe/stripeConfigService.js', async orig => {
@@ -29,10 +30,10 @@ async function createSession(agent, cookie, fx) {
 
 describe('R2C — success/cancel URLs (Vanilla fallback / React)', () => {
   let agent, fx, prevFlag, prevNgrok, prevBase;
-  beforeAll(async () => { agent = await getAgent(); prevNgrok = process.env.NGROK_DOMAIN; process.env.NGROK_DOMAIN = 'test.ngrok.app'; });
-  afterAll(async () => { await stopMemoryDb(); process.env.NGROK_DOMAIN = prevNgrok; });
+  beforeAll(async () => { agent = await getAgent(); });
+  afterAll(async () => { await stopMemoryDb(); invalidateSystemConfigurationCache(); });
   beforeEach(async () => {
-    await clearDatabase(); await UnifiedCheckout.syncIndexes(); fx = await seedTestData();
+    await clearDatabase(); await updateSystemConfiguration({ domains: { vitrineUrl: 'https://test.ngrok.app' } }); await UnifiedCheckout.syncIndexes(); fx = await seedTestData();
     prevFlag = process.env.CHECKOUT_HOSTED; process.env.CHECKOUT_HOSTED = 'true';
     prevBase = process.env.CHECKOUT_RETURN_BASE_URL; delete process.env.CHECKOUT_RETURN_BASE_URL;
     h.sessionArgs = null;

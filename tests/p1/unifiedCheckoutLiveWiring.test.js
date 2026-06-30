@@ -2,6 +2,7 @@
 // Sprint U2 — Câblage live : flag off ⇒ Elements (fallback) intact ; flag on ⇒ UnifiedCheckout
 // créé + hosted ; finalize-free reste fonctionnel (0 €). Aucun secret exposé.
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { updateSystemConfiguration, invalidateSystemConfigurationCache } from '../../services/system/systemConfigurationService.js';
 
 const h = vi.hoisted(() => ({ stripe: null }));
 vi.mock('../../services/stripe/stripeConfigService.js', async orig => {
@@ -24,10 +25,10 @@ async function login(agent) {
 
 describe('U2 — câblage live UnifiedCheckout', () => {
   let agent, fx, prevFlag, prevNgrok;
-  beforeAll(async () => { agent = await getAgent(); prevNgrok = process.env.NGROK_DOMAIN; process.env.NGROK_DOMAIN = 'test.ngrok.app'; });
-  afterAll(async () => { await stopMemoryDb(); process.env.NGROK_DOMAIN = prevNgrok; });
+  beforeAll(async () => { agent = await getAgent(); });
+  afterAll(async () => { await stopMemoryDb(); invalidateSystemConfigurationCache(); });
   beforeEach(async () => {
-    await clearDatabase(); await UnifiedCheckout.syncIndexes(); fx = await seedTestData();
+    await clearDatabase(); await updateSystemConfiguration({ domains: { vitrineUrl: 'https://test.ngrok.app' } }); await UnifiedCheckout.syncIndexes(); fx = await seedTestData();
     prevFlag = process.env.CHECKOUT_HOSTED;
     h.stripe = {
       paymentIntents: { create: async () => ({ id: 'pi_elem', client_secret: 'cs_elem' }), cancel: async () => ({}) },

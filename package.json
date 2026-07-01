@@ -18,7 +18,13 @@
         "react:dev:manager": "npm --prefix frontend-react run dev:manager",
         "react:build": "npm --prefix frontend-react run build",
         "react:test": "npm --prefix frontend-react run test",
-        "react:lint": "npm --prefix frontend-react run lint"
+        "react:lint": "npm --prefix frontend-react run lint",
+        "check:launch": "node scripts/checkLaunchReadiness.js",
+        "check:launch:canary": "node scripts/checkLaunchReadiness.js --canary",
+        "verify:parcours": "node scripts/verifyParcours.js",
+        "canary:build": "npm run react:build",
+        "canary:up": "node scripts/launchCanary.js",
+        "vanilla:up": "node scripts/launchVanilla.js"
     },
     "dependencies": {
         "argon2": "^0.41.1",

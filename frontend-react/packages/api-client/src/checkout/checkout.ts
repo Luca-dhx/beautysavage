@@ -3,6 +3,7 @@ import { apiFetch } from '../apiFetch';
 import type { CheckoutLine, LegalConsentState } from '../booking/types';
 import type {
   ServiceCheckoutState,
+  CheckoutState,
   CreateCheckoutSessionResponse,
   FinalizeFreeResponse,
 } from './types';
@@ -45,7 +46,7 @@ export function buildIdempotencyKey(seed: string): string {
 
 /** POST /api/stripe/create-checkout-session — renvoie hosted | free | elements (flag OFF). */
 export async function createCheckoutSession(
-  checkoutState: ServiceCheckoutState,
+  checkoutState: CheckoutState,
   signal?: AbortSignal,
 ): Promise<CreateCheckoutSessionResponse> {
   const res = await apiFetch<Record<string, unknown>>('/api/stripe/create-checkout-session', {
@@ -70,7 +71,7 @@ export async function createCheckoutSession(
 
 /** POST /api/client/checkout/finalize-free — finalise un achat 0 € (idempotent). */
 export async function finalizeFreeCheckout(
-  checkoutState: ServiceCheckoutState,
+  checkoutState: CheckoutState,
   idempotencyKey?: string,
   signal?: AbortSignal,
 ): Promise<FinalizeFreeResponse> {

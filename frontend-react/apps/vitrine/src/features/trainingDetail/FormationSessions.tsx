@@ -2,9 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Badge, LoadingState, ErrorState, EmptyState } from '@bs/ui';
 import { getFormationSessions, type PublicFormationSession } from '@bs/api-client';
 
-// RX3 — Sessions présentielles d'une formation (affichage réel : date, durée, places restantes,
-// disponibilité). Consomme le wrapper api-client (champs sûrs, jamais le token QR). Lecture seule :
-// l'achat de session n'est pas encore câblé en React (documenté) — on n'affiche PAS de faux bouton.
+// RX3 — Sessions présentielles d'une formation (date, durée, places restantes, disponibilité). Consomme
+// le wrapper api-client (champs sûrs, jamais le token QR). Sélectionnable (RX3 S3) pour l'ajout au panier.
 
 function fmtDate(iso: string | null): string {
   if (!iso) return 'Date à confirmer';
@@ -15,11 +14,21 @@ function fmtDate(iso: string | null): string {
   }
 }
 
-function SessionCard({ session }: { session: PublicFormationSession }) {
-  const full = session.placesRemaining <= 0 || !session.isAvailable;
+function SessionRow({
+  session,
+  selectable,
+  selected,
+  onSelect,
+}: {
+  session: PublicFormationSession;
+  selectable: boolean;
+  selected: boolean;
+  onSelect?: (s: PublicFormationSession) => void;
+}) {
+  const full = session.placesRemaining <= 0 || !session.isAvailable || session.isCanceled;
   const firstDay = session.schedule?.[0];
-  return (
-    <li className="td-session">
+  const inner = (
+    <>
       <div className="td-session__main">
         <span className="td-session__date">{fmtDate(session.startDate)}</span>
         <span className="td-session__meta">
@@ -35,13 +44,37 @@ function SessionCard({ session }: { session: PublicFormationSession }) {
       {full ? (
         <Badge tone="muted">Complet</Badge>
       ) : (
-        <Badge tone="success">{session.placesRemaining} place{session.placesRemaining > 1 ? 's' : ''}</Badge>
+        <Badge tone="success">
+          {session.placesRemaining} place{session.placesRemaining > 1 ? 's' : ''}
+        </Badge>
       )}
+    </>
+  );
+
+  if (!selectable) return <li className="td-session">{inner}</li>;
+  return (
+    <li>
+      <button
+        type="button"
+        className={`td-session td-session--btn${selected ? ' td-session--selected' : ''}`}
+        disabled={full}
+        aria-pressed={selected}
+        onClick={() => onSelect?.(session)}
+      >
+        {inner}
+      </button>
     </li>
   );
 }
 
-export function FormationSessions({ formationId }: { formationId: string }) {
+export interface FormationSessionsProps {
+  formationId: string;
+  selectable?: boolean;
+  selectedId?: string | null;
+  onSelect?: (session: PublicFormationSession) => void;
+}
+
+export function FormationSessions({ formationId, selectable = false, selectedId = null, onSelect }: FormationSessionsProps) {
   const { data, isPending, isError } = useQuery({
     queryKey: ['formation', 'sessions', formationId],
     queryFn: ({ signal }) => getFormationSessions(formationId, signal),
@@ -57,7 +90,13 @@ export function FormationSessions({ formationId }: { formationId: string }) {
         data && data.length ? (
           <ul className="td-sessions">
             {data.map((s) => (
-              <SessionCard key={s.id} session={s} />
+              <SessionRow
+                key={s.id}
+                session={s}
+                selectable={selectable}
+                selected={selectedId === s.id}
+                onSelect={onSelect}
+              />
             ))}
           </ul>
         ) : (

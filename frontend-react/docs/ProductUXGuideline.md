@@ -170,6 +170,18 @@ avant d'en recréer** (rappel §2). Import unique depuis `@bs/ui`.
   clavier, `motionPreset('accordion')`, mode simple/multiple). LE composant pour FAQ + sections repliables
   (remplace le `<details>` brut). Ne plus réimplémenter d'accordéon local.
 
+**Checkout multi-item (RX3 S3)** — patterns officiels du parcours d'achat :
+- Le **panier** porte des lignes typées (`ServiceCartItem` / `FormationCartItem`) ; les prix sont **indicatifs**,
+  le backend recalcule tout. Bumper `CART_VERSION` à tout nouveau kind/champ.
+- **Légal par item** : `buildLegalRequirements(items)` dérive les cases (CGV + waivers) ; textes de renonciation
+  **identiques au backend** (validation par correspondance). Ne jamais reformuler un texte de waiver.
+- **Carte cadeau = moyen de paiement** (jamais une remise) : code masqué, solde/utilisé/reste toujours affichés,
+  capée au solde réel. Toujours montrer Total / Carte cadeau utilisée / Reste à payer.
+- **Disponibilité dynamique** : revalider les créneaux/sessions (endpoints existants), marquer « Non disponible »
+  et bloquer le paiement — jamais laisser payer un article indisponible.
+- Paiement : **0 €** → `finalize-free` ; **> 0 €** → Stripe hosted (redirect). Aucun Stripe.js React. Résumé
+  sticky desktop + `StickyBar` mobile.
+
 ## 17. Patterns Espace client / Client Hub (RX4)
 
 L'espace client (`/mon-compte/*`, `apps/vitrine`) doit **raconter la relation** cliente↔institut, pas
@@ -194,6 +206,22 @@ facture, remboursement, attestations, notifications). **Cards partout, jamais de
   ou renvoyer vers la source légitime, et **documenter la limite** dans le rapport. `/auth/me` n'expose pas
   le prénom → accueil déduit (session/e-mail), pas de faux nom.
 - `practitionerId`/prestataire = legacy institut mono-entité (M10/M11) → **ne pas mettre en avant** en compte.
+
+### 17.1 Parcours d'écriture (RX4 S2)
+- **Actions dans un Drawer, jamais de popup native** (`window.confirm`/`alert` interdits). Un parcours
+  d'écriture destructif (annulation) se déroule *dans* le drawer détail : `detail → confirmation (conséquences
+  + montant estimé) → loading → succès → refresh`. Réutiliser `Drawer` @bs/ui + invalidation TanStack pour le
+  refresh (pas de reload manuel). Référence : `BookingDetailDrawer`.
+- **Boutons contextuels only** : n'afficher une action que si le backend l'autorise (RDV à venir non annulé →
+  `Annuler` ; `saleId` → `Facture`). **Jamais de bouton inactif inutile.**
+- **Le serveur calcule, le client affiche** : éligibilité/montant de remboursement viennent de
+  `GET …/refund-eligibility` (motifs `retractation`/`institut`/`none`) ; ne jamais recalculer un montant ni
+  inventer un statut. Après une action asynchrone (remboursement, avis), message **honnête** sur la suite
+  (« suivi par e-mail », « publié après vérification » pour la modération C3).
+- **Note interactive** : `PawInput` (@bs/ui) — LE sélecteur de note (avis). Ne pas réimplémenter d'étoiles.
+- **Discipline endpoint** : créer un endpoint backend **seulement s'il est indispensable** à un parcours (ex.
+  `GET /api/client/profile`, lecture seule). Sinon **réutiliser / adapter / documenter**. Ne jamais créer un
+  endpoint qui renverrait toujours vide (ex. notifications client — le moteur ne cible pas l'audience client).
 - **`CatalogueToolbar`** (vitrine `features/catalog/`) + logique pure `applyCatalogueQuery` — barre
   recherche/tri/filtre **partagée** entre prestations/formations/produits. Le tri/filtre actif est
   TOUJOURS visible ; filtrage d'une liste déjà chargée (aucun N+1, aucun fetch par carte).

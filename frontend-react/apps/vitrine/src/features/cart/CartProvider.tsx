@@ -1,12 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { ServiceCartItem, CartItem, CartSummary } from './cartTypes';
+import type { ServiceCartItem, FormationCartItem, CartItem, CartSummary } from './cartTypes';
 import { loadCart, saveCart, newLineId } from './cartStorage';
 
 export interface CartContextValue {
   items: CartItem[];
   summary: CartSummary;
   addService: (item: Omit<ServiceCartItem, 'lineId' | 'kind'>) => string;
+  addFormation: (item: Omit<FormationCartItem, 'lineId' | 'kind'>) => string;
   removeItem: (lineId: string) => void;
   updateItem: (lineId: string, patch: Partial<CartItem>) => void;
   clearCart: () => void;
@@ -33,6 +34,19 @@ export function CartProvider({ children, initialItems }: CartProviderProps) {
     return lineId;
   }, []);
 
+  const addFormation = useCallback((item: Omit<FormationCartItem, 'lineId' | 'kind'>) => {
+    const lineId = newLineId();
+    // Anti-doublon : une même formation (+ session présentielle) n'est ajoutée qu'une fois.
+    setItems((prev) => {
+      const dup = prev.some(
+        (it) => it.kind === 'formation' && it.refId === item.refId && (it as FormationCartItem).sessionId === item.sessionId,
+      );
+      if (dup) return prev;
+      return [...prev, { ...item, kind: 'formation', lineId }];
+    });
+    return lineId;
+  }, []);
+
   const removeItem = useCallback((lineId: string) => {
     setItems((prev) => prev.filter((it) => it.lineId !== lineId));
   }, []);
@@ -52,8 +66,8 @@ export function CartProvider({ children, initialItems }: CartProviderProps) {
   );
 
   const value = useMemo<CartContextValue>(
-    () => ({ items, summary, addService, removeItem, updateItem, clearCart }),
-    [items, summary, addService, removeItem, updateItem, clearCart],
+    () => ({ items, summary, addService, addFormation, removeItem, updateItem, clearCart }),
+    [items, summary, addService, addFormation, removeItem, updateItem, clearCart],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

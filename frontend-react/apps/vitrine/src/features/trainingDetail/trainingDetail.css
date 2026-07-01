@@ -17,6 +17,11 @@
   flex-wrap: wrap;
   gap: var(--bs-space-1);
 }
+.td-head__price {
+  margin-top: var(--bs-space-2);
+  font-size: 1.4rem;
+  font-weight: 700;
+}
 
 .td-layout {
   display: grid;
@@ -102,6 +107,34 @@
   gap: var(--bs-space-2);
   font-size: 0.85rem;
   color: var(--bs-color-muted);
+}
+/* Session sélectionnable (achat) */
+.td-session--btn {
+  width: 100%;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  color: var(--bs-color-text);
+}
+.td-session--btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.td-session--selected {
+  border-color: var(--bs-color-primary);
+  background: color-mix(in srgb, var(--bs-color-primary) 8%, var(--bs-color-surface));
+}
+.td-purchase {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bs-space-3);
+}
+.td-buybar__price {
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+.td-buybar__cta {
+  flex: 0 0 auto;
 }
 
 /* Carte prix (aside) */

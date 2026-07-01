@@ -255,3 +255,11 @@ Vitrine servie officiellement sous `/app` (Vite base `/app/`, flag REACT_OFFICIA
 Nouvel **espace compte client** `/mon-compte` (`pages/MyAccountPage`) : hub cards (profil + Mes formations +
 réservations/cartes/factures « bientôt ») + **déconnexion** (signOut) — comble le gap RC1 (#1). Header :
 lien « Mon compte » au lieu de l'e-mail. Détail : rapport 222.
+
+## RX3 S3 — Checkout multi-item (front-only)
+- `features/cart/` : `FormationCartItem` (présentiel session / distanciel), `addFormation`, `CART_VERSION` 2.
+- `features/legal/cartLegalRequirements.ts` (+`waiverConstants.ts`) : moteur légal par item (textes backend exacts).
+- `features/checkout/` : `buildCartCheckoutState` (pur), `useCartAvailability`, `useGiftCardApply`, `components.tsx`.
+- `pages/CheckoutPage.tsx` : `CartCheckout` (formations + gift cards) | `ServiceCheckout` (prestation single-item S2).
+- `@bs/api-client checkout/` : `CartCheckoutState`, `AppliedGiftCard`, `validateGiftCard[Credentials]` ; `catalog/sessions.ts` (S2).
+- Backend NON modifié. Payload = `cart:true` accepté par `processCartCheckoutStatePurchase`.

@@ -21,6 +21,48 @@ export interface ServiceCheckoutState {
   origin?: { slug: string; query?: Record<string, unknown> };
 }
 
+/** Carte cadeau appliquée comme MOYEN DE PAIEMENT (jamais une remise). amount = montant utilisé. */
+export interface AppliedGiftCard {
+  giftCardId?: string;
+  code: string;
+  password?: string;
+  amount: number;
+}
+
+/** Ligne de panier envoyée au backend (formation/produit). Le service reste single-item (hors panier). */
+export interface CartCheckoutItem {
+  type: 'formation' | 'product';
+  id: string;
+  name?: string;
+  sessionId?: string | null;
+  selectedOptions?: SelectedServiceOption[];
+}
+
+/** checkoutState PANIER (cart:true) — mirroir du Vanilla, accepté par le backend multi-item. */
+export interface CartCheckoutState {
+  cart: true;
+  items: CartCheckoutItem[];
+  consumerWaivers?: Array<{ type?: 'legal' | 'institut'; text: string; accepted: boolean; formationIds?: string[] }>;
+  refundPolicySnapshots?: Record<string, { waiverType: 'legal' | 'institut' | null; waiverText: string; acceptedAt: string | null }>;
+  appliedGiftCards?: AppliedGiftCard[];
+  legal: { acceptedCgv: boolean };
+  totals?: { subtotal?: number; giftCardUsed?: number; remainingToPay?: number };
+  paymentProvider?: 'stripe';
+  origin?: { source?: string; slug?: string; query?: Record<string, unknown> };
+}
+
+/** Union des états de checkout postés à create-checkout-session / finalize-free. */
+export type CheckoutState = ServiceCheckoutState | CartCheckoutState;
+
+/** Carte cadeau validée (avant application) — solde disponible réel. */
+export interface GiftCardValidation {
+  id: string;
+  code: string;
+  availableBalance: number;
+  status: string;
+  hasPassword: boolean;
+}
+
 /** Réponse create-checkout-session selon le flag backend CHECKOUT_HOSTED. */
 export type CreateCheckoutSessionResponse =
   | { ok: true; mode: 'hosted'; url: string; checkoutId?: string }

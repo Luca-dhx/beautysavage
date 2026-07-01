@@ -89,9 +89,14 @@ export function PaymentSuccessPage() {
         <h1>{TITLES[view]}</h1>
         <p>{detail || DEFAULT_DETAIL[view]}</p>
         <p style={{ display: 'flex', gap: 'var(--bs-space-2)', flexWrap: 'wrap' }}>
-          <Link className="bs-btn" to="/">Retour à l’accueil</Link>
-          {view === 'failed' ? <Link className="bs-btn bs-btn--secondary" to="/checkout">Réessayer</Link> : null}
-          {view !== 'failed' ? <Link className="bs-btn bs-btn--secondary" to="/prestations">Voir les prestations</Link> : null}
+          {view === 'confirmed' || view === 'pending' ? (
+            <>
+              <Link className="bs-btn" to="/mon-compte">Voir mon compte</Link>
+              <Link className="bs-btn bs-btn--secondary" to="/mes-formations">Mes formations</Link>
+            </>
+          ) : null}
+          {view === 'failed' ? <Link className="bs-btn" to="/checkout">Réessayer</Link> : null}
+          <Link className="bs-btn bs-btn--secondary" to="/">Retour à l’accueil</Link>
         </p>
       </Card>
     </section>

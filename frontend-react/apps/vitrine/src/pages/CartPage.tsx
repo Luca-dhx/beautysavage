@@ -3,7 +3,7 @@ import { SectionHeader, Card, Button, EmptyState } from '@bs/ui';
 import { formatPrice } from '@bs/api-client';
 import { useCart } from '../features/cart/CartProvider';
 import { formatSlotLabel } from '../features/booking/dateUtils';
-import type { ServiceCartItem } from '../features/cart/cartTypes';
+import { isFormationItem, type ServiceCartItem } from '../features/cart/cartTypes';
 
 export function CartPage() {
   const { items, summary, removeItem } = useCart();
@@ -30,6 +30,15 @@ export function CartPage() {
                 <div>
                   <strong>{it.name}</strong>
                   {slot ? <div className="bs-note">{formatSlotLabel(slot.slotStart)}</div> : null}
+                  {isFormationItem(it) ? (
+                    <div className="bs-note">
+                      {it.formationType === 'distanciel'
+                        ? 'Formation en ligne — accès à vie'
+                        : it.sessionStartAt
+                          ? `Session du ${new Date(it.sessionStartAt).toLocaleDateString('fr-FR')}`
+                          : 'Formation présentielle'}
+                    </div>
+                  ) : null}
                   {it.indicativePrice !== undefined ? <div className="bs-note">{formatPrice(it.indicativePrice)} (indicatif)</div> : null}
                 </div>
                 <Button variant="secondary" type="button" onClick={() => removeItem(it.lineId)}>Retirer</Button>

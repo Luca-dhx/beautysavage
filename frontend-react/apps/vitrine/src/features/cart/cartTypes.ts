@@ -1,7 +1,8 @@
 import type { CartItemKind, SelectedServiceSlot, SelectedServiceOption } from '@bs/api-client';
 
 // Panier React LOCAL et INDICATIF. Le backend recalcule tout (prix, dispo, lock).
-export const CART_VERSION = 1;
+// v2 (RX3 S3) : ajout des lignes formation (présentiel/distanciel) → bump de version (reset propre).
+export const CART_VERSION = 2;
 export const CART_STORAGE_KEY = 'bs_cart';
 
 export interface CartItemBase {
@@ -22,7 +23,30 @@ export interface ServiceCartItem extends CartItemBase {
   selectedOptions?: SelectedServiceOption[];
 }
 
-export type CartItem = ServiceCartItem | CartItemBase;
+/** Formation au panier (présentiel avec session, ou distanciel accès à vie). */
+export interface FormationCartItem extends CartItemBase {
+  kind: 'formation';
+  formationType: 'presentiel' | 'distanciel';
+  /** Présentiel : session choisie (obligatoire pour l'ajout). */
+  sessionId?: string;
+  /** Présentiel : début de session (ISO) — affichage + revalidation disponibilité. */
+  sessionStartAt?: string;
+  /** Délai de remboursement (jours) — utilisé pour dériver la renonciation présentielle (backend fait foi). */
+  refundDays?: number;
+  selectedOptions?: SelectedServiceOption[];
+}
+
+export type CartItem = ServiceCartItem | FormationCartItem | CartItemBase;
+
+/** Garde de type : ligne formation. */
+export function isFormationItem(item: CartItem): item is FormationCartItem {
+  return item.kind === 'formation';
+}
+
+/** Garde de type : ligne prestation. */
+export function isServiceItem(item: CartItem): item is ServiceCartItem {
+  return item.kind === 'service';
+}
 
 export interface CartState {
   version: number;

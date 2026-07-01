@@ -4350,3 +4350,28 @@ accès distanciel, avis (TrainingReviews), formations similaires. Achat formatio
 service-only + waiver légal à porter) → pas de faux bouton, documenté comme prochaine session.
 
 Vérifs : typecheck OK, lint 0 erreur, 381 tests front verts, build vitrine+manager OK. Backend intact.
+
+## RX3 — Checkout multi-item (Session 3)
+
+Panier React multi-item + achat formation + cartes cadeaux en paiement (front-only, backend intact). Audit
+`docs/RX3_CHECKOUT_MULTI_ITEM_AUDIT.md`, rapport `docs/RX3_CHECKOUT_MULTI_ITEM_REPORT.md`.
+
+Cadrage : le backend finalise déjà un panier `cart:true` de formations(+produits) + cartes cadeaux en paiement
++ waivers ; prestation-en-panier et achat-carte-cadeau-en-panier restent single-item (cœur backend, différés).
+
+- Cart (`features/cart/`) : `FormationCartItem` (présentiel session / distanciel accès à vie) + `addFormation`,
+  `CART_VERSION` 1→2.
+- Achat formation (`features/trainingDetail/FormationPurchasePanel`) : présentiel = session obligatoire
+  (getFormationSessions sélectionnable) ; distanciel = direct.
+- Légal (`features/legal/cartLegalRequirements.ts` + `waiverConstants.ts`) : dérivation par item, texte
+  distanciel EXACT backend, payload `legal.acceptedCgv`+`consumerWaivers[]`+`refundPolicySnapshots{}`. Backend
+  re-dérive/refuse (LEGAL_CONSENT_REQUIRED).
+- Cartes cadeaux (`@bs/api-client checkout/giftCards.ts` + `features/checkout/useGiftCardApply`) : validate
+  (+password), multiple, capé au solde, code masqué. Jamais une remise.
+- Disponibilité dynamique (`features/checkout/useCartAvailability`) : revalide sessions, item « Non disponible »
+  bloque le paiement.
+- Checkout (`CheckoutPage` = CartCheckout | ServiceCheckout, `features/checkout/components.tsx`, `checkout.css`) :
+  résumé sticky desktop + StickyBar mobile ; 0 € → finalize-free, > 0 € → Stripe hosted. Succès/annulation enrichis.
+
+Payload panier = mirroir Vanilla accepté par `processCartCheckoutStatePurchase`. Verifs : typecheck OK, lint
+0 erreur, 427 tests front verts, build OK. Backend non modifié.

@@ -891,3 +891,10 @@ lu dynamiquement → togglé par test (restauré en afterEach). Front : `apps/vi
 - `p1/financeGiftCardSplitRefund` : remboursements splittés (mix Stripe+GC, 100% GC, rollback_needed, recovered).
 - `p1/financeGiftCardQrPrivacy` : jamais le code/token/mot de passe ; AUCUN libellé « expir ».
 - `p1/financeGiftCardTimelineIntegration` : gift_card_refund_recredit + gift_card_recredit_failed (neutral, pas de double-count) + action gift_card_view.
+
+## RX3 Session 3 — Checkout multi-item (frontend, front-only)
+- `apps/vitrine/src/features/legal/cartLegalRequirements.test.ts` — moteur légal par item + payload.
+- `apps/vitrine/src/features/checkout/buildCartCheckoutState.test.ts` — totaux + carte cadeau capée + shape.
+- `apps/vitrine/src/pages/checkoutMultiItem.test.tsx` — gating légal + hosted redirect, gift card apply, session complète bloque.
+- `apps/vitrine/src/features/trainingDetail/formationPurchase.test.tsx` — achat présentiel (session obligatoire) / distanciel.
+Backend non modifié → aucun test backend ajouté. `npm --prefix frontend-react run test|lint|typecheck|build` verts.

@@ -1,10 +1,10 @@
 import { Link, useParams } from 'react-router-dom';
-import { Gallery, Badge, LessonEmbed, isValidEmbed, PriceLabel, Card, LoadingState, ErrorState } from '@bs/ui';
+import { Gallery, Badge, LessonEmbed, isValidEmbed, PriceLabel, LoadingState, ErrorState } from '@bs/ui';
 import { resolveMediaUrl } from '@bs/api-client';
 import { usePublicTraining } from '../features/catalog/hooks/usePublicTrainings';
 import { trainingPriceProps } from '../features/catalog/priceProps';
 import { TrainingReviews } from '../features/catalog/components/TrainingReviews';
-import { FormationSessions } from '../features/trainingDetail/FormationSessions';
+import { FormationPurchasePanel } from '../features/trainingDetail/FormationPurchasePanel';
 import { SimilarTrainings } from '../features/trainingDetail/SimilarTrainings';
 import '../features/trainingDetail/trainingDetail.css';
 
@@ -32,54 +32,54 @@ export function TrainingDetailPage() {
         <h1 className="td-head__title">{data.name}</h1>
         <div className="td-head__meta">
           <Badge tone={distanciel ? 'info' : 'accent'}>{distanciel ? 'En ligne — accès à vie' : 'Présentiel'}</Badge>
-          {data.salesCount && data.salesCount > 0 ? <Badge tone="muted">{data.salesCount} inscrit{data.salesCount > 1 ? 's' : ''}</Badge> : null}
+          {data.salesCount && data.salesCount > 0 ? (
+            <Badge tone="muted">
+              {data.salesCount} inscrit{data.salesCount > 1 ? 's' : ''}
+            </Badge>
+          ) : null}
+        </div>
+        <div className="td-head__price">
+          <PriceLabel {...trainingPriceProps(data)} />
         </div>
       </header>
 
-      <div className="td-layout">
-        <div className="td-main">
-          <Gallery images={galleryImages} ratio="16 / 9" fallbackAlt={data.name} />
-          {hasTrailer ? <LessonEmbed url={data.trailerVideoUrl as string} title={`Aperçu — ${data.name}`} /> : null}
+      <div className="td-main">
+        <Gallery images={galleryImages} ratio="16 / 9" fallbackAlt={data.name} />
+        {hasTrailer ? <LessonEmbed url={data.trailerVideoUrl as string} title={`Aperçu — ${data.name}`} /> : null}
 
-          {data.description ? (
-            <section className="td-section" aria-label="Présentation">
-              <h2 className="td-section__title">Présentation</h2>
-              <p className="td-lead">{data.description}</p>
-            </section>
-          ) : null}
+        {data.description ? (
+          <section className="td-section" aria-label="Présentation">
+            <h2 className="td-section__title">Présentation</h2>
+            <p className="td-lead">{data.description}</p>
+          </section>
+        ) : null}
 
-          {data.editorialHtml ? (
-            <section className="td-section" aria-label="Programme">
-              <h2 className="td-section__title">Programme</h2>
-              {/* Contenu éditorial admin (comme la vitrine existante). Sanitizer dédié = suivi RX4. */}
-              <div className="td-editorial" dangerouslySetInnerHTML={{ __html: data.editorialHtml }} />
-            </section>
-          ) : null}
+        {data.editorialHtml ? (
+          <section className="td-section" aria-label="Programme">
+            <h2 className="td-section__title">Programme</h2>
+            {/* Contenu éditorial admin (comme la vitrine existante). Sanitizer dédié = suivi RX4. */}
+            <div className="td-editorial" dangerouslySetInnerHTML={{ __html: data.editorialHtml }} />
+          </section>
+        ) : null}
 
-          {distanciel ? (
-            <section className="td-section" aria-label="Accès">
-              <h2 className="td-section__title">Comment ça se passe</h2>
-              <ul className="td-access">
-                <li><i className="bi bi-infinity" aria-hidden="true" /> Accès à vie au contenu en ligne</li>
-                <li><i className="bi bi-play-circle" aria-hidden="true" /> Vidéos et ressources à votre rythme</li>
-                <li><i className="bi bi-award" aria-hidden="true" /> Attestation à la fin du parcours</li>
-              </ul>
-            </section>
-          ) : id ? (
-            <FormationSessions formationId={id} />
-          ) : null}
-        </div>
+        {distanciel ? (
+          <section className="td-section" aria-label="Accès">
+            <h2 className="td-section__title">Comment ça se passe</h2>
+            <ul className="td-access">
+              <li>
+                <i className="bi bi-infinity" aria-hidden="true" /> Accès à vie au contenu en ligne
+              </li>
+              <li>
+                <i className="bi bi-play-circle" aria-hidden="true" /> Vidéos et ressources à votre rythme
+              </li>
+              <li>
+                <i className="bi bi-award" aria-hidden="true" /> Attestation à la fin du parcours
+              </li>
+            </ul>
+          </section>
+        ) : null}
 
-        <aside className="td-aside">
-          <Card className="td-buy">
-            <div className="td-buy__price">
-              <PriceLabel {...trainingPriceProps(data)} />
-            </div>
-            <p className="bs-note">
-              {distanciel ? 'Accès en ligne immédiat après achat.' : 'Choisissez une session ci-dessous.'}
-            </p>
-          </Card>
-        </aside>
+        <FormationPurchasePanel training={data} />
       </div>
 
       {id ? <TrainingReviews trainingId={id} /> : null}

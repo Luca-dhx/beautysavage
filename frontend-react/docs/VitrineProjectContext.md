@@ -134,3 +134,10 @@ Cote vitrine : inchange (le report est une action du manager). La reservation co
 ## Sprint P1 — Product Polish & UX (rapports 207-208)
 
 La vitrine bénéficie du polish global (focus clavier visible, cibles tactiles, scroll sans débordement horizontal, animations cohérentes et coupées si l'utilisateur réduit les animations). Le bouton « Achat bientôt disponible » des cartes cadeaux est désormais un vrai bouton désactivé. Aucune fonctionnalité métier modifiée.
+
+## RX3 S3 — Checkout multi-item
+Livré : panier multi-item (formations présentiel/distanciel), achat formation depuis la fiche, cartes cadeaux
+en paiement (validate/multiple/capé/masqué), renonciations par item (textes backend exacts), disponibilité
+dynamique (sessions), checkout premium (0€ finalize-free / >0€ Stripe hosted), succès/annulation enrichis.
+Front-only, backend intact. 427 tests front verts, lint/typecheck/build OK.
+Différé : achat carte cadeau (page dédiée), prestation-en-panier (cœur backend), produits.

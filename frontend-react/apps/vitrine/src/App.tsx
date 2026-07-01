@@ -23,12 +23,21 @@ import { MyInvoicesPage } from './pages/MyInvoicesPage';
 import { MyDocumentsPage } from './pages/MyDocumentsPage';
 import { MyProfilePage } from './pages/MyProfilePage';
 import { AccountHelpPage } from './pages/AccountHelpPage';
+import { DecisionFlowPage } from './pages/DecisionFlowPage';
+import { DecisionReportPage } from './pages/DecisionReportPage';
+import { RefundTrackingPage } from './pages/RefundTrackingPage';
 import { LegalPage } from './pages/LegalPage';
 
 // Routing vitrine R1 — catalogue public réel. Checkout/paiement = placeholders (R2).
 export function App() {
   return (
     <Routes>
+      {/* RX4 S3 — Parcours tokenisés (lien e-mail, sans compte, layout autonome hors PublicLayout).
+          Le backend exige flowId+token → passés en query pour /decision ; token en path pour le suivi. */}
+      <Route path="decision" element={<DecisionFlowPage />} />
+      <Route path="decision/report" element={<DecisionReportPage />} />
+      <Route path="refund-tracking/:token" element={<RefundTrackingPage />} />
+
       <Route element={<PublicLayout />}>
         {/* Catalogue public (R1) */}
         <Route index element={<HomePage />} />

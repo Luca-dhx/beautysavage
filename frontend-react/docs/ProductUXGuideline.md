@@ -225,3 +225,19 @@ facture, remboursement, attestations, notifications). **Cards partout, jamais de
 - **`CatalogueToolbar`** (vitrine `features/catalog/`) + logique pure `applyCatalogueQuery` — barre
   recherche/tri/filtre **partagée** entre prestations/formations/produits. Le tri/filtre actif est
   TOUJOURS visible ; filtrage d'une liste déjà chargée (aucun N+1, aucun fetch par carte).
+
+### 17.2 Parcours tokenisés / lien e-mail sans compte (RX4 S3)
+- **Layout autonome** : les pages ouvertes depuis un lien e-mail (`/decision`, `/decision/report`,
+  `/refund-tracking/:token`) vivent **hors `PublicLayout`** (pas de nav storefront) — colonne unique centrée
+  (`TokenFlowLayout`), note de sécurité (lien personnel à usage unique). Pas d'auth (accès par **token
+  opaque**) ; le token n'est **jamais journalisé** côté client.
+- **Options réelles only** : n'afficher une option de décision que si le backend la déclare (`flow.options.*`).
+  **Jamais de bouton fantôme** ; un flux déjà utilisé/expiré → écran dédié **rassurant** (jamais technique).
+- **Statuts = vérité serveur** : mapper **uniquement** les statuts réels (remboursement
+  `requested|pending|succeeded|failed|canceled` ; split `not_applicable|pending|succeeded|failed|
+  rollback_needed`). **Ne jamais inventer** un statut absent. Split Stripe/carte cadeau affiché tel que calculé.
+- **Réutiliser le calendrier** : un report de prestation réutilise `AvailabilityCalendar`/`SlotPicker`/
+  `SelectedSlotSummary` — **jamais un second calendrier**. Anti-double-booking + texte de renonciation =
+  **validés côté serveur** (ne pas dupliquer la logique métier ; afficher proprement un 400/409).
+- **Pas de second moteur** : réutiliser `session-cancel-flows` et `refund-tracking` ; ne créer aucun endpoint
+  qui duplique un moteur d'annulation/remboursement existant.

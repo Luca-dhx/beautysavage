@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import PDFDocument from 'pdfkit';
 
-import { getActiveGiftCardTemplate } from './giftCardTemplateService.js';
+import { getActiveGiftCardTemplateOrSeed } from './giftCardTemplateResolver.js';
 import { generateGiftCardQrDataUrl, generateGiftCardQrPayload } from './giftCardQrService.js';
 import { resolveInstituteName } from '../system/systemConfigurationService.js';
 
@@ -204,7 +204,7 @@ export async function renderGiftCardPreview(template = {}, overrides = {}) {
  * @param {{ code: string, pin: string, qrPayload: string, template?: object }} opts
  */
 export async function generateGiftCardAssets(giftCard, { code = '', pin = '', qrPayload = '', template = null } = {}) {
-  const activeTemplate = template || (await getActiveGiftCardTemplate());
+  const activeTemplate = template || (await getActiveGiftCardTemplateOrSeed());
   const variables = buildGiftCardVariables(giftCard, { code, pin });
   const qrDataUrl = qrPayload ? await generateGiftCardQrDataUrl(qrPayload).catch(() => '') : '';
   const html = renderGiftCardDocument(activeTemplate || {}, variables, { qrDataUrl });

@@ -37,10 +37,8 @@ import {
   resolveGiftCardFromQrPayload
 } from '../services/giftCard/giftCardQrService.js';
 import { generateGiftCardAssets, formatGiftCardAmount } from '../services/giftCard/giftCardRenderService.js';
-import {
-  getActiveGiftCardTemplate,
-  getPublishedTemplateBySlug
-} from '../services/giftCard/giftCardTemplateService.js';
+import { getPublishedTemplateBySlug } from '../services/giftCard/giftCardTemplateService.js';
+import { getActiveGiftCardTemplateOrSeed } from '../services/giftCard/giftCardTemplateResolver.js';
 import GiftCardTemplate from '../models/GiftCardTemplate.js';
 import { sendGiftCardEventMail } from '../services/giftCard/giftCardMailService.js';
 
@@ -205,6 +203,18 @@ export async function createGiftCardForPurchase({
     throw error;
   }
 
+  // Propriétaire (pour le mail carte cadeau) — best-effort, ne bloque pas la création.
+  const owner = userId ? await User.findById(userId).lean().catch(() => null) : null;
+
+  // Template actif garanti (seed si aucun) : le PDF vient TOUJOURS du template actif, jamais d'un
+  // rendu vide/codé en dur. Best-effort : un souci de résolution ne doit pas casser le paiement.
+  let template = null;
+  try {
+    template = await getActiveGiftCardTemplateOrSeed();
+  } catch (templateError) {
+    console.error('Résolution template carte cadeau online (non bloquant)', templateError?.message || templateError);
+  }
+
   const code = await generateUniqueCode();
   const giftCard = new GiftCard({
     code,
@@ -214,11 +224,67 @@ export async function createGiftCardForPurchase({
     configId: config?._id || null,
     purchasedAt,
     recipientName: String(recipientName || '').trim().slice(0, 120),
-    message: String(message || '').trim().slice(0, 500)
+    purchaserName: buildOwnerName(owner),
+    message: String(message || '').trim().slice(0, 500),
+    activeTemplateId: template?._id || null
   });
-  await ensureGiftCardPassword(giftCard, { save: false });
+  const password = await ensureGiftCardPassword(giftCard, { save: false });
+  // QR opaque réel (jamais le secret en clair) pour la carte PDF.
+  const { payload: qrPayload } = rotateGiftCardQrToken(giftCard);
   await giftCard.save();
+
+  // Rendu carte (HTML + PDF depuis le template actif) + mail commerciale→client — best-effort.
+  await deliverOnlineGiftCardEmail({ giftCard, owner, code, password, qrPayload, template });
+
   return { giftCard, config };
+}
+
+/**
+ * GC-TPL-AUDIT — Livraison de la carte cadeau achetée en ligne : génère le PDF depuis le template
+ * ACTIF (même pipeline que le flux manuel) et l'envoie par mail (event `gift_card.online_created`,
+ * commerciale → client, PJ Brevo). Best-effort : ne throw jamais, ne casse jamais le paiement.
+ */
+async function deliverOnlineGiftCardEmail({ giftCard, owner, code, password, qrPayload, template }) {
+  let assets = null;
+  try {
+    assets = await generateGiftCardAssets(giftCard, { code, pin: password, qrPayload, template });
+    giftCard.cardVisualUrl = assets.cardVisualUrl;
+    giftCard.generatedPdfUrl = assets.generatedPdfUrl;
+    if (!giftCard.activeTemplateId && assets.templateId) {
+      giftCard.activeTemplateId = assets.templateId;
+    }
+    await giftCard.save();
+  } catch (renderError) {
+    console.error('Erreur rendu carte cadeau online (non bloquant)', renderError?.message || renderError);
+  }
+
+  if (!owner?.email) return { event: false, mail: 'client_missing' };
+
+  const mailVariables = {
+    ...(assets?.variables || {}),
+    recipientName: giftCard.recipientName || '',
+    purchaserName: giftCard.purchaserName || '',
+    amount: formatGiftCardAmount(giftCard.amount),
+    balance: formatGiftCardAmount(giftCard.amount),
+    code,
+    pin: password,
+    message: giftCard.message || '',
+    cardLink: giftCard.cardVisualUrl || ''
+  };
+
+  try {
+    return await sendGiftCardEventMail({
+      eventName: 'gift_card.online_created',
+      giftCard,
+      client: buildClientForMail(owner),
+      variables: mailVariables,
+      attachment: assets?.pdfBase64 ? { name: assets.pdfFileName, content: assets.pdfBase64 } : null,
+      eventPayload: { creationMode: 'online', paymentMode: 'stripe' }
+    });
+  } catch (mailError) {
+    console.error('Erreur mail carte cadeau online (non bloquant)', mailError?.message || mailError);
+    return { event: false, mail: 'failed' };
+  }
 }
 
 function buildGiftCardPayload(card, { includePassword = false } = {}) {
@@ -1229,7 +1295,8 @@ export async function createManualGiftCard(req, res) {
         return res.status(404).json({ ok: false, error: 'Template introuvable ou non publié.' });
       }
     } else {
-      template = await getActiveGiftCardTemplate();
+      // Resolver : template actif garanti (seed si aucun) — jamais de rendu depuis un template vide.
+      template = await getActiveGiftCardTemplateOrSeed();
     }
 
     const purchaserName = String(req.body?.purchaserName || '').trim() || buildOwnerName(customer);

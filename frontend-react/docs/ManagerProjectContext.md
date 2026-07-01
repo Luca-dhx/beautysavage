@@ -294,3 +294,12 @@ l'échéance et un bouton « Payer » (paiement Stripe Dev hébergé), un détai
 remboursements déduits, report du mois précédent, à payer), un statut de retard explicite (à payer, délai de
 grâce, en retard…) et un historique en cards. Si rien n'est dû : « Aucune commission à payer ce mois-ci ».
 Cards et timeline, jamais de tableau, mobile-first.
+
+
+## RX2.6 — Cartes cadeaux, cycle de vie financier
+
+Chaque carte cadeau se lit comme une histoire : créée (en ligne ou payée sur place), offerte, utilisée comme
+moyen de paiement, débitée à la main, avec son solde actuel bien visible, ses transactions, son acheteur et son
+bénéficiaire, sa source de paiement (Stripe ou sur place), son QR (masqué, jamais le code complet) et ses
+remboursements détaillés (part Stripe, part recréditée sur la carte, anomalies à traiter). Cards et timeline,
+jamais de tableau, mobile-first.

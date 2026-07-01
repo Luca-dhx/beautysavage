@@ -26,6 +26,7 @@ const TYPE_ICON: Record<FinanceMovementType, string> = {
   balance_due: 'bi-hourglass-split', balance_paid: 'bi-cash-stack',
   refund: 'bi-arrow-counterclockwise',
   gift_card_issue: 'bi-gift', gift_card_usage: 'bi-gift', gift_card_manual_debit: 'bi-gift',
+  gift_card_refund_recredit: 'bi-gift', gift_card_recredit_failed: 'bi-exclamation-triangle',
   invoice: 'bi-file-earmark-text', commission: 'bi-bank',
 };
 function iconFor(type: FinanceMovementType): string { return TYPE_ICON[type] || 'bi-dot'; }

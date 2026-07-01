@@ -198,7 +198,7 @@ export function BalanceCollectPanel({ item, onDone }: { item: FinanceTimelineIte
 }
 
 // ── Footer d'action ────────────────────────────────────────────────────────────────
-const FOOTER_KINDS = ['customer_view', 'invoice_view', 'refund_process', 'balance_collect', 'commission_view'];
+const FOOTER_KINDS = ['customer_view', 'invoice_view', 'refund_process', 'balance_collect', 'commission_view', 'gift_card_view'];
 export function FinanceActionFooter({ actions, onRefund, onBalance }: {
   actions: FinanceMovementAction[]; onRefund: () => void; onBalance: () => void;
 }) {
@@ -222,6 +222,11 @@ export function FinanceActionFooter({ actions, onRefund, onBalance }: {
           return a.enabled && a.to
             ? <Link key={i} className="fin-md-btn fin-md-btn--primary" to={a.to}>Voir la commission</Link>
             : <button key={i} type="button" className="fin-md-btn" disabled aria-disabled="true">Voir la commission</button>;
+        }
+        if (a.kind === 'gift_card_view') {
+          return a.enabled && a.to
+            ? <Link key={i} className="fin-md-btn fin-md-btn--primary" to={a.to}>Voir la carte cadeau</Link>
+            : <button key={i} type="button" className="fin-md-btn" disabled aria-disabled="true">Voir la carte cadeau</button>;
         }
         // invoice_view
         return a.enabled && a.url

@@ -4287,3 +4287,21 @@ de nouveaux types → pas de double-count). PATCH `/api/commissions/settings` é
 V1 = none/warning_only only (aucune suspension auto). Notifications = relances existantes conservées, aucun
 nouveau mail. React : features/finance CommissionOverviewPage (/finance/commissions) + CommissionDetailPage
 (/finance/commissions/:year/:month), fin-comm-*. Tests +47. Détail : `docs/RX2_5_COMMISSION_PREMIUM_REPORT.md`.
+
+
+## RX2.6 — Gift Card Finance Timeline
+
+La carte cadeau comme cycle de vie financier complet. `services/finance/giftCardFinanceService.js` :
+listGiftCardFinanceCards (summary activeBalance/issued/used/manualDebit/count + cards code masqué),
+getGiftCardFinanceDetail ({giftCard, actors, paymentSource, currentBalance, lifecycle, transactions, refunds,
+qr, actions}). Lifecycle chronologique (created/offered/qr_generated/pdf_generated/used/manual_debit/
+refund_recredit/rollback_needed/refund_recredit_failed). Source paiement (stripe/on_site + facture Stripe si
+saleId). Acteurs (acheteur purchaserName/Sale.customer, bénéficiaire recipientName/owner). Remboursements
+splittés (lien carte↔refund via Sale.giftCardUsage.giftCardId + saleId des credit ; parts Stripe/GC ;
+giftCardRefundStatus succeeded/pending/failed/rollback_needed ; recovered=attempts>1). QR/privacy : jamais le
+code/token/mot de passe complet (maskedCode ••••XXXX, maskedToken ••••). AUCUNE mention d'expiration.
+Endpoints GET /api/gestion/finance/gift-cards[/:id] (admin/dev). Timeline enrichie : gift_card_refund_recredit
+(credit, neutral) + gift_card_recredit_failed (rollback_needed, neutral danger) + action gift_card_view →
+détail ; pas de double-count. React features/finance : FinanceGiftCardsPage (/finance/cartes-cadeaux) +
+GiftCardFinanceDetailPage (/finance/cartes-cadeaux/:giftCardId), fin-gc-*. Tests +24. Détail :
+`docs/RX2_6_GIFT_CARD_FINANCE_REPORT.md`.

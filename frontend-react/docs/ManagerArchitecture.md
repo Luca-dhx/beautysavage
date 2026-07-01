@@ -484,3 +484,13 @@ ce mois · à payer avant le … · Voir détail · Payer »), `CommissionSettin
 si settledZero). api-client `manager/commissionFinance.ts` (getCommissionOverview/History/Detail +
 createCommissionPaymentIntent/checkCommissionPaymentStatus). Préfixe `fin-comm-*`, tokens --bs-*, zéro hex.
 Backend autorité (aucun calcul front). Détail : `docs/RX2_5_COMMISSION_PREMIUM_REPORT.md`.
+
+
+## RX2.6 — Gift Card Finance (`features/finance/`)
+`FinanceGiftCardsPage` (`/finance/cartes-cadeaux`, lien dashboard) : résumé sticky (solde actif/émis/utilisé/
+cartes), filtres circuit+statut, liste en cards (code masqué, badges Active/Épuisée + Stripe/Paiement sur
+place). `GiftCardFinanceDetailPage` (`/finance/cartes-cadeaux/:giftCardId`) : solde, acheteur/bénéficiaire
+(liens Customer360), source paiement, QR masqué, cycle de vie (GiftCardLifecycleTimeline), remboursements
+splittés (parts Stripe/carte cadeau + anomalies rollback), transactions, actions. api-client
+listFinanceGiftCards/getFinanceGiftCardDetail. Préfixe fin-gc-*, tokens --bs-*, zéro hex. AUCUNE mention
+d'expiration. Backend autorité (code/token jamais complets). Détail : `docs/RX2_6_GIFT_CARD_FINANCE_REPORT.md`.

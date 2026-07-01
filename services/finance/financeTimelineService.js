@@ -56,7 +56,7 @@ const TYPE_GROUPS = {
   sale: ['sale'],
   deposit: ['deposit'],
   balance: ['balance_due', 'balance_paid'],
-  gift_card: ['gift_card_issue', 'gift_card_usage', 'gift_card_manual_debit'],
+  gift_card: ['gift_card_issue', 'gift_card_usage', 'gift_card_manual_debit', 'gift_card_refund_recredit', 'gift_card_recredit_failed'],
   refund: ['refund'],
   commission: ['commission'],
   invoice: ['invoice'],
@@ -217,7 +217,9 @@ export function mapGiftCardTransactionToFinanceMovement(tx, { customerName = '' 
   if (kind === 'manual_issued') { type = 'gift_card_issue'; direction = 'in'; title = 'Carte cadeau émise'; }
   else if (kind === 'manual_debit') { type = 'gift_card_manual_debit'; direction = 'neutral'; title = 'Débit manuel carte cadeau'; }
   else if (kind === 'redeem') { type = 'gift_card_usage'; direction = 'neutral'; title = 'Carte cadeau utilisée'; }
-  else return null; // 'credit' (recredit système) non représenté en V1
+  else if (kind === 'credit') { type = 'gift_card_refund_recredit'; direction = 'neutral'; title = 'Recrédit carte cadeau'; }
+  else return null;
+  const giftCardId = tx.giftCardId ? String(tx.giftCardId) : null;
   return {
     id: `giftcardtx:${tx._id}`,
     type,
@@ -231,7 +233,32 @@ export function mapGiftCardTransactionToFinanceMovement(tx, { customerName = '' 
     customer: customerId ? { id: customerId, name: customerName } : null,
     source: { model: 'GiftCardTransaction', id: String(tx._id) },
     badges: kind === 'manual_issued' ? [{ label: 'Sur place', tone: 'success' }] : [{ label: 'Carte cadeau', tone: 'neutral' }],
-    actions: [{ kind: 'customer_view', enabled: Boolean(customerId), to: customerId ? `/clients/${customerId}` : null }],
+    // RX2.6 — ouvre le détail finance de la carte cadeau.
+    actions: [
+      { kind: 'gift_card_view', enabled: Boolean(giftCardId), to: giftCardId ? `/finance/cartes-cadeaux/${giftCardId}` : null },
+      { kind: 'customer_view', enabled: Boolean(customerId), to: customerId ? `/clients/${customerId}` : null },
+    ],
+  };
+}
+
+// RX2.6 — Anomalie de recrédit carte cadeau (rollback_needed) → mouvement neutral à traiter.
+export function mapGiftCardRecreditFailedToMovement(refund, { customerName = '' } = {}) {
+  if (!refund) return null;
+  const customerId = refund.userId ? String(refund.userId) : null;
+  return {
+    id: `gcrecreditfail:${refund.refundId}`,
+    type: 'gift_card_recredit_failed',
+    direction: 'neutral',
+    amount: roundToCents(refund.giftCardRefundAmount),
+    currency: 'EUR',
+    title: 'Recrédit carte cadeau à traiter',
+    subtitle: `Remboursement ${refund.refundId}`,
+    status: 'failed',
+    occurredAt: refund.requestedAt ? new Date(refund.requestedAt).toISOString() : null,
+    customer: customerId ? { id: customerId, name: customerName } : null,
+    source: { model: 'RefundRequest', id: refund.refundId },
+    badges: [{ label: 'À traiter', tone: 'danger' }],
+    actions: [{ kind: 'refund_process', enabled: false, to: '/remboursements' }],
   };
 }
 
@@ -383,16 +410,28 @@ export async function buildFinanceTimeline({ dateFrom = null, dateTo = null, typ
     }
   }
 
-  // ── Gift card transactions (manual_issued / redeem / manual_debit) ──
-  if (wants('gift_card_issue') || wants('gift_card_usage') || wants('gift_card_manual_debit')) {
+  // ── Gift card transactions (manual_issued / redeem / manual_debit / credit) ──
+  if (wants('gift_card_issue') || wants('gift_card_usage') || wants('gift_card_manual_debit') || wants('gift_card_refund_recredit')) {
     const txs = await GiftCardTransaction.find({
-      transactionType: { $in: ['manual_issued', 'redeem', 'manual_debit'] },
+      transactionType: { $in: ['manual_issued', 'redeem', 'manual_debit', 'credit'] },
       ...dateRangeQuery('createdAt', dateFrom, dateTo),
     }).sort({ createdAt: -1 }).limit(SOURCE_QUERY_CAP).lean();
     const userNames = await resolveUserNames(txs.map((t) => t.userId));
     for (const tx of txs) {
       const movement = mapGiftCardTransactionToFinanceMovement(tx, { customerName: userNames.get(String(tx.userId)) || '' });
       if (movement && wants(movement.type)) movements.push(movement);
+    }
+  }
+
+  // ── Gift card recredit failures (rollback_needed) — anomalies à traiter ──
+  if (wants('gift_card_recredit_failed')) {
+    const rollbacks = await RefundRequest.find({
+      giftCardRefundStatus: 'rollback_needed',
+      ...dateRangeQuery('requestedAt', dateFrom, dateTo),
+    }).sort({ requestedAt: -1 }).limit(SOURCE_QUERY_CAP).lean();
+    const userNames = await resolveUserNames(rollbacks.map((r) => r.userId));
+    for (const refund of rollbacks) {
+      movements.push(mapGiftCardRecreditFailedToMovement(refund, { customerName: userNames.get(String(refund.userId)) || '' }));
     }
   }
 

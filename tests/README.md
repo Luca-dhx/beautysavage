@@ -884,3 +884,10 @@ lu dynamiquement → togglé par test (restauré en afterEach). Front : `apps/vi
 - `p1/commissionFormationOnlyRegression` : prestation = 0 commission, formation comptée.
 - `p1/commissionFinanceTimeline` : mouvement commission (commission_view → détail, pas de double-count).
 - `p1/commissionStripeDevHostedPayment` : routes finance commission (commission_pay activé/désactivé, 403 client).
+
+## RX2.6 — Gift Card Finance
+- `p1/financeGiftCardService` : liste + détail (source paiement, acteurs, solde, transactions, lifecycle, QR masqué).
+- `p1/financeGiftCardRoutes` : endpoints admin/dev, 404, 403 client, code masqué.
+- `p1/financeGiftCardSplitRefund` : remboursements splittés (mix Stripe+GC, 100% GC, rollback_needed, recovered).
+- `p1/financeGiftCardQrPrivacy` : jamais le code/token/mot de passe ; AUCUN libellé « expir ».
+- `p1/financeGiftCardTimelineIntegration` : gift_card_refund_recredit + gift_card_recredit_failed (neutral, pas de double-count) + action gift_card_view.

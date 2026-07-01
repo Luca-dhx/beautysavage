@@ -7,6 +7,7 @@ import {
   getCommissionPaymentDetail,
   getCommissionPaymentHistory,
 } from '../services/finance/commissionFinanceService.js';
+import { listGiftCardFinanceCards, getGiftCardFinanceDetail } from '../services/finance/giftCardFinanceService.js';
 import { getNow } from '../utils/simulatedDate.js';
 
 const VALID_RANGES = new Set(['today', '7d', '30d']);
@@ -104,5 +105,32 @@ export async function getCommissionDetail(req, res) {
   } catch (error) {
     console.error('Erreur Commission Detail', error);
     return res.status(500).json({ ok: false, error: 'Impossible de charger le détail de la commission.' });
+  }
+}
+
+// RX2.6 — Gift Card Finance (cycle de vie financier des cartes cadeaux).
+export async function getGiftCardsFinance(req, res) {
+  try {
+    const result = await listGiftCardFinanceCards({
+      creationMode: req.query.creationMode,
+      status: req.query.status,
+      search: req.query.search,
+      limit: req.query.limit,
+    });
+    return res.json({ ok: true, ...result });
+  } catch (error) {
+    console.error('Erreur Gift Card Finance list', error);
+    return res.status(500).json({ ok: false, error: 'Impossible de charger les cartes cadeaux.' });
+  }
+}
+
+export async function getGiftCardFinanceDetailHandler(req, res) {
+  try {
+    const detail = await getGiftCardFinanceDetail(req.params.giftCardId);
+    if (!detail) return res.status(404).json({ ok: false, error: 'Carte cadeau introuvable.' });
+    return res.json({ ok: true, ...detail });
+  } catch (error) {
+    console.error('Erreur Gift Card Finance detail', error);
+    return res.status(500).json({ ok: false, error: 'Impossible de charger le détail de la carte cadeau.' });
   }
 }

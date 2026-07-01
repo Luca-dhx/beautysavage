@@ -45,6 +45,7 @@ export async function getFinanceDashboard(range: FinanceRange = 'today'): Promis
 export type FinanceMovementType =
   | 'sale' | 'deposit' | 'balance_due' | 'balance_paid'
   | 'refund' | 'gift_card_issue' | 'gift_card_usage' | 'gift_card_manual_debit'
+  | 'gift_card_refund_recredit' | 'gift_card_recredit_failed'
   | 'invoice' | 'commission';
 
 export type FinanceMovementDirection = 'in' | 'out' | 'neutral';
@@ -56,7 +57,7 @@ export type FinanceTimelineTypeFilter =
 
 export interface FinanceMovementBadge { label: string; tone: 'neutral' | 'success' | 'warning' | 'danger'; }
 export interface FinanceMovementAction {
-  kind: 'customer_view' | 'invoice_view' | 'sale_view' | 'refund_process' | 'balance_collect' | 'commission_view' | 'commission_pay';
+  kind: 'customer_view' | 'invoice_view' | 'sale_view' | 'refund_process' | 'balance_collect' | 'commission_view' | 'commission_pay' | 'gift_card_view' | 'gift_card_debit';
   enabled: boolean;
   to?: string | null;
   url?: string | null;
@@ -121,7 +122,7 @@ export async function getFinanceTimeline(filters: FinanceTimelineFilters = {}): 
 export type NetProfitStatus = 'complete' | 'partial' | 'not_applicable';
 export type StripeFeesStatus = 'available' | 'pending' | 'not_applicable';
 export type FinanceActionKind =
-  | 'customer_view' | 'invoice_view' | 'sale_view' | 'refund_process' | 'balance_collect' | 'commission_view' | 'commission_pay';
+  | 'customer_view' | 'invoice_view' | 'sale_view' | 'refund_process' | 'balance_collect' | 'commission_view' | 'commission_pay' | 'gift_card_view' | 'gift_card_debit';
 
 export interface FinancePaymentBreakdown {
   paidAmount: number;
@@ -216,4 +217,121 @@ export async function updateRefundStatus(
     `/api/gestion/refunds/${encodeURIComponent(refundId)}/status`,
     { status, ...(reason ? { reason } : {}) },
   );
+}
+
+// ── RX2.6 — Gift Card Finance (cycle de vie financier des cartes cadeaux) ────────────
+export type GiftCardLifecycleStatus = 'success' | 'warning' | 'danger' | 'neutral';
+
+export interface GiftCardLifecycleItem {
+  type: string;
+  title: string;
+  subtitle?: string;
+  amount: number | null;
+  balanceAfter: number | null;
+  occurredAt: string | null;
+  status: GiftCardLifecycleStatus;
+  source: Record<string, unknown>;
+}
+
+export interface GiftCardFinanceTransaction {
+  id: string;
+  type: 'manual_issued' | 'redeem' | 'manual_debit' | 'credit';
+  title: string;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  occurredAt: string | null;
+  note: string;
+  saleId: string | null;
+  actorRole: string | null;
+  source: string | null;
+}
+
+export type GiftCardRefundStatus = 'not_applicable' | 'pending' | 'succeeded' | 'failed' | 'rollback_needed';
+export interface GiftCardRefundTimelineItem {
+  refundId: string;
+  saleId: string | null;
+  amount: number;
+  stripeRefundAmount: number;
+  giftCardRefundAmount: number;
+  giftCardRefundStatus: GiftCardRefundStatus;
+  status: string;
+  recovered: boolean;
+  isSplit: boolean;
+  creditNoteUrl: string | null;
+  occurredAt: string | null;
+}
+
+export interface GiftCardPaymentSource {
+  mode: 'stripe' | 'on_site' | 'unknown';
+  label: string;
+  invoice: { invoiceId: string | null; pdfUrl: string | null } | null;
+  sale: { saleId: string } | null;
+}
+
+export interface GiftCardFinanceActor { name: string; id: string | null }
+
+export interface FinanceGiftCardCard {
+  id: string;
+  maskedCode: string;
+  amount: number;
+  balance: number;
+  status: string;
+  creationMode: string;
+  paymentMode: string;
+  paymentLabel: string;
+  purchaserName: string | null;
+  recipientName: string | null;
+  purchasedAt: string | null;
+}
+
+export interface FinanceGiftCardSummary {
+  activeBalanceAmount: number;
+  issuedAmount: number;
+  usedAmount: number;
+  manualDebitAmount: number;
+  count: number;
+}
+
+export interface FinanceGiftCardsResult {
+  summary: FinanceGiftCardSummary;
+  cards: FinanceGiftCardCard[];
+}
+
+export interface FinanceGiftCardDetail {
+  giftCard: {
+    id: string; maskedCode: string; status: string; creationMode: string;
+    paymentMode: string; paymentLabel: string | null; message: string | null; purchasedAt: string | null;
+  };
+  actors: { purchaser: GiftCardFinanceActor; recipient: GiftCardFinanceActor };
+  paymentSource: GiftCardPaymentSource;
+  currentBalance: { amount: number; balance: number; reserved: number; available: number; status: string };
+  lifecycle: GiftCardLifecycleItem[];
+  transactions: GiftCardFinanceTransaction[];
+  refunds: GiftCardRefundTimelineItem[];
+  qr: { available: boolean; maskedToken: string | null };
+  actions: FinanceMovementAction[];
+}
+
+export interface FinanceGiftCardFilters {
+  creationMode?: 'online' | 'manual_institute';
+  status?: 'active' | 'redeemed';
+  search?: string;
+  limit?: number;
+}
+
+/** GET /api/gestion/finance/gift-cards — liste + résumé des cartes cadeaux. */
+export async function listFinanceGiftCards(filters: FinanceGiftCardFilters = {}): Promise<FinanceGiftCardsResult> {
+  const params: Record<string, string | number> = {};
+  if (filters.creationMode) params.creationMode = filters.creationMode;
+  if (filters.status) params.status = filters.status;
+  if (filters.search) params.search = filters.search;
+  if (filters.limit) params.limit = filters.limit;
+  const res = await apiGet<{ ok: boolean } & FinanceGiftCardsResult>('/api/gestion/finance/gift-cards', params);
+  return res;
+}
+
+/** GET /api/gestion/finance/gift-cards/:giftCardId — détail (cycle de vie, transactions, refunds, QR masqué). */
+export async function getFinanceGiftCardDetail(giftCardId: string): Promise<FinanceGiftCardDetail> {
+  return apiGet<{ ok: boolean } & FinanceGiftCardDetail>(`/api/gestion/finance/gift-cards/${encodeURIComponent(giftCardId)}`);
 }

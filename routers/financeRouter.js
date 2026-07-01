@@ -9,6 +9,7 @@ import { requireAdminOrDev } from '../middlewares/requireDev.js';
 import {
   getFinanceDashboard, getFinanceTimeline, getFinanceMovementDetail,
   getCommissionOverview, getCommissionHistory, getCommissionDetail,
+  getGiftCardsFinance, getGiftCardFinanceDetailHandler,
 } from '../controllers/financeController.js';
 
 const router = express.Router();
@@ -24,5 +25,8 @@ router.get('/movement-detail', getFinanceMovementDetail);
 router.get('/commissions/current', getCommissionOverview);
 router.get('/commissions/history', getCommissionHistory);
 router.get('/commissions/:year/:month', getCommissionDetail);
+// RX2.6 — Gift Card Finance (cycle de vie financier des cartes cadeaux).
+router.get('/gift-cards', getGiftCardsFinance);
+router.get('/gift-cards/:giftCardId', getGiftCardFinanceDetailHandler);
 
 export default router;

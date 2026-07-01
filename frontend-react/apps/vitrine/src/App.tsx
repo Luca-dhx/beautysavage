@@ -17,6 +17,12 @@ import { LoginPage } from './pages/LoginPage';
 import { MyFormationsPage } from './pages/MyFormationsPage';
 import { FormationPlayerPage } from './pages/FormationPlayerPage';
 import { MyAccountPage } from './pages/MyAccountPage';
+import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
+import { MyGiftCardsPage } from './pages/MyGiftCardsPage';
+import { MyInvoicesPage } from './pages/MyInvoicesPage';
+import { MyDocumentsPage } from './pages/MyDocumentsPage';
+import { MyProfilePage } from './pages/MyProfilePage';
+import { AccountHelpPage } from './pages/AccountHelpPage';
 import { LegalPage } from './pages/LegalPage';
 
 // Routing vitrine R1 — catalogue public réel. Checkout/paiement = placeholders (R2).
@@ -48,8 +54,14 @@ export function App() {
         {/* C2 — Learning : espace apprenant (formations distancielles acquises) */}
         <Route path="mes-formations" element={<MyFormationsPage />} />
         <Route path="mes-formations/:id" element={<FormationPlayerPage />} />
-        {/* RX1 — Espace compte client (hub + déconnexion) */}
+        {/* RX1 → RX4 — Espace compte client (dashboard + sous-pages) */}
         <Route path="mon-compte" element={<MyAccountPage />} />
+        <Route path="mon-compte/rendez-vous" element={<MyAppointmentsPage />} />
+        <Route path="mon-compte/cartes-cadeaux" element={<MyGiftCardsPage />} />
+        <Route path="mon-compte/factures" element={<MyInvoicesPage />} />
+        <Route path="mon-compte/documents" element={<MyDocumentsPage />} />
+        <Route path="mon-compte/profil" element={<MyProfilePage />} />
+        <Route path="mon-compte/aide" element={<AccountHelpPage />} />
 
         {/* RX3 — Pages légales (footer réel) */}
         <Route path="mentions-legales" element={<LegalPage kind="mentions-legales" />} />

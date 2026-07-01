@@ -169,6 +169,31 @@ avant d'en recréer** (rappel §2). Import unique depuis `@bs/ui`.
 - **`Accordion`** (RX3 S2) — accordéon partagé accessible (bouton + region, `aria-expanded/controls`,
   clavier, `motionPreset('accordion')`, mode simple/multiple). LE composant pour FAQ + sections repliables
   (remplace le `<details>` brut). Ne plus réimplémenter d'accordéon local.
+
+## 17. Patterns Espace client / Client Hub (RX4)
+
+L'espace client (`/mon-compte/*`, `apps/vitrine`) doit **raconter la relation** cliente↔institut, pas
+ressembler à un back-office. Répondre immédiatement aux 7 questions (prochain RDV, formation, carte cadeau,
+facture, remboursement, attestations, notifications). **Cards partout, jamais de tableau, jamais de jargon.**
+
+- **Namespace données `@bs/api-client/client/`** — tout endpoint *client-facing* (`/api/client/*`) vit ici
+  (`bookings`, `giftCards`, `sales`, `profile`), séparé du `manager/` (admin). Réutiliser avant d'étendre.
+- **`features/account/`** — hooks TanStack partagés (`useMyBookings/GiftCards/Sales`…) : le cache évite les
+  refetch entre dashboard et sous-pages. Helpers de sélection/formatage **purs et testés** dans `format.ts`
+  (jamais de logique métier dans le JSX).
+- **`AccountShell`** — coquille commune des sous-pages : garde d'auth (`loading`/non connecté/contenu) +
+  en-tête retour 44px. Toute nouvelle sous-page compte l'utilise (zéro duplication du motif).
+- **Dashboard = agrégat, pas menu** — l'accueil montre l'essentiel *résolu* (prochain RDV daté, % formation,
+  solde carte) avec CTA contextuel, puis un accès rapide en grille. Le `highlight` accent (dégradé
+  `--theme-accent`) est réservé à l'info #1 (prochain RDV).
+- **Données sensibles masquées par défaut** — code/mot de passe de carte cadeau **jamais affichés** sans
+  révélation explicite (bouton « Afficher le code »). **Aucune notion d'expiration** de carte cadeau
+  (règle métier M13/RX2.6).
+- **Honnêteté > complétude** — ne jamais inventer une donnée absente du backend. Si un endpoint client
+  manque (notifications, liste remboursements, coordonnées institut), réserver l'emplacement (« Bientôt »)
+  ou renvoyer vers la source légitime, et **documenter la limite** dans le rapport. `/auth/me` n'expose pas
+  le prénom → accueil déduit (session/e-mail), pas de faux nom.
+- `practitionerId`/prestataire = legacy institut mono-entité (M10/M11) → **ne pas mettre en avant** en compte.
 - **`CatalogueToolbar`** (vitrine `features/catalog/`) + logique pure `applyCatalogueQuery` — barre
   recherche/tri/filtre **partagée** entre prestations/formations/produits. Le tri/filtre actif est
   TOUJOURS visible ; filtrage d'une liste déjà chargée (aucun N+1, aucun fetch par carte).

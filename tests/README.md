@@ -911,3 +911,11 @@ Backend non modifié → aucun test backend ajouté. `npm --prefix frontend-reac
   `features/giftcard/giftCardPreview.test.tsx` (+ MAJ `pages/catalogPages.test.tsx`).
 - Backend : `tests/p1/giftCardPurchaseRecipient.test.js` (persistance bénéficiaire carte cadeau).
 Backend touché (minimal) → p1 822 verts + p0/integration/audits.
+
+## RX-RUN / RX-RUN-2 — Lancement & commande unique
+- `tests/p1/rxRunLaunchReadiness.test.js` — préflight `evaluateReadiness` (env obligatoires, format vault,
+  builds, flag informatif).
+- `tests/p1/rxRunOneCommandScripts.test.js` — commande unique : injection flag React (dev/start=ON,
+  `--vanilla`=OFF), env non muté, URLs affichées, `build` inclut React, aucun script `run/` n'écrit le `.env`.
+Scripts `run/` (dev/start/build) NON lancés en test (bootent l'app réelle) → couverture par helpers purs +
+lecture package.json. Cf. `docs/RX_RUN_LAUNCH_AUDIT.md` + `docs/RX_RUN_2_ONE_COMMAND_REPORT.md`.

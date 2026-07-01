@@ -1,5 +1,18 @@
 # RX-RUN — Guide de lancement React Canary & rollback
 
+> ⚡ **Mise à jour RX-RUN-2 (commande unique)** — le parcours officiel est désormais :
+> ```bash
+> npm run dev                       # développement : React ON + backend (build auto)
+> npm run dev:vanilla               # rollback local (React OFF)
+> npm install && npm run build && npm start   # déploiement : React ON automatique
+> npm run start:vanilla             # rollback prod
+> npm run check                     # préflight offline · npm run verify [url] — smoke HTTP
+> ```
+> Le flag React est **injecté par les scripts** (jamais dans le `.env`). Les commandes détaillées ci-dessous
+> (`canary:*`) sont **remplacées** par ce set — cf. `RX_RUN_2_ONE_COMMAND_REPORT.md`. La section historique
+> reste pour référence.
+
+
 > Procédure fiable pour lancer BeautySavage en **React Canary** (local/staging), tester les parcours, puis
 > **revenir en arrière**. **Ne modifie jamais le défaut prod** : `REACT_OFFICIAL_FRONTEND` reste OFF dans le
 > `.env` ; le canary est activé par le lanceur, pour la session en cours uniquement. Cf. `RX_RUN_LAUNCH_AUDIT.md`.

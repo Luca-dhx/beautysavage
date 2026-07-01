@@ -5,8 +5,16 @@
     "main": "app.js",
     "scripts": {
         "clean-port": "node scripts/cleanPort.js",
+        "predev": "npm run clean-port",
         "prestart": "npm run clean-port",
-        "start": "nodemon app.js",
+        "dev": "node scripts/run/dev.js",
+        "dev:vanilla": "node scripts/run/dev.js --vanilla",
+        "dev:vite": "npm run react:dev:vitrine",
+        "build": "node scripts/run/build.js",
+        "start": "node scripts/run/start.js",
+        "start:vanilla": "node scripts/run/start.js --vanilla",
+        "check": "node scripts/checkLaunchReadiness.js",
+        "verify": "node scripts/verifyParcours.js",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:p0": "vitest run tests/p0",
@@ -18,13 +26,7 @@
         "react:dev:manager": "npm --prefix frontend-react run dev:manager",
         "react:build": "npm --prefix frontend-react run build",
         "react:test": "npm --prefix frontend-react run test",
-        "react:lint": "npm --prefix frontend-react run lint",
-        "check:launch": "node scripts/checkLaunchReadiness.js",
-        "check:launch:canary": "node scripts/checkLaunchReadiness.js --canary",
-        "verify:parcours": "node scripts/verifyParcours.js",
-        "canary:build": "npm run react:build",
-        "canary:up": "node scripts/launchCanary.js",
-        "vanilla:up": "node scripts/launchVanilla.js"
+        "react:lint": "npm --prefix frontend-react run lint"
     },
     "dependencies": {
         "argon2": "^0.41.1",

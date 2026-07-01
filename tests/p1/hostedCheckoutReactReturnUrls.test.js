@@ -29,12 +29,15 @@ async function createSession(agent, cookie, fx) {
 }
 
 describe('R2C — success/cancel URLs (Vanilla fallback / React)', () => {
-  let agent, fx, prevFlag, prevNgrok, prevBase;
+  let agent, fx, prevFlag, prevReact, prevBase;
   beforeAll(async () => { agent = await getAgent(); });
   afterAll(async () => { await stopMemoryDb(); invalidateSystemConfigurationCache(); });
   beforeEach(async () => {
     await clearDatabase(); await updateSystemConfiguration({ domains: { vitrineUrl: 'https://test.ngrok.app' } }); await UnifiedCheckout.syncIndexes(); fx = await seedTestData();
     prevFlag = process.env.CHECKOUT_HOSTED; process.env.CHECKOUT_HOSTED = 'true';
+    // RX-GO — buildHostedReturnUrls est désormais flag-aware : neutraliser REACT_OFFICIAL_FRONTEND pour que
+    // ce test (branche Vanilla/env) soit déterministe quel que soit l'ordre des fichiers (pool forks partagé).
+    prevReact = process.env.REACT_OFFICIAL_FRONTEND; delete process.env.REACT_OFFICIAL_FRONTEND;
     prevBase = process.env.CHECKOUT_RETURN_BASE_URL; delete process.env.CHECKOUT_RETURN_BASE_URL;
     h.sessionArgs = null;
     h.stripe = {
@@ -42,7 +45,11 @@ describe('R2C — success/cancel URLs (Vanilla fallback / React)', () => {
       checkout: { sessions: { create: async args => { h.sessionArgs = args; return { id: 'cs_X', url: 'https://stripe/X', payment_intent: 'pi_X' }; }, expire: async () => ({}) } }
     };
   });
-  afterEach(() => { process.env.CHECKOUT_HOSTED = prevFlag; if (prevBase === undefined) delete process.env.CHECKOUT_RETURN_BASE_URL; else process.env.CHECKOUT_RETURN_BASE_URL = prevBase; });
+  afterEach(() => {
+    process.env.CHECKOUT_HOSTED = prevFlag;
+    if (prevBase === undefined) delete process.env.CHECKOUT_RETURN_BASE_URL; else process.env.CHECKOUT_RETURN_BASE_URL = prevBase;
+    if (prevReact === undefined) delete process.env.REACT_OFFICIAL_FRONTEND; else process.env.REACT_OFFICIAL_FRONTEND = prevReact;
+  });
 
   it('sans CHECKOUT_RETURN_BASE_URL → URLs Vanilla (inchangées)', async () => {
     const res = await createSession(agent, await login(agent), fx);

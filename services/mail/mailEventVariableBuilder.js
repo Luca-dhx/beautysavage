@@ -12,7 +12,7 @@ import RefundRequest from '../../models/RefundRequest.js';
 import User from '../../models/user.js';
 import ServiceBooking from '../../models/ServiceBooking.js';
 import SiteIdentity from '../../models/SiteIdentity.js';
-import { resolveVitrineUrl } from '../system/domainResolver.js';
+import { resolveFrontendUrl } from '../system/frontendUrl.js';
 import { buildCommonMailVars } from './mailDomainDispatchers.js';
 
 function looksLikeObjectId(v) {
@@ -66,7 +66,7 @@ export async function buildRefundSucceededVariables(eventLog) {
 
   const siteName = await resolveSiteName();
   const trackingUrl = refund.trackingToken
-    ? resolveVitrineUrl(`vitrine.html?page=refund-tracking&token=${refund.trackingToken}`)
+    ? resolveFrontendUrl('refund-tracking', { token: refund.trackingToken })
     : '';
   const refundedAt = refund.refundedAt ? new Date(refund.refundedAt).toLocaleString('fr-FR') : '';
   const isService = refund.itemType === 'service';

@@ -67,3 +67,26 @@ La cible documentée (architecture cible React) est **host-based** : vitrine sur
 sous-domaine. RX1 implémente le **path-based** (`/app`, `/manager`) sur une seule origine Express (simple,
 rollback-friendly). En production, un reverse-proxy peut mapper les hôtes vers ces chemins (ou définir
 `VITE_BASE=/` + un build par hôte). Décision d'infra → hors périmètre RX1.
+
+## Mise à jour RX-GO (readiness de bascule)
+> Cf. `docs/RX_GO_REACT_READINESS_AUDIT.md` + `RX_GO_REACT_READINESS_REPORT.md`. **Aucun fichier Vanilla
+> supprimé** (rollback préservé).
+
+**Verdict : 🟡 GO avec limitations** (bascule sûre & réversible ; gaps d'écrans à finir avant ON définitif).
+
+| Module Vanilla | Statut | React équivalent | Dépréciable ? | Rollback ? | Blocage restant |
+|---|---|---|---|---|---|
+| home / shop / item-detail | ✅ migré | `/`, `/prestations`, `/formations`, `/produits`, `/cartes-cadeaux` | oui (après ON stable) | flag OFF | — |
+| checkout / payment | ✅ migré | `/panier`,`/checkout`,`/paiement/*` | oui | flag OFF | Stripe returns désormais flag-aware |
+| myaccount / rendez-vous / factures / documents / profil | ✅ migré | `/mon-compte/*` (RX4) | oui | flag OFF | — |
+| myformations | ✅ migré | `/mes-formations` (C2) | oui | flag OFF | — |
+| session-cancel-decision / refund-tracking | ✅ migré | `/decision*`, `/refund-tracking/:token` (RX4 S3) | oui | flag OFF | liens e-mail flag-aware (RX-GO) |
+| signup / verify-email | 🔴 absent React | — | **non** | flag OFF | créer écrans React (RX-GO-2) |
+| reset-password | 🔴 absent React | — (Vanilla `/reset-password`, non basculé) | non | flag OFF | créer écran React (RX-GO-2) |
+| invoice (page par token) | 🔴 absent React | téléchargement via API | non | flag OFF | garder Vanilla ou page React |
+| myfavorites | 🔴 absent React | — | non | flag OFF | hors périmètre client hub |
+| gestion.html (manager) | 🟡 partiel | `/manager/*` (écrans clés) | non | flag OFF | placeholders ventes/remb./paramètres |
+
+**Chantier RX-GO livré** : URLs générées backend (e-mails décision + suivi remboursement, retours Stripe
+hébergés) rendues **flag-aware** via `services/system/frontendUrl.js` → OFF = Vanilla inchangé, ON = `/app`.
+Prérequis avant retrait Vanilla d'un module : période stable flag ON + écrans 🔴 comblés.

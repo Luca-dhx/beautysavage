@@ -6,7 +6,7 @@ import SiteIdentity from '../models/SiteIdentity.js';
 import User from '../models/user.js';
 import ServiceBooking from '../models/ServiceBooking.js';
 import { sendRefundConfirmedEmail } from './mailService.js';
-import { resolveVitrineUrl } from './system/domainResolver.js';
+import { resolveFrontendUrl } from './system/frontendUrl.js';
 import { recreditGiftCardPortion } from './refundGiftCardService.js';
 import {
   applyRefundExecutionCap,
@@ -70,7 +70,7 @@ export async function sendRefundConfirmedEmailInternal(refundRequest) {
     if (!toEmail) return;
 
     const trackingUrl = refundRequest?.trackingToken
-      ? resolveVitrineUrl(`vitrine.html?page=refund-tracking&token=${refundRequest.trackingToken}`)
+      ? resolveFrontendUrl('refund-tracking', { token: refundRequest.trackingToken })
       : '';
     const siteName = await resolveSiteNameForEmail();
 

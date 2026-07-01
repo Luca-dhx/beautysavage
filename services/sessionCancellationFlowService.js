@@ -31,7 +31,7 @@ import {
 import { createCompensationGiftCard } from './giftCardService.js';
 import { createGlobalServiceBooking } from './calendar/globalAvailabilityService.js';
 import { getPresentielWaiverExpectation } from '../utils/consumerWaiver.js';
-import { resolveVitrineBaseUrl } from './system/domainResolver.js';
+import { resolveFrontendUrl } from './system/frontendUrl.js';
 import {
   sendFormationDeletedChoiceEmail,
   sendServiceCancellationChoiceEmail,
@@ -275,13 +275,8 @@ export function buildSessionCancellationActionUrl({ flowId, token } = {}) {
   const normalizedFlowId = normalizeFlowId(flowId);
   const normalizedToken = String(token || '').trim();
   if (!normalizedFlowId || !normalizedToken) return '';
-  const baseUrl = resolveVitrineBaseUrl();
-  const params = new URLSearchParams({
-    page: SESSION_CANCELLATION_PAGE_SLUG,
-    flowId: normalizedFlowId,
-    token: normalizedToken
-  });
-  return `${baseUrl}/vitrine.html?${params.toString()}`;
+  // RX-GO — flag-aware : Vanilla (page slug) tant que REACT_OFFICIAL_FRONTEND=OFF ; /app/decision quand ON.
+  return resolveFrontendUrl('session-cancel-decision', { flowId: normalizedFlowId, token: normalizedToken });
 }
 
 export async function resolveSiteName() {

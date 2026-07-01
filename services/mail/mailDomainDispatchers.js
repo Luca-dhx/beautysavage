@@ -6,6 +6,7 @@
 import Sale from '../../models/Sale.js';
 import crypto from 'node:crypto';
 import { resolvePublicBaseUrl, resolvePublicUrl, resolveVitrineUrl } from '../system/domainResolver.js';
+import { resolveFrontendUrl } from '../system/frontendUrl.js';
 import { formatAmount, withMailThemeVars, stripHtml, replaceTemplateVariables } from './mailRenderer.js';
 import { loadTemplate } from './mailTemplateRuntime.js';
 import { postToBrevo } from './mailBrevoGateway.js';
@@ -1604,7 +1605,7 @@ async function sendBookingCancelledEmail({
     const refundAmountStr = refundAmount > 0 ? `${formatAmount(refundAmount)} €` : '';
 
     const trackingLinkHtml = refundRequest?.trackingToken
-      ? `<p style="margin:8px 0 0"><a href="${resolveVitrineUrl(`vitrine.html?page=refund-tracking&token=${refundRequest.trackingToken}`)}" style="color:#166534">Suivre mon remboursement →</a></p>`
+      ? `<p style="margin:8px 0 0"><a href="${resolveFrontendUrl('refund-tracking', { token: refundRequest.trackingToken })}" style="color:#166534">Suivre mon remboursement →</a></p>`
       : '';
 
     let templateName;
@@ -1796,7 +1797,7 @@ async function sendBookingCancelledByAdminEmail({
     const refundAmountStr = refundAmount > 0 ? `${formatAmount(refundAmount)} €` : '';
 
     const trackingUrl = refundRequest?.trackingToken
-      ? resolveVitrineUrl(`vitrine.html?page=refund-tracking&token=${refundRequest.trackingToken}`)
+      ? resolveFrontendUrl('refund-tracking', { token: refundRequest.trackingToken })
       : '';
 
     const template = await loadTemplate('booking_cancelled_admin');

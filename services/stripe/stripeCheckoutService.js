@@ -34,17 +34,27 @@ import { buildPaymentIntentCheckoutMetadata, roundToCents } from './stripeMetada
 import { isCheckoutHostedEnabled } from '../checkout/unified/unifiedCheckoutConfig.js';
 import { createUnifiedCheckoutRecord } from '../checkout/unified/unifiedCheckoutFactory.js';
 import { updateCheckout } from '../checkout/unified/unifiedCheckoutRepository.js';
+import { isReactOfficialFrontend } from '../system/reactFrontend.js';
 
 // R2C — URLs de retour du Checkout hébergé. Si `CHECKOUT_RETURN_BASE_URL` (env, http(s) absolue) est
 // défini → retour vers les pages React /paiement/succes|annule ; sinon → URLs Vanilla (inchangées).
 // La base vient UNIQUEMENT de l'env (jamais du client) → pas de risque d'open redirect.
-function buildHostedReturnUrls(publicBase, checkoutId) {
+export function buildHostedReturnUrls(publicBase, checkoutId) {
   const base = String(process.env.CHECKOUT_RETURN_BASE_URL || '').trim().replace(/\/+$/, '');
   if (base && /^https?:\/\//i.test(base)) {
     const cid = checkoutId ? `&checkoutId=${encodeURIComponent(String(checkoutId))}` : '';
     return {
       success_url: `${base}/paiement/succes?session_id={CHECKOUT_SESSION_ID}${cid}`,
       cancel_url: `${base}/paiement/annule`
+    };
+  }
+  // RX-GO — flag-aware : quand REACT_OFFICIAL_FRONTEND=ON (et sans base env), retour vers les pages React
+  // servies sous /app. Flag OFF → URLs Vanilla historiques (inchangées). Rollback = flag OFF.
+  if (isReactOfficialFrontend()) {
+    const cid = checkoutId ? `&checkoutId=${encodeURIComponent(String(checkoutId))}` : '';
+    return {
+      success_url: `${publicBase}/app/paiement/succes?session_id={CHECKOUT_SESSION_ID}${cid}`,
+      cancel_url: `${publicBase}/app/paiement/annule`
     };
   }
   return {

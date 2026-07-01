@@ -4375,3 +4375,25 @@ Cadrage : le backend finalise déjà un panier `cart:true` de formations(+produi
 
 Payload panier = mirroir Vanilla accepté par `processCartCheckoutStatePurchase`. Verifs : typecheck OK, lint
 0 erreur, 427 tests front verts, build OK. Backend non modifié.
+
+## RX3 — Storefront premium (Session 4)
+
+Accueil premium + achat carte cadeau + footer social + avis lecture. Audit
+`docs/RX3_STOREFRONT_PREMIUM_AUDIT.md`, rapport `docs/RX3_STOREFRONT_PREMIUM_REPORT.md`.
+
+Backend MINIMAL : `createGiftCardForPurchase` + branche gift-card de `checkoutFinalizationService.js`
+persistent `recipientName`+`message` (champs déjà sur le modèle GiftCard M13, bornés, pas d'e-mail). Test
+`tests/p1/giftCardPurchaseRecipient.test.js`. Aucun nouveau moteur.
+
+Front (front-only) :
+- `@bs/api-client catalog/home.ts` : getHomeSettings/getSiteIdentity/getBoostedServices/getSocialLinks ;
+  `PublicGiftCardConfig` + mapper enrichis (maxAmount/presetAmounts) ; `checkout/` : `GiftCardCheckoutState`
+  + `buildGiftCardCheckoutState`.
+- Accueil `features/home/*` (HomeHero CMS, HomeWhy, HomeReviews stopgap featured-formation, HomeFaq) +
+  `HomePage` (prestations boostées, formations, teaser carte cadeau, CTA final). Pas de carrousel auto.
+- Carte cadeau `features/giftcard/*` (GiftCardPurchasePanel: montant presets/min/max + bénéficiaire + message
+  + GiftCardPreview + CGV → Stripe hosted ; carte créée à la finalisation) + `GiftCardsPage`.
+- Footer `VitrineFooter` : réseaux sociaux hydratés (`/api/vitrine/social-links`).
+- Avis : storefront = lecture publiée (TrainingReviews) ; soumission = RX4 (ReviewDrawer).
+
+Verifs : typecheck OK, lint 0 erreur, 450 tests front verts, build OK ; backend p1 822 verts + p0/integration/audits.

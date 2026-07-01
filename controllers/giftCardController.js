@@ -182,7 +182,11 @@ export async function createGiftCardForPurchase({
   userId,
   amount,
   purchasedAt = new Date(),
-  enforceMinAmount = true
+  enforceMinAmount = true,
+  // RX3 S4 — bénéficiaire optionnel du parcours d'achat en ligne (React). Champs déjà sur le modèle
+  // (M13, jusqu'ici remplis seulement par le flux manuel institut). Additif, sans e-mail (non modélisé).
+  recipientName = '',
+  message = ''
 } = {}) {
   const normalizedAmount = sanitizeNumber(amount);
   if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
@@ -208,7 +212,9 @@ export async function createGiftCardForPurchase({
     amount: normalizedAmount,
     balance: normalizedAmount,
     configId: config?._id || null,
-    purchasedAt
+    purchasedAt,
+    recipientName: String(recipientName || '').trim().slice(0, 120),
+    message: String(message || '').trim().slice(0, 500)
   });
   await ensureGiftCardPassword(giftCard, { save: false });
   await giftCard.save();

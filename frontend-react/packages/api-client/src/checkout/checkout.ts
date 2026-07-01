@@ -3,6 +3,7 @@ import { apiFetch } from '../apiFetch';
 import type { CheckoutLine, LegalConsentState } from '../booking/types';
 import type {
   ServiceCheckoutState,
+  GiftCardCheckoutState,
   CheckoutState,
   CreateCheckoutSessionResponse,
   FinalizeFreeResponse,
@@ -35,6 +36,34 @@ export function buildServiceCheckoutState(
       waiverAccepted: Boolean(legal.acknowledgedRetractation || legal.acknowledgedDatedService || legal.waiverAccepted),
     },
     origin: { slug: 'checkout' },
+  };
+}
+
+/**
+ * Construit le checkoutState d'ACHAT carte cadeau (single-item). La carte est créée par le backend
+ * À LA FINALISATION (jamais avant paiement). Bénéficiaire optionnel persisté (RX3 S4). Montant validé
+ * serveur (min/max config). `acceptedCgv` doit être vrai (backend refuse sinon).
+ */
+export function buildGiftCardCheckoutState(
+  amount: number,
+  opts: { recipientName?: string; message?: string; acceptedCgv: boolean },
+): GiftCardCheckoutState {
+  const item = {
+    type: 'gift-card' as const,
+    id: 'gift-card' as const,
+    name: 'Carte cadeau',
+    amount,
+    recipientName: opts.recipientName?.trim() || undefined,
+    message: opts.message?.trim() || undefined,
+  };
+  return {
+    item,
+    items: [item],
+    legal: { acceptedCgv: Boolean(opts.acceptedCgv) },
+    appliedGiftCards: [],
+    totals: { subtotal: amount, remainingToPay: amount },
+    paymentProvider: 'stripe',
+    origin: { source: 'react_storefront', slug: 'gift-card' },
   };
 }
 

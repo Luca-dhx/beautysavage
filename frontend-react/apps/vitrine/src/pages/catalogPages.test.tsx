@@ -66,9 +66,8 @@ describe('HomePage', () => {
     });
     renderWithProviders(<HomePage />);
     expect(screen.getByRole('heading', { name: 'Beauty Savage', level: 1 })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Prestations' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Formations' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Produits' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Nos prestations' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Nos formations' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Formation A')).toBeInTheDocument());
   });
 });

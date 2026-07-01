@@ -92,8 +92,13 @@ export const mapProduct = (input: unknown): PublicProduct => {
 
 export const mapGiftCardConfig = (input: unknown): PublicGiftCardConfig => {
   const r = asRaw(input);
+  const presets = Array.isArray(r.presetAmounts)
+    ? (r.presetAmounts as unknown[]).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)
+    : [];
   return {
     minAmount: num(r.minAmount),
+    maxAmount: num(r.maxAmount),
+    presetAmounts: presets,
     description: optStr(r.description),
     image: optStr(r.image),
   };

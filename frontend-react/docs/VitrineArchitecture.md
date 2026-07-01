@@ -263,3 +263,10 @@ lien « Mon compte » au lieu de l'e-mail. Détail : rapport 222.
 - `pages/CheckoutPage.tsx` : `CartCheckout` (formations + gift cards) | `ServiceCheckout` (prestation single-item S2).
 - `@bs/api-client checkout/` : `CartCheckoutState`, `AppliedGiftCard`, `validateGiftCard[Credentials]` ; `catalog/sessions.ts` (S2).
 - Backend NON modifié. Payload = `cart:true` accepté par `processCartCheckoutStatePurchase`.
+
+## RX3 S4 — Storefront premium
+- `features/home/*` (HomeHero/HomeWhy/HomeReviews/HomeFaq) + `HomePage` refondu ; `features/giftcard/*`
+  (GiftCardPurchasePanel/GiftCardPreview) + `GiftCardsPage` (achat complet).
+- `@bs/api-client catalog/home.ts` (5 wrappers accueil) ; `PublicGiftCardConfig` +maxAmount/presetAmounts ;
+  `checkout` `GiftCardCheckoutState`/`buildGiftCardCheckoutState`.
+- `VitrineFooter` : social-links hydratés. Backend minimal : recipient carte cadeau persisté (finalizer).

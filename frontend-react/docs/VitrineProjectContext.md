@@ -141,3 +141,9 @@ en paiement (validate/multiple/capé/masqué), renonciations par item (textes ba
 dynamique (sessions), checkout premium (0€ finalize-free / >0€ Stripe hosted), succès/annulation enrichis.
 Front-only, backend intact. 427 tests front verts, lint/typecheck/build OK.
 Différé : achat carte cadeau (page dédiée), prestation-en-panier (cœur backend), produits.
+
+## RX3 S4 — Storefront premium
+Livré : accueil premium (hero CMS, boostés, formations, carte cadeau, pourquoi, avis publiés, FAQ, CTA),
+achat carte cadeau (montant+bénéficiaire+message+aperçu → Stripe hosted, carte créée à la finalisation,
+recipient persisté côté backend), footer social. Avis soumission = RX4. 450 tests front / p1 822 backend verts.
+Limites : avis home stopgap (pas d'agrégat), pas d'e-mail bénéficiaire, templates non publics.

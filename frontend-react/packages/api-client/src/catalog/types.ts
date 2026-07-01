@@ -101,6 +101,10 @@ export interface PublicShopResponse {
 /** Config carte cadeau — `GET /api/vitrine/gift-cards` (pas de liste/détail). */
 export interface PublicGiftCardConfig {
   minAmount: number;
+  /** 0 = illimité. */
+  maxAmount: number;
+  /** Montants suggérés (chips). */
+  presetAmounts: number[];
   description?: string;
   image?: string;
 }

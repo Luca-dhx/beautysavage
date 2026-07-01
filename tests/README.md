@@ -767,7 +767,14 @@ Quatre fichiers tests/p1/ :
 - `giftCardManualFlows.test.js` — creation manuelle (201, paymentMode=on_site, paymentLabel, code+mot de passe, transaction manual_issued, AUCUNE Sale ni Invoice Stripe, qrTokenHash sans le code, event gift_card.manual_created) ; recipientName obligatoire (400) ; debit manuel par id (motif obligatoire 400, refus > solde 409, preview sans ecriture, debit reel + event) ; lookup par code (GET) et par QR ; QR invalide 404.
 - `manualBookingFlows.test.js` — reservation manuelle (201, source=manual_institute, paymentMode=on_site, confirmed, pay_on_site, pas de Sale, verrous permanents) ; anti-double-booking (409 SLOT_UNAVAILABLE) ; hold temporaire (verrou hold + expiresAt, 2e hold refuse, release) ; confirmation avec holdToken.
 
-Note harnais : le seed du template carte cadeau ne tourne PAS en mode test (boot gate) -> les tests appellent seedGiftCardTemplates() explicitement. Le routeur gestion cartes cadeaux est monte AVANT les broad-mounts dev-only (sinon shadow 403 admin, cf. M3A).
+GC-TPL-AUDIT — 5 fichiers tests/p1/ (livraison PDF depuis le template ACTIF) :
+- `giftCardTemplateActiveSeed.test.js` — `ensureDefaultGiftCardTemplate` : seed BeautySavage Classic actif au 1er boot ; activation du meilleur candidat si publies sans actif (sans doublon) ; idempotence + ne desactive jamais l'actif ; resolver OrSeed/assert garantit un actif.
+- `giftCardTemplateDeliveryPipeline.test.js` — `generateGiftCardAssets` : HTML+PDF depuis le template actif, variables resolues, QR reel (img base64) ; seed auto si aucun actif ; preview studio = QR factice (jamais le vrai token), pas de PDF.
+- `giftCardOnlinePurchaseTemplate.test.js` — achat en ligne (`createGiftCardForPurchase`) fige `activeTemplateId`, QR reel + PDF, event `gift_card.online_created` SANS secret ; seed auto si aucun actif.
+- `giftCardManualTemplateSelection.test.js` — manuel : template actif par defaut + PDF attache + « Paiement sur place » + `manual_issued` ; `templateId` explicite publie fige ce template ; non publie -> 404.
+- `giftCardTemplateNoHardcodedPdf.test.js` — le rendu reflete le template ACTIF (marqueur HTML unique), jamais un generique ; template explicite prioritaire.
+
+Note harnais : le seed du template carte cadeau ne tourne PAS en mode test (boot gate) -> les tests appellent seedGiftCardTemplates()/ensureDefaultGiftCardTemplate() explicitement. Le routeur gestion cartes cadeaux est monte AVANT les broad-mounts dev-only (sinon shadow 403 admin, cf. M3A).
 
 Front (apps/manager) : tests des drawers Customer 360 (creation carte / debit code+QR / reservation manuelle+hold / note), du Gift Card Template Studio (preview iframe sandbox), de la librairie admin (badge actif + modal activation), noHardcodedHex.test.ts par feature.
 
@@ -898,3 +905,9 @@ lu dynamiquement → togglé par test (restauré en afterEach). Front : `apps/vi
 - `apps/vitrine/src/pages/checkoutMultiItem.test.tsx` — gating légal + hosted redirect, gift card apply, session complète bloque.
 - `apps/vitrine/src/features/trainingDetail/formationPurchase.test.tsx` — achat présentiel (session obligatoire) / distanciel.
 Backend non modifié → aucun test backend ajouté. `npm --prefix frontend-react run test|lint|typecheck|build` verts.
+
+## RX3 Session 4 — Storefront premium
+- Front : `apps/vitrine/src/pages/homePremium.test.tsx`, `features/giftcard/giftCardPurchase.test.tsx`,
+  `features/giftcard/giftCardPreview.test.tsx` (+ MAJ `pages/catalogPages.test.tsx`).
+- Backend : `tests/p1/giftCardPurchaseRecipient.test.js` (persistance bénéficiaire carte cadeau).
+Backend touché (minimal) → p1 822 verts + p0/integration/audits.

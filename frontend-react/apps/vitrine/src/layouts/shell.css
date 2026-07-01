@@ -122,6 +122,23 @@
   color: var(--bs-color-muted);
   font-size: 0.82rem;
 }
+.vf__social-icons {
+  display: flex;
+  gap: var(--bs-space-1);
+}
+.vf__social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--bs-tap-target);
+  min-height: var(--bs-tap-target);
+  color: var(--bs-color-muted);
+  text-decoration: none;
+  font-size: 1.2rem;
+}
+.vf__social-link:hover {
+  color: var(--bs-color-primary);
+}
 
 @media (min-width: 640px) {
   .vf {

@@ -675,7 +675,10 @@ export async function processCheckoutStatePurchase({
         userId,
         amount: giftCardAmount,
         purchasedAt: legalDateAchat,
-        enforceMinAmount: false
+        enforceMinAmount: false,
+        // RX3 S4 — bénéficiaire optionnel transmis par le storefront React (persisté sur la carte).
+        recipientName: checkoutItem?.recipientName,
+        message: checkoutItem?.message
       });
       createdGiftCard = giftCardCreation.giftCard;
 

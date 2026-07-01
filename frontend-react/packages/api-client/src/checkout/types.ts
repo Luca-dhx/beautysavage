@@ -51,8 +51,27 @@ export interface CartCheckoutState {
   origin?: { source?: string; slug?: string; query?: Record<string, unknown> };
 }
 
+/** checkoutState ACHAT CARTE CADEAU (single-item). Le backend crée la carte à la finalisation. */
+export interface GiftCardCheckoutState {
+  item: {
+    type: 'gift-card';
+    id: 'gift-card';
+    name: string;
+    amount: number;
+    /** Bénéficiaire (persisté par le backend, RX3 S4). */
+    recipientName?: string;
+    message?: string;
+  };
+  items?: unknown[];
+  legal: { acceptedCgv: boolean };
+  appliedGiftCards?: AppliedGiftCard[];
+  totals?: { subtotal?: number; remainingToPay?: number };
+  paymentProvider?: 'stripe';
+  origin?: { source?: string; slug?: string; query?: Record<string, unknown> };
+}
+
 /** Union des états de checkout postés à create-checkout-session / finalize-free. */
-export type CheckoutState = ServiceCheckoutState | CartCheckoutState;
+export type CheckoutState = ServiceCheckoutState | CartCheckoutState | GiftCardCheckoutState;
 
 /** Carte cadeau validée (avant application) — solde disponible réel. */
 export interface GiftCardValidation {

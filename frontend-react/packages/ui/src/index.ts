@@ -7,3 +7,4 @@ export * from './polish';
 export * from './overlay';
 export * from './forms';
 export * from './gallery';
+export * from './accordion';

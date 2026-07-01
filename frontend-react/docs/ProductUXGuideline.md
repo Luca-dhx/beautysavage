@@ -166,6 +166,9 @@ avant d'en recréer** (rappel §2). Import unique depuis `@bs/ui`.
   `<select>` bruts dans les nouveaux écrans.
 - **`Gallery`** — image principale + vignettes (clavier, `aria-current`). Remplace le `photos[0]` unique
   des fiches.
+- **`Accordion`** (RX3 S2) — accordéon partagé accessible (bouton + region, `aria-expanded/controls`,
+  clavier, `motionPreset('accordion')`, mode simple/multiple). LE composant pour FAQ + sections repliables
+  (remplace le `<details>` brut). Ne plus réimplémenter d'accordéon local.
 - **`CatalogueToolbar`** (vitrine `features/catalog/`) + logique pure `applyCatalogueQuery` — barre
   recherche/tri/filtre **partagée** entre prestations/formations/produits. Le tri/filtre actif est
   TOUJOURS visible ; filtrage d'une liste déjà chargée (aucun N+1, aucun fetch par carte).

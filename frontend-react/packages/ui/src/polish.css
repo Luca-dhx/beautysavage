@@ -655,3 +655,57 @@ a.bs-btn {
 .bs-gallery__thumb--active {
   border-color: var(--bs-color-primary);
 }
+
+/* ----------------------------------------------------------------------------------------------- */
+/* RX3 — Accordéon partagé (FAQ, modules, sections repliables).                                      */
+.bs-acc {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--bs-color-border);
+  border-radius: var(--bs-radius);
+  overflow: hidden;
+  background: var(--bs-color-surface);
+}
+.bs-acc__item + .bs-acc__item {
+  border-top: 1px solid var(--bs-color-border);
+}
+.bs-acc__heading {
+  margin: 0;
+  font-size: 1rem;
+}
+.bs-acc__trigger {
+  width: 100%;
+  min-height: var(--bs-tap-target);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bs-space-2);
+  padding: var(--bs-space-3);
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--bs-color-text);
+  text-align: left;
+  cursor: pointer;
+}
+.bs-acc__trigger:hover {
+  background: color-mix(in srgb, var(--bs-color-primary) 5%, transparent);
+}
+.bs-acc__chevron {
+  flex-shrink: 0;
+  color: var(--bs-color-muted);
+  transition: transform var(--bs-motion-fast) var(--bs-motion-ease-out);
+}
+.bs-acc__chevron--open {
+  transform: rotate(180deg);
+}
+.bs-acc__panel {
+  padding: 0 var(--bs-space-3) var(--bs-space-3);
+  color: var(--bs-color-muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  .bs-acc__chevron {
+    transition: none;
+  }
+}

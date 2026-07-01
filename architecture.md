@@ -4328,3 +4328,25 @@ prestations/formations/produits. Filtrage d'une liste déjà chargée → zéro 
 
 Vérifs : typecheck OK, lint 0 erreur, 372 tests front verts, build vitrine + manager OK. Backend intact.
 Reste RX3 : fiches premium, accueil, checkout multi-item, cartes cadeaux, avis (sessions suivantes).
+
+## RX3 — Premium Product Pages (Session 2)
+
+Refonte des fiches prestation/formation React en pages de conversion (front-only, backend intact). Audit
+`docs/RX3_PREMIUM_PRODUCT_PAGES_AUDIT.md`, rapport `docs/RX3_PREMIUM_PRODUCT_PAGES_REPORT.md`.
+
+Nouveau partagé : `Accordion` (@bs/ui, ProductUXGuideline §16) — FAQ + sections repliables, remplace le
+`<details>` brut du Player. `getFormationSessions(id)` (@bs/api-client) — wrapper de
+`GET /api/vitrine/formations/:id/sessions` mappant SEULEMENT les champs sûrs (date/durée/places/dispo),
+jamais le token QR ni l'instructeur.
+
+Fiche prestation (`apps/vitrine/src/features/serviceDetail/` + `ServiceDetailPage`) : galerie (Gallery),
+options réelles (impact prix, `selectedOptions` alimenté), déroulement, FAQ (Accordion, dérivée de données
+réelles), carte d'achat sticky desktop + `StickyBar` mobile, réservation dans le `Drawer` partagé
+(réutilise AvailabilityCalendar/SlotPicker), prestations similaires. Pas d'avis (inexistant backend).
+
+Fiche formation (`apps/vitrine/src/features/trainingDetail/` + `TrainingDetailPage`) : hero + badges,
+galerie + trailer (LessonEmbed), programme éditorial, sessions présentielles réelles (places restantes) /
+accès distanciel, avis (TrainingReviews), formations similaires. Achat formation NON câblé (checkout
+service-only + waiver légal à porter) → pas de faux bouton, documenté comme prochaine session.
+
+Vérifs : typecheck OK, lint 0 erreur, 381 tests front verts, build vitrine+manager OK. Backend intact.

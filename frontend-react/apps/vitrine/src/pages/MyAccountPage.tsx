@@ -9,6 +9,7 @@ import {
   useMyBookings,
   useMyGiftCards,
   useMySales,
+  useMyProfile,
   readStoredFirstName,
   pickNextBooking,
   greetingName,
@@ -47,6 +48,7 @@ export function MyAccountPage() {
   const learning = useMyLearningFormations();
   const giftCards = useMyGiftCards();
   const sales = useMySales();
+  const profile = useMyProfile();
 
   if (status === 'loading') return <div className="bs-hub"><Skeleton variant="block" height="120px" /></div>;
 
@@ -62,7 +64,7 @@ export function MyAccountPage() {
     );
   }
 
-  const firstName = greetingName(readStoredFirstName(), user.email);
+  const firstName = greetingName(profile.data?.firstName || readStoredFirstName(), user.email);
   const initials = (firstName || user.email || '?').slice(0, 2).toUpperCase();
 
   const nextBooking = pickNextBooking(bookings.data ?? []);

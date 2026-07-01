@@ -85,9 +85,29 @@ export interface ClientSale {
   invoice: ClientSaleInvoice | null;
 }
 
-/** Réponse de mise à jour du profil (PUT /api/client/profile). */
+/** Réponse de mise à jour / lecture du profil (PUT & GET /api/client/profile). */
 export interface ClientProfile {
   firstName: string;
   lastName: string;
   email: string;
+}
+
+/** Motif d'éligibilité au remboursement (serveur = autorité). */
+export type RefundReason = 'retractation' | 'institut' | 'none';
+
+/** Éligibilité remboursement d'une réservation (GET …/refund-eligibility). */
+export interface BookingRefundEligibility {
+  eligibleRefund: boolean;
+  reason: RefundReason;
+  waiverSigned: boolean;
+  refundAmount: MoneyAmount;
+  daysBeforeService: number;
+  cancellationDays: number;
+}
+
+/** Résultat d'une annulation (POST …/cancel). */
+export interface BookingCancelResult {
+  eligibleRefund: boolean;
+  reason: RefundReason;
+  refundAmount: MoneyAmount;
 }

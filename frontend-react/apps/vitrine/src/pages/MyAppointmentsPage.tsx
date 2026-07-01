@@ -1,10 +1,14 @@
-// RX4 — Mes rendez-vous (P3). Réservations de prestations en cards (jamais de tableau). Lecture seule en
-// S1 : date, heure, prestation, statut, paiement, reste à payer, facture. Annulation/report = S2.
+// RX4 — Mes rendez-vous (P2/P3). Cards interactives (jamais de tableau) : chaque carte ouvre un drawer
+// détail premium avec les actions autorisées (facture, annulation). Annulation = parcours intégré au drawer
+// (éligibilité → conséquences → confirmation → succès → refresh). Report actif = non supporté côté client
+// (flux tokenisé e-mail, cf. audit §2) → aucun bouton factice.
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge, EmptyState, ErrorState, Skeleton } from '@bs/ui';
-import { formatPrice, bookingInvoiceUrl, type ClientBooking } from '@bs/api-client';
+import { formatPrice, type ClientBooking } from '@bs/api-client';
 import {
   AccountShell,
+  BookingDetailDrawer,
   useMyBookings,
   formatLongDate,
   formatTimeRange,
@@ -14,10 +18,10 @@ import {
   isUpcomingBooking,
 } from '../features/account';
 
-function BookingCard({ b }: { b: ClientBooking }) {
+function BookingCard({ b, onOpen }: { b: ClientBooking; onOpen: () => void }) {
   const balance = bookingBalanceDue(b);
   return (
-    <article className="bs-hl bs-hl--plain">
+    <button type="button" className="bs-hl bs-hl--plain" style={{ cursor: 'pointer', textAlign: 'left', width: '100%' }} onClick={onOpen}>
       <div className="bs-hl__row">
         <h2 className="bs-hl__title">{b.serviceName || 'Prestation'}</h2>
         <Badge tone={bookingStatusTone(b.status, b.startAt)}>{bookingStatusLabel(b.status)}</Badge>
@@ -28,17 +32,28 @@ function BookingCard({ b }: { b: ClientBooking }) {
         <span><i className="bi bi-cash-coin" aria-hidden="true" /> {formatPrice(b.totalPrice)}</span>
         {balance > 0 ? <span><i className="bi bi-wallet2" aria-hidden="true" /> Reste {formatPrice(balance)}</span> : null}
       </div>
-      {b.saleId ? (
-        <a className="bs-btn bs-btn--secondary bs-hl__cta" href={bookingInvoiceUrl(b.bookingId)} target="_blank" rel="noopener noreferrer">
-          <i className="bi bi-download" aria-hidden="true" /> Facture
-        </a>
-      ) : null}
-    </article>
+      <span className="bs-hub__section-link" aria-hidden="true">Voir le détail <i className="bi bi-chevron-right" /></span>
+    </button>
+  );
+}
+
+function Section({ title, bookings, onOpen }: { title: string; bookings: ClientBooking[]; onOpen: (b: ClientBooking) => void }) {
+  if (bookings.length === 0) return null;
+  return (
+    <div className="bs-hub__section">
+      <div className="bs-hub__section-head"><h2 className="bs-hub__section-title">{title}</h2></div>
+      <div className="bs-hub__list">{bookings.map((b) => <BookingCard key={b.id} b={b} onOpen={() => onOpen(b)} />)}</div>
+    </div>
   );
 }
 
 export function MyAppointmentsPage() {
   const query = useMyBookings();
+  const [selected, setSelected] = useState<ClientBooking | null>(null);
+
+  const bookings = query.data ?? [];
+  const upcoming = bookings.filter((b) => isUpcomingBooking(b));
+  const past = bookings.filter((b) => !isUpcomingBooking(b));
 
   return (
     <AccountShell title="Mes rendez-vous">
@@ -46,35 +61,18 @@ export function MyAppointmentsPage() {
         <Skeleton variant="block" height="120px" count={2} />
       ) : query.isError ? (
         <ErrorState title="Impossible de charger vos rendez-vous." />
-      ) : (query.data ?? []).length === 0 ? (
+      ) : bookings.length === 0 ? (
         <>
           <EmptyState label="Vous n'avez pas encore de rendez-vous." />
           <Link className="bs-btn" to="/prestations" style={{ marginTop: 'var(--bs-space-2)' }}>Découvrir les prestations</Link>
         </>
       ) : (
-        <RenderBookings bookings={query.data ?? []} />
+        <>
+          <Section title="À venir" bookings={upcoming} onOpen={setSelected} />
+          <Section title="Passés" bookings={past} onOpen={setSelected} />
+        </>
       )}
+      {selected ? <BookingDetailDrawer booking={selected} onClose={() => setSelected(null)} /> : null}
     </AccountShell>
-  );
-}
-
-function RenderBookings({ bookings }: { bookings: ClientBooking[] }) {
-  const upcoming = bookings.filter((b) => isUpcomingBooking(b));
-  const past = bookings.filter((b) => !isUpcomingBooking(b));
-  return (
-    <>
-      {upcoming.length > 0 ? (
-        <div className="bs-hub__section">
-          <div className="bs-hub__section-head"><h2 className="bs-hub__section-title">À venir</h2></div>
-          <div className="bs-hub__list">{upcoming.map((b) => <BookingCard key={b.id} b={b} />)}</div>
-        </div>
-      ) : null}
-      {past.length > 0 ? (
-        <div className="bs-hub__section">
-          <div className="bs-hub__section-head"><h2 className="bs-hub__section-title">Passés</h2></div>
-          <div className="bs-hub__list">{past.map((b) => <BookingCard key={b.id} b={b} />)}</div>
-        </div>
-      ) : null}
-    </>
   );
 }

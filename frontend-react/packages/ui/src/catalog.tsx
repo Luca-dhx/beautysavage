@@ -125,6 +125,35 @@ export interface PawRatingProps {
   compact?: boolean;
 }
 
+export interface PawInputProps {
+  /** Note sélectionnée (0 = aucune). */
+  value: number;
+  onChange: (value: number) => void;
+  /** Libellé accessible du groupe. */
+  label?: string;
+}
+
+/** Sélecteur de note interactif (1..5 pattes). RX4 — parcours avis. Clavier + aria. */
+export function PawInput({ value, onChange, label = 'Votre note' }: PawInputProps) {
+  return (
+    <span className="bs-paw-input" role="radiogroup" aria-label={label}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          className={`bs-paw-input__btn${n <= value ? ' bs-paw-input__btn--on' : ''}`}
+          role="radio"
+          aria-checked={n === value}
+          aria-label={`${n} sur 5`}
+          onClick={() => onChange(n)}
+        >
+          <Paw filled={n <= value} />
+        </button>
+      ))}
+    </span>
+  );
+}
+
 export function PawRating({ value, count, compact = false }: PawRatingProps) {
   const rounded = Math.round(value);
   const label = `${value.toFixed(1)} sur 5${count !== undefined ? `, ${count} avis` : ''}`;

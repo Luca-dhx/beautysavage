@@ -93,6 +93,22 @@ export function bookingStatusTone(status: string, startIso?: string | null): 'su
   return 'info';
 }
 
+/** Durée d'une réservation en minutes (endAt − startAt), 0 si indéterminable. */
+export function bookingDurationMinutes(startIso?: string | null, endIso?: string | null): number {
+  const start = toDate(startIso);
+  const end = toDate(endIso);
+  if (!start || !end) return 0;
+  const mins = Math.round((end.getTime() - start.getTime()) / 60000);
+  return mins > 0 ? mins : 0;
+}
+
+/** Libellé lisible d'un motif d'éligibilité au remboursement (serveur = autorité sur la valeur). */
+export function refundReasonLabel(reason: string, eligible: boolean): string {
+  if (reason === 'retractation') return 'Droit de rétractation légal (14 jours)';
+  if (reason === 'institut') return "Dans le délai d'annulation de l'institut";
+  return eligible ? 'Remboursable' : "Non remboursable (délai dépassé ou renonciation signée)";
+}
+
 /** Masque un code de carte cadeau : ne révèle que les 4 derniers caractères (« •••• 1A2B »). */
 export function maskGiftCardCode(code?: string | null): string {
   const raw = String(code || '').replace(/\s+/g, '');

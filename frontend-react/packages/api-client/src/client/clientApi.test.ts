@@ -1,9 +1,10 @@
 // RX4 — Espace client : endpoints + normalisation (le serveur fait foi).
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { listMyBookings, bookingInvoiceUrl } from './bookings';
+import { listMyBookings, bookingInvoiceUrl, getBookingRefundEligibility, cancelMyBooking } from './bookings';
 import { listMyGiftCards, getMyGiftCard } from './giftCards';
 import { listMySales, saleInvoiceUrl } from './sales';
-import { updateMyProfile, requestPasswordReset } from './profile';
+import { getMyProfile, updateMyProfile, requestPasswordReset } from './profile';
+import { submitFormationReview } from './reviews';
 
 function json(payload: unknown) {
   return new Response(JSON.stringify(payload), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -24,6 +25,32 @@ describe('client api — bookings', () => {
   });
   it('bookingInvoiceUrl encode l\'identifiant', () => {
     expect(bookingInvoiceUrl('b 1')).toContain('/api/client/bookings/b%201/invoice');
+  });
+  it('getBookingRefundEligibility normalise la réponse', async () => {
+    installFetch({ ok: true, eligibleRefund: true, reason: 'retractation', waiverSigned: false, refundAmount: 90, daysBeforeService: 5, cancellationDays: 7 });
+    const res = await getBookingRefundEligibility('bk1');
+    expect(res.eligibleRefund).toBe(true);
+    expect(res.reason).toBe('retractation');
+    expect(res.refundAmount).toBe(90);
+    expect(calls[0].url).toContain('/api/client/bookings/bk1/refund-eligibility');
+  });
+  it('cancelMyBooking poste et renvoie le résultat', async () => {
+    installFetch({ ok: true, eligibleRefund: false, reason: 'none', refundAmount: 0 });
+    const res = await cancelMyBooking('bk1');
+    expect(res.eligibleRefund).toBe(false);
+    expect(res.reason).toBe('none');
+    expect(calls[0].url).toContain('/api/client/bookings/bk1/cancel');
+    expect(calls[0].init?.method).toBe('POST');
+  });
+});
+
+describe('client api — reviews', () => {
+  it('submitFormationReview poste rating + comment', async () => {
+    installFetch({ ok: true });
+    await submitFormationReview('f1', { rating: 5, comment: 'Top' });
+    expect(calls[0].url).toContain('/api/client/formations/f1/review');
+    expect(calls[0].init?.method).toBe('POST');
+    expect(String(calls[0].init?.body)).toContain('"rating":5');
   });
 });
 
@@ -80,5 +107,12 @@ describe('client api — profile', () => {
     await requestPasswordReset('j@test.fr');
     expect(calls[0].url).toContain('/auth/password-reset/request');
     expect(calls[0].init?.method).toBe('POST');
+  });
+  it('getMyProfile lit prénom/nom/e-mail', async () => {
+    installFetch({ ok: true, user: { firstName: 'Julie', lastName: 'Martin', email: 'j@test.fr' } });
+    const res = await getMyProfile();
+    expect(res.firstName).toBe('Julie');
+    expect(res.email).toBe('j@test.fr');
+    expect(calls[0].url).toContain('/api/client/profile');
   });
 });

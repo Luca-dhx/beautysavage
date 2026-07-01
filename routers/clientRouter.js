@@ -20,6 +20,7 @@ import {
   listMySales,
   addFavorite,
   removeFavorite,
+  getProfile,
   updateProfile,
   cancelFormationParticipation
 } from '../controllers/clientController.js';
@@ -102,6 +103,7 @@ router.put('/formations/:formationId/change-session', requireAuth(), changeForma
 router.post('/cart-snapshot', requireAuth(), saveCartSnapshot);
 router.get('/sales', requireAuth(), listMySales);
 router.get('/sales/:saleId/invoice', requireAuth(), downloadClientInvoice);
+router.get('/profile', requireAuth(), getProfile);
 router.put('/profile', requireAuth(), updateProfile);
 router.get('/favorites', requireAuth(), listFavorites);
 router.post('/favorites', requireAuth(), addFavorite);

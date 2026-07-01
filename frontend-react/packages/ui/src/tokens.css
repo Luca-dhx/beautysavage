@@ -371,6 +371,11 @@ body {
 .bs-paw { width: 18px; height: 18px; fill: var(--bs-color-border); transition: fill var(--bs-motion-fast) var(--bs-motion-ease-out); }
 .bs-paw--on { fill: var(--bs-color-secondary); }
 .bs-paws--compact .bs-paw { width: 14px; height: 14px; }
+/* RX4 — sélecteur de note interactif (avis). Cibles ≥44px. */
+.bs-paw-input { display: inline-flex; align-items: center; gap: var(--bs-space-1); }
+.bs-paw-input__btn { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: none; background: none; cursor: pointer; padding: 0; border-radius: var(--bs-radius); }
+.bs-paw-input__btn .bs-paw { width: 30px; height: 30px; }
+.bs-paw-input__btn:hover .bs-paw { fill: var(--bs-color-secondary); }
 @media (prefers-reduced-motion: reduce) { .bs-paw { transition: none; } }
 
 /* C1 — Section avis vitrine. */

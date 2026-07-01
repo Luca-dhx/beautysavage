@@ -10,6 +10,8 @@ import {
   totalGiftCardBalance,
   greetingName,
   formatTimeRange,
+  bookingDurationMinutes,
+  refundReasonLabel,
 } from './format';
 
 const NOW = Date.UTC(2026, 5, 1, 12, 0, 0); // 2026-06-01T12:00:00Z
@@ -92,5 +94,21 @@ describe('formatTimeRange', () => {
   it('renvoie une plage, ou juste le départ, ou vide', () => {
     expect(formatTimeRange('2026-06-01T14:30:00Z', '2026-06-01T15:30:00Z')).toContain('→');
     expect(formatTimeRange(null, null)).toBe('');
+  });
+});
+
+describe('bookingDurationMinutes', () => {
+  it('calcule la durée en minutes, 0 si indéterminable', () => {
+    expect(bookingDurationMinutes('2026-06-01T14:00:00Z', '2026-06-01T15:30:00Z')).toBe(90);
+    expect(bookingDurationMinutes('2026-06-01T14:00:00Z', null)).toBe(0);
+    expect(bookingDurationMinutes('2026-06-01T15:00:00Z', '2026-06-01T14:00:00Z')).toBe(0);
+  });
+});
+
+describe('refundReasonLabel', () => {
+  it('libellé par motif', () => {
+    expect(refundReasonLabel('retractation', true)).toMatch(/rétractation/i);
+    expect(refundReasonLabel('institut', true)).toMatch(/institut/i);
+    expect(refundReasonLabel('none', false)).toMatch(/non remboursable/i);
   });
 });

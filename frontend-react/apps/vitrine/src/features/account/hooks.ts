@@ -3,10 +3,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listMyBookings,
+  getBookingRefundEligibility,
+  cancelMyBooking,
   listMyGiftCards,
   getMyGiftCard,
   listMySales,
+  getMyProfile,
   updateMyProfile,
+  submitFormationReview,
+  type SubmitReviewInput,
 } from '@bs/api-client';
 
 const STALE = 30_000;
@@ -17,6 +22,26 @@ export function useMyBookings() {
     queryFn: ({ signal }) => listMyBookings(signal),
     staleTime: STALE,
     retry: false,
+  });
+}
+
+/** Éligibilité remboursement d'une réservation (chargée à l'ouverture du parcours d'annulation). */
+export function useBookingRefundEligibility(bookingId: string | undefined) {
+  return useQuery({
+    queryKey: ['account', 'booking-refund-eligibility', bookingId],
+    queryFn: () => getBookingRefundEligibility(bookingId as string),
+    enabled: Boolean(bookingId),
+    staleTime: 0,
+    retry: false,
+  });
+}
+
+/** Annulation d'une réservation. Rafraîchit la liste des rendez-vous au succès. */
+export function useCancelBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (bookingId: string) => cancelMyBooking(bookingId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['account', 'bookings'] }),
   });
 }
 
@@ -48,7 +73,25 @@ export function useMySales() {
   });
 }
 
-// Prénom édité en session (audit §0.1 : /auth/me ne l'expose pas). Persisté localement pour l'accueil.
+/** Profil client (RX4 S2 : GET /api/client/profile — source fiable du prénom pour l'accueil). */
+export function useMyProfile() {
+  return useQuery({
+    queryKey: ['account', 'profile'],
+    queryFn: ({ signal }) => getMyProfile(signal),
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
+/** Soumission d'un avis formation. Pas d'invalidation (backend sans lecture de statut). */
+export function useSubmitReview() {
+  return useMutation({
+    mutationFn: (input: { formationId: string } & SubmitReviewInput) =>
+      submitFormationReview(input.formationId, { rating: input.rating, comment: input.comment }),
+  });
+}
+
+// Prénom édité en session (fallback S1 quand GET profil indisponible). Persisté localement pour l'accueil.
 const FIRST_NAME_KEY = 'bs.account.firstName';
 
 export function readStoredFirstName(): string {

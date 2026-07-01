@@ -155,6 +155,33 @@ function sanitizeProfileName(value) {
   return String(value || '').trim().slice(0, NAME_MAX_LENGTH);
 }
 
+// RX4 S2 — Lecture seule du profil client (prénom/nom/e-mail). Miroir de ce que renvoie déjà updateProfile.
+// AUCUNE donnée sensible, AUCUNE logique métier : sert l'accueil « Bonjour {prénom} » et le préremplissage
+// du formulaire profil (le modèle User n'a pas d'autre champ self-service).
+export async function getProfile(req, res) {
+  const userId = getSessionUserId(req);
+  if (!userId) {
+    return res.status(401).json({ ok: false, error: 'Authentification requise.' });
+  }
+  try {
+    const user = await User.findById(userId).select('firstName lastName email').lean();
+    if (!user) {
+      return res.status(404).json({ ok: false, error: 'Utilisateur introuvable.' });
+    }
+    return res.json({
+      ok: true,
+      user: {
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || ''
+      }
+    });
+  } catch (error) {
+    console.error('Erreur lecture profil client', error);
+    return res.status(500).json({ ok: false, error: 'Impossible de lire votre profil.' });
+  }
+}
+
 export async function updateProfile(req, res) {
   const userId = getSessionUserId(req);
   if (!userId) {

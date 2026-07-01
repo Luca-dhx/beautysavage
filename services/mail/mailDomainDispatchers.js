@@ -5,7 +5,7 @@
 
 import Sale from '../../models/Sale.js';
 import crypto from 'node:crypto';
-import { resolvePublicBaseUrl, resolvePublicUrl, resolveVitrineUrl } from '../system/domainResolver.js';
+import { resolvePublicBaseUrl } from '../system/domainResolver.js';
 import { resolveFrontendUrl } from '../system/frontendUrl.js';
 import { formatAmount, withMailThemeVars, stripHtml, replaceTemplateVariables } from './mailRenderer.js';
 import { loadTemplate } from './mailTemplateRuntime.js';
@@ -21,15 +21,16 @@ function buildPasswordResetLink(token) {
   if (!token) {
     return resolvePublicBaseUrl();
   }
-  return resolvePublicUrl(`reset-password?token=${encodeURIComponent(token)}`);
+  // RX-GO-2 — flag-aware : Vanilla (/reset-password) tant que OFF ; /app/reinitialiser-mot-de-passe quand ON.
+  return resolveFrontendUrl('password-reset', { token });
 }
 
 function buildInvoiceDownloadUrl(invoiceToken) {
   if (!invoiceToken) {
     return '';
   }
-  const encodedToken = encodeURIComponent(String(invoiceToken));
-  return resolveVitrineUrl(`vitrine.html?slug=invoice&token=${encodedToken}`);
+  // RX-GO-2 — flag-aware : Vanilla (slug=invoice) tant que REACT_OFFICIAL_FRONTEND=OFF ; /app/invoice/:token quand ON.
+  return resolveFrontendUrl('invoice', { token: invoiceToken });
 }
 
 async function pickRandomSale() {

@@ -88,8 +88,8 @@ describe('LoginPage', () => {
       '/connexion?redirect=/checkout',
       [serviceItem],
     );
-    fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'c@b.c' } });
-    fireEvent.change(screen.getByLabelText('Mot de passe'), { target: { value: 'secret' } });
+    fireEvent.change(screen.getByLabelText(/^E-mail/), { target: { value: 'c@b.c' } });
+    fireEvent.change(screen.getByLabelText(/^Mot de passe/), { target: { value: 'secret' } });
     fireEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
     await waitFor(() => expect(mockLogin).toHaveBeenCalledWith('c@b.c', 'secret'));
     await waitFor(() => expect(screen.getByText('PAGE CHECKOUT')).toBeInTheDocument());
@@ -98,8 +98,8 @@ describe('LoginPage', () => {
   it('erreur de connexion → message', async () => {
     mockLogin.mockRejectedValue(new ApiError({ status: 401, message: 'Identifiants invalides.' }));
     renderWithProviders(<LoginPage />, '/connexion');
-    fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'x@y.z' } });
-    fireEvent.change(screen.getByLabelText('Mot de passe'), { target: { value: 'bad' } });
+    fireEvent.change(screen.getByLabelText(/^E-mail/), { target: { value: 'x@y.z' } });
+    fireEvent.change(screen.getByLabelText(/^Mot de passe/), { target: { value: 'bad' } });
     fireEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
     await waitFor(() => expect(screen.getByText('Identifiants invalides.')).toBeInTheDocument());
   });

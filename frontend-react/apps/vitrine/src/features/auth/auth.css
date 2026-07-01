@@ -1,0 +1,29 @@
+/* RX-GO-2 — Écrans auth React. Colonne unique centrée, mobile-first, 44px, tokens --bs-* only. */
+.bs-auth { display: flex; justify-content: center; padding: var(--bs-space-4) var(--bs-space-2); }
+.bs-auth__card { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: var(--bs-space-3); }
+.bs-auth__title { margin: 0; font-size: 1.4rem; }
+.bs-auth__subtitle { margin: 0; color: var(--bs-color-muted); font-size: 0.92rem; }
+.bs-auth form { display: flex; flex-direction: column; gap: var(--bs-space-3); }
+.bs-auth__footer { display: flex; flex-direction: column; gap: var(--bs-space-1); font-size: 0.9rem; }
+.bs-auth__footer a { color: var(--bs-color-primary); text-decoration: none; }
+.bs-auth__footer a:hover { text-decoration: underline; }
+.bs-auth__home { margin: 0; font-size: 0.85rem; }
+.bs-auth__home a { color: var(--bs-color-muted); text-decoration: none; }
+
+/* Champ mot de passe (afficher/masquer) */
+.bs-auth__pw { position: relative; display: flex; }
+.bs-auth__pw .bs-input { flex: 1; padding-right: 44px; }
+.bs-auth__pw-toggle { position: absolute; right: 0; top: 0; height: 100%; width: 44px; display: inline-flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--bs-color-muted); }
+.bs-auth__pw-toggle:hover { color: var(--bs-color-text); }
+
+/* Code de vérification (6 chiffres) */
+.bs-auth__code .bs-input { font-size: 1.4rem; letter-spacing: 0.4em; text-align: center; font-variant-numeric: tabular-nums; }
+.bs-auth__resend { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; background: none; border: none; color: var(--bs-color-primary); cursor: pointer; font-size: 0.9rem; padding: 0; }
+.bs-auth__resend:disabled { color: var(--bs-color-muted); cursor: default; }
+
+/* États (succès / info) */
+.bs-auth__notice { display: flex; align-items: flex-start; gap: var(--bs-space-2); padding: var(--bs-space-3); border-radius: var(--bs-radius); border: 1px solid var(--bs-color-border); }
+.bs-auth__notice i { font-size: 1.2rem; flex-shrink: 0; }
+.bs-auth__notice--ok { border-color: color-mix(in srgb, var(--bs-color-success) 40%, transparent); background: color-mix(in srgb, var(--bs-color-success) 8%, var(--bs-color-surface)); }
+.bs-auth__notice--ok i { color: var(--bs-color-success); }
+.bs-auth__notice--info i { color: var(--bs-color-primary); }

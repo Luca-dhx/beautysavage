@@ -25,8 +25,9 @@ const admin: AuthUser = { id: '2', email: 'admin@b.c', role: 'admin' };
 describe('Manager App', () => {
   it('redirige un visiteur anonyme vers /login', async () => {
     renderAt('/', null);
+    // RX-GO-2 — /login est désormais une vraie page de connexion manager (plus un placeholder).
     await waitFor(() =>
-      expect(screen.getByRole('heading', { name: 'Connexion manager' })).toBeInTheDocument(),
+      expect(screen.getByRole('heading', { name: 'Connexion — Gestion' })).toBeInTheDocument(),
     );
   });
 

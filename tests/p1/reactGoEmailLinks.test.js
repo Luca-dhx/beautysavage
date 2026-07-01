@@ -54,6 +54,20 @@ describe('RX-GO — flag-aware frontend URLs', () => {
     expect(buildSessionCancellationActionUrl({})).toBe('');
   });
 
+  it('facture (RX-GO-2) : Vanilla OFF, React /app/invoice/:token ON', () => {
+    expect(resolveFrontendUrl('invoice', { token: 'T1' })).toContain('/vitrine.html?slug=invoice&token=T1');
+    setFlag(true);
+    expect(resolveFrontendUrl('invoice', { token: 'T1' })).toContain('/app/invoice/T1');
+  });
+
+  it('reset mot de passe (RX-GO-2) : Vanilla OFF, React /app/reinitialiser-mot-de-passe ON', () => {
+    expect(resolveFrontendUrl('password-reset', { token: 'T1' })).toContain('/reset-password?token=T1');
+    setFlag(true);
+    const url = resolveFrontendUrl('password-reset', { token: 'T1' });
+    expect(url).toContain('/app/reinitialiser-mot-de-passe?token=T1');
+    expect(url).not.toContain('vitrine.html');
+  });
+
   it('route inconnue → erreur explicite', () => {
     expect(() => resolveFrontendUrl('inconnue', {})).toThrow(/route inconnue/);
   });

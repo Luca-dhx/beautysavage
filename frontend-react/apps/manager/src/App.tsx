@@ -1,179 +1,187 @@
-import { Routes, Route } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import type { ComponentType } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { RequireRole } from '@bs/auth';
+import { LoadingState } from '@bs/ui';
 import { ManagerLayout } from './layouts/ManagerLayout';
 import { DevLayout } from './layouts/DevLayout';
 import { Placeholder } from './pages/Placeholder';
-import {
-  AdminCommunicationLayout,
-  DevCommunicationLayout,
-  AdminCommunicationDashboard,
-  CommercialeIdentityPage,
-  AdminMailsPage,
-  DevCommunicationDashboard,
-  SupportIdentityPage,
-  DevMailDeliveriesPage,
-  DevSendLogsPage,
-} from './features/communication';
-import {
-  ThemeStudioLayout,
-  ThemeStudioDashboard,
-  VitrineThemeEditorPage,
-  PanelThemeEditorPage,
-} from './features/themeStudio';
-import { SystemSettingsPage } from './features/systemSettings';
-import {
-  MailTemplateStudioLayout,
-  MailTemplateStudioDashboard,
-  MailTemplateEditorPage,
-  TemplateVersionsPage,
-} from './features/mailTemplates';
-import {
-  NotificationStudioLayout,
-  NotificationTemplateDashboard,
-  NotificationTemplateEditorPage,
-  NotificationTemplateVersionsPage,
-  NotificationCategoriesPage,
-} from './features/notificationTemplates';
-import { PlanningPage } from './features/planning';
-import { ClientsListPage, Customer360Page } from './features/customer360';
-import {
-  GiftCardTemplateStudioLayout,
-  GiftCardTemplateStudioDashboard,
-  GiftCardTemplateEditorPage,
-  GiftCardTemplateVersionsPage,
-} from './features/giftCardTemplates';
-import { GiftCardLibraryPage } from './features/giftCardLibrary';
-import {
-  CatalogueLayout,
-  CatalogueDashboard,
-  ServicesListPage,
-  ServiceEditorPage,
-  TrainingsListPage,
-  TrainingEditorPage,
-  GiftCardCataloguePage,
-  ProductsUnavailablePage,
-} from './features/catalogue';
-import { SessionPresencePage } from './features/learning';
-import { ReviewModerationPage } from './features/reviews';
-import {
-  FinanceDashboardPage, FinanceTimelinePage, CommissionOverviewPage, CommissionDetailPage,
-  FinanceGiftCardsPage, GiftCardFinanceDetailPage,
-} from './features/finance';
+import { ComingSoon } from './pages/ComingSoon';
+import { ManagerHome } from './pages/ManagerHome';
+import { ManagerLoginPage } from './pages/ManagerLoginPage';
 
-// Routing manager R0 — placeholders + guards rôle (cf. rapport 147).
+// RX-GO-2 — Layouts + accueil + login EAGER ; features chargées à la demande (React.lazy) sous Suspense.
+// Réduit le chunk principal manager (~495 KB) : chaque feature dynamique = son propre chunk (partagé entre
+// ses leaves via la même URL d'import). Named exports → default.
+const l = <T, K extends keyof T>(loader: () => Promise<T>, key: K) =>
+  lazy(() => loader().then((m) => ({ default: m[key] as unknown as ComponentType })));
+
+const comm = () => import('./features/communication');
+const theme = () => import('./features/themeStudio');
+const mailT = () => import('./features/mailTemplates');
+const notifT = () => import('./features/notificationTemplates');
+const c360 = () => import('./features/customer360');
+const gcT = () => import('./features/giftCardTemplates');
+const cat = () => import('./features/catalogue');
+const fin = () => import('./features/finance');
+
+const AdminCommunicationLayout = l(comm, 'AdminCommunicationLayout');
+const DevCommunicationLayout = l(comm, 'DevCommunicationLayout');
+const AdminCommunicationDashboard = l(comm, 'AdminCommunicationDashboard');
+const CommercialeIdentityPage = l(comm, 'CommercialeIdentityPage');
+const AdminMailsPage = l(comm, 'AdminMailsPage');
+const DevCommunicationDashboard = l(comm, 'DevCommunicationDashboard');
+const SupportIdentityPage = l(comm, 'SupportIdentityPage');
+const DevMailDeliveriesPage = l(comm, 'DevMailDeliveriesPage');
+const DevSendLogsPage = l(comm, 'DevSendLogsPage');
+const ThemeStudioLayout = l(theme, 'ThemeStudioLayout');
+const ThemeStudioDashboard = l(theme, 'ThemeStudioDashboard');
+const VitrineThemeEditorPage = l(theme, 'VitrineThemeEditorPage');
+const PanelThemeEditorPage = l(theme, 'PanelThemeEditorPage');
+const SystemSettingsPage = l(() => import('./features/systemSettings'), 'SystemSettingsPage');
+const MailTemplateStudioLayout = l(mailT, 'MailTemplateStudioLayout');
+const MailTemplateStudioDashboard = l(mailT, 'MailTemplateStudioDashboard');
+const MailTemplateEditorPage = l(mailT, 'MailTemplateEditorPage');
+const TemplateVersionsPage = l(mailT, 'TemplateVersionsPage');
+const NotificationStudioLayout = l(notifT, 'NotificationStudioLayout');
+const NotificationTemplateDashboard = l(notifT, 'NotificationTemplateDashboard');
+const NotificationTemplateEditorPage = l(notifT, 'NotificationTemplateEditorPage');
+const NotificationTemplateVersionsPage = l(notifT, 'NotificationTemplateVersionsPage');
+const NotificationCategoriesPage = l(notifT, 'NotificationCategoriesPage');
+const PlanningPage = l(() => import('./features/planning'), 'PlanningPage');
+const ClientsListPage = l(c360, 'ClientsListPage');
+const Customer360Page = l(c360, 'Customer360Page');
+const GiftCardTemplateStudioLayout = l(gcT, 'GiftCardTemplateStudioLayout');
+const GiftCardTemplateStudioDashboard = l(gcT, 'GiftCardTemplateStudioDashboard');
+const GiftCardTemplateEditorPage = l(gcT, 'GiftCardTemplateEditorPage');
+const GiftCardTemplateVersionsPage = l(gcT, 'GiftCardTemplateVersionsPage');
+const GiftCardLibraryPage = l(() => import('./features/giftCardLibrary'), 'GiftCardLibraryPage');
+const CatalogueLayout = l(cat, 'CatalogueLayout');
+const CatalogueDashboard = l(cat, 'CatalogueDashboard');
+const ServicesListPage = l(cat, 'ServicesListPage');
+const ServiceEditorPage = l(cat, 'ServiceEditorPage');
+const TrainingsListPage = l(cat, 'TrainingsListPage');
+const TrainingEditorPage = l(cat, 'TrainingEditorPage');
+const GiftCardCataloguePage = l(cat, 'GiftCardCataloguePage');
+const ProductsUnavailablePage = l(cat, 'ProductsUnavailablePage');
+const SessionPresencePage = l(() => import('./features/learning'), 'SessionPresencePage');
+const ReviewModerationPage = l(() => import('./features/reviews'), 'ReviewModerationPage');
+const FinanceDashboardPage = l(fin, 'FinanceDashboardPage');
+const FinanceTimelinePage = l(fin, 'FinanceTimelinePage');
+const CommissionOverviewPage = l(fin, 'CommissionOverviewPage');
+const CommissionDetailPage = l(fin, 'CommissionDetailPage');
+const FinanceGiftCardsPage = l(fin, 'FinanceGiftCardsPage');
+const GiftCardFinanceDetailPage = l(fin, 'GiftCardFinanceDetailPage');
+
 // Manager = admin ou dev. /dev/* = dev uniquement. /login public.
 export function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<Placeholder title="Connexion manager" description="Login manager (admin/dev)." />} />
+    <Suspense fallback={<LoadingState label="Chargement…" />}>
+      <Routes>
+        <Route path="/login" element={<ManagerLoginPage />} />
 
-      <Route element={<RequireRole allow={['admin', 'dev']} loginPath="/login" />}>
-        <Route element={<ManagerLayout />}>
-          <Route index element={<Placeholder title="Tableau de bord" description="Vue d'ensemble du manager." />} />
-          <Route path="onboarding/contrat" element={<Placeholder title="Onboarding — Contrat" description="Activation du contrat." />} />
-          {/* M10 — Planning global institut (calendrier unique, mobile-first) */}
-          <Route path="planning" element={<PlanningPage />} />
-          <Route path="planning/:date" element={<PlanningPage />} />
-          {/* M12 — Customer 360 (Client Hub) : recherche + fiche client complète */}
-          <Route path="clients" element={<ClientsListPage />} />
-          <Route path="clients/:id" element={<Customer360Page />} />
-          <Route path="reservations" element={<Placeholder title="Réservations" description="Réservations de prestations." />} />
-          {/* C1 — Catalogue Studio (prestations, formations, cartes cadeaux ; produits désactivés) */}
-          <Route path="catalogue" element={<CatalogueLayout />}>
-            <Route index element={<CatalogueDashboard />} />
-            <Route path="prestations" element={<ServicesListPage />} />
-            <Route path="prestations/new" element={<ServiceEditorPage />} />
-            <Route path="prestations/:id" element={<ServiceEditorPage />} />
-            <Route path="formations" element={<TrainingsListPage />} />
-            <Route path="formations/new" element={<TrainingEditorPage />} />
-            <Route path="formations/:id" element={<TrainingEditorPage />} />
-            {/* C2 — Présence d'une session présentielle (scan QR + marquage) */}
-            <Route path="formations/:id/sessions/:sessionId/presence" element={<SessionPresencePage />} />
-            <Route path="cartes-cadeaux" element={<GiftCardCataloguePage />} />
-            <Route path="produits" element={<ProductsUnavailablePage />} />
-          </Route>
-          {/* M13 — Librairie de templates carte cadeau (admin/dev : sélection de l'actif, sans édition HTML) */}
-          <Route path="cartes-cadeaux/templates" element={<GiftCardLibraryPage />} />
-          {/* C3 — Modération des avis */}
-          <Route path="avis" element={<ReviewModerationPage />} />
-          {/* RX2.1 — Finance Dashboard : page d'accueil financière (cards/KPIs/actions, mobile-first) */}
-          <Route path="finance" element={<FinanceDashboardPage />} />
-          {/* RX2.2 — Financial Timeline : colonne vertébrale narrative (mouvements + résumé filtrable) */}
-          <Route path="finance/timeline" element={<FinanceTimelinePage />} />
-          {/* RX2.5 — Commissions premium (commission du mois, détail, paiement Stripe Dev hébergé) */}
-          <Route path="finance/commissions" element={<CommissionOverviewPage />} />
-          <Route path="finance/commissions/:year/:month" element={<CommissionDetailPage />} />
-          {/* RX2.6 — Gift Card Finance (cycle de vie financier des cartes cadeaux) */}
-          <Route path="finance/cartes-cadeaux" element={<FinanceGiftCardsPage />} />
-          <Route path="finance/cartes-cadeaux/:giftCardId" element={<GiftCardFinanceDetailPage />} />
-          <Route path="ventes" element={<Placeholder title="Ventes" description="Historique des ventes." />} />
-          <Route path="remboursements" element={<Placeholder title="Remboursements" description="Gestion des remboursements." />} />
-          <Route path="commissions" element={<Placeholder title="Commissions" description="Paiement des commissions." />} />
-          <Route path="parametres" element={<Placeholder title="Paramètres" description="Réglages du site." />} />
+        <Route element={<RequireRole allow={['admin', 'dev']} loginPath="/login" />}>
+          <Route element={<ManagerLayout />}>
+            {/* RX-GO-2 — vrai tableau de bord (hub), plus de placeholder vide */}
+            <Route index element={<ManagerHome />} />
+            <Route path="onboarding/contrat" element={<ComingSoon title="Onboarding — Contrat" description="L’activation du contrat se fait via l’assistant d’onboarding." links={[{ to: '/finance', label: 'Finance' }]} />} />
+            {/* M10 — Planning global institut */}
+            <Route path="planning" element={<PlanningPage />} />
+            <Route path="planning/:date" element={<PlanningPage />} />
+            {/* M12 — Customer 360 */}
+            <Route path="clients" element={<ClientsListPage />} />
+            <Route path="clients/:id" element={<Customer360Page />} />
+            {/* RX-GO-2 — routes historiques subsumées → redirections utiles */}
+            <Route path="reservations" element={<Navigate to="/planning" replace />} />
+            <Route path="ventes" element={<Navigate to="/finance/timeline" replace />} />
+            <Route path="remboursements" element={<Navigate to="/finance" replace />} />
+            <Route path="commissions" element={<Navigate to="/finance/commissions" replace />} />
+            <Route path="parametres" element={<ComingSoon title="Paramètres" description="La configuration système (domaines, identité, taxes) est disponible dans l’espace développeur." links={[{ to: '/dev/system', label: 'Paramètres système (dev)' }]} />} />
+            {/* C1 — Catalogue Studio */}
+            <Route path="catalogue" element={<CatalogueLayout />}>
+              <Route index element={<CatalogueDashboard />} />
+              <Route path="prestations" element={<ServicesListPage />} />
+              <Route path="prestations/new" element={<ServiceEditorPage />} />
+              <Route path="prestations/:id" element={<ServiceEditorPage />} />
+              <Route path="formations" element={<TrainingsListPage />} />
+              <Route path="formations/new" element={<TrainingEditorPage />} />
+              <Route path="formations/:id" element={<TrainingEditorPage />} />
+              <Route path="formations/:id/sessions/:sessionId/presence" element={<SessionPresencePage />} />
+              <Route path="cartes-cadeaux" element={<GiftCardCataloguePage />} />
+              <Route path="produits" element={<ProductsUnavailablePage />} />
+            </Route>
+            <Route path="cartes-cadeaux/templates" element={<GiftCardLibraryPage />} />
+            <Route path="avis" element={<ReviewModerationPage />} />
+            {/* RX2 — Finance */}
+            <Route path="finance" element={<FinanceDashboardPage />} />
+            <Route path="finance/timeline" element={<FinanceTimelinePage />} />
+            <Route path="finance/commissions" element={<CommissionOverviewPage />} />
+            <Route path="finance/commissions/:year/:month" element={<CommissionDetailPage />} />
+            <Route path="finance/cartes-cadeaux" element={<FinanceGiftCardsPage />} />
+            <Route path="finance/cartes-cadeaux/:giftCardId" element={<GiftCardFinanceDetailPage />} />
 
-          {/* M4 — Communication Center (admin/dev autorisés ; vue institut/client) */}
-          <Route path="communication" element={<AdminCommunicationLayout />}>
-            <Route index element={<AdminCommunicationDashboard />} />
-            <Route path="identite-commerciale" element={<CommercialeIdentityPage />} />
-            <Route path="mails" element={<AdminMailsPage />} />
-          </Route>
+            {/* M4 — Communication Center */}
+            <Route path="communication" element={<AdminCommunicationLayout />}>
+              <Route index element={<AdminCommunicationDashboard />} />
+              <Route path="identite-commerciale" element={<CommercialeIdentityPage />} />
+              <Route path="mails" element={<AdminMailsPage />} />
+            </Route>
 
-          {/* Section dev (RequireRole dev uniquement) */}
-          <Route path="dev" element={<RequireRole allow={['dev']} loginPath="/login" deniedPath="/" />}>
-            <Route element={<DevLayout />}>
-              <Route index element={<Placeholder title="Espace développeur" description="Outils dev." />} />
-              <Route path="contrats" element={<Placeholder title="Contrats" description="Gestion des contrats (dev)." />} />
-              <Route path="commissions" element={<Placeholder title="Commissions (dev)" description="Config commissions." />} />
-              <Route path="integrated-api" element={<Placeholder title="API intégrée" description="Credentials API intégrée." />} />
-              {/* S1 — Paramètres Système (dev uniquement) : domaines + config métier globale */}
-              <Route path="system" element={<SystemSettingsPage />} />
-              {/* M6 — Mail Template Studio (dev uniquement) */}
-              <Route path="email-templates" element={<MailTemplateStudioLayout />}>
-                <Route index element={<MailTemplateStudioDashboard />} />
-                <Route path=":templateKey" element={<MailTemplateEditorPage />} />
-                <Route path=":templateKey/versions" element={<TemplateVersionsPage />} />
-              </Route>
+            {/* Section dev (RequireRole dev uniquement) */}
+            <Route path="dev" element={<RequireRole allow={['dev']} loginPath="/login" deniedPath="/" />}>
+              <Route element={<DevLayout />}>
+                <Route index element={<ComingSoon title="Espace développeur" description="Outils techniques et studios de contenu." links={[{ to: '/dev/system', label: 'Paramètres système' }, { to: '/dev/theme-studio', label: 'Theme Studio' }, { to: '/dev/email-templates', label: 'Templates e-mail' }, { to: '/dev/communication', label: 'Communication / journaux' }]} />} />
+                <Route path="contrats" element={<ComingSoon title="Contrats" description="La gestion des contrats arrive prochainement." links={[{ to: '/dev/system', label: 'Paramètres système' }]} />} />
+                <Route path="commissions" element={<ComingSoon title="Commissions (dev)" description="La configuration des commissions arrive prochainement." links={[{ to: '/finance/commissions', label: 'Commissions (finance)' }]} />} />
+                <Route path="integrated-api" element={<ComingSoon title="API intégrée" description="La gestion des credentials d’API intégrée arrive prochainement." links={[{ to: '/dev/system', label: 'Paramètres système' }]} />} />
+                <Route path="system" element={<SystemSettingsPage />} />
+                {/* M6 — Mail Template Studio */}
+                <Route path="email-templates" element={<MailTemplateStudioLayout />}>
+                  <Route index element={<MailTemplateStudioDashboard />} />
+                  <Route path=":templateKey" element={<MailTemplateEditorPage />} />
+                  <Route path=":templateKey/versions" element={<TemplateVersionsPage />} />
+                </Route>
+                {/* M13 — Gift Card Template Studio */}
+                <Route path="gift-card-templates" element={<GiftCardTemplateStudioLayout />}>
+                  <Route index element={<GiftCardTemplateStudioDashboard />} />
+                  <Route path=":slug" element={<GiftCardTemplateEditorPage />} />
+                  <Route path=":slug/versions" element={<GiftCardTemplateVersionsPage />} />
+                </Route>
+                {/* M7 — Notification Studio */}
+                <Route path="notification-templates" element={<NotificationStudioLayout />}>
+                  <Route index element={<NotificationTemplateDashboard />} />
+                  <Route path=":templateKey" element={<NotificationTemplateEditorPage />} />
+                  <Route path=":templateKey/versions" element={<NotificationTemplateVersionsPage />} />
+                </Route>
+                <Route path="notification-categories" element={<NotificationStudioLayout />}>
+                  <Route index element={<NotificationCategoriesPage />} />
+                </Route>
+                {/* RX-GO-2 — journaux : send-logs redirige vers la page implémentée */}
+                <Route path="send-logs" element={<Navigate to="/dev/communication/send-logs" replace />} />
+                <Route path="event-logs" element={<ComingSoon title="Logs d’événements" description="Le journal des événements arrive prochainement." links={[{ to: '/dev/communication/mail-deliveries', label: 'Suivi des e-mails' }]} />} />
+                <Route path="webhook-failures" element={<ComingSoon title="Échecs webhook" description="Le suivi des webhooks en échec arrive prochainement." links={[{ to: '/dev/communication/send-logs', label: 'Journal des envois' }]} />} />
 
-              {/* M13 — Gift Card Template Studio (dev uniquement) */}
-              <Route path="gift-card-templates" element={<GiftCardTemplateStudioLayout />}>
-                <Route index element={<GiftCardTemplateStudioDashboard />} />
-                <Route path=":slug" element={<GiftCardTemplateEditorPage />} />
-                <Route path=":slug/versions" element={<GiftCardTemplateVersionsPage />} />
-              </Route>
+                {/* M4 — Communication Center (dev) */}
+                <Route path="communication" element={<DevCommunicationLayout />}>
+                  <Route index element={<DevCommunicationDashboard />} />
+                  <Route path="identite-support" element={<SupportIdentityPage />} />
+                  <Route path="mail-deliveries" element={<DevMailDeliveriesPage />} />
+                  <Route path="send-logs" element={<DevSendLogsPage />} />
+                </Route>
 
-              {/* M7 — Notification Studio (dev uniquement) : templates + catégories */}
-              <Route path="notification-templates" element={<NotificationStudioLayout />}>
-                <Route index element={<NotificationTemplateDashboard />} />
-                <Route path=":templateKey" element={<NotificationTemplateEditorPage />} />
-                <Route path=":templateKey/versions" element={<NotificationTemplateVersionsPage />} />
-              </Route>
-              <Route path="notification-categories" element={<NotificationStudioLayout />}>
-                <Route index element={<NotificationCategoriesPage />} />
-              </Route>
-              <Route path="send-logs" element={<Placeholder title="Logs d'envoi" description="Journal des envois." />} />
-              <Route path="event-logs" element={<Placeholder title="Logs d'événements" description="Journal des événements." />} />
-              <Route path="webhook-failures" element={<Placeholder title="Échecs webhook" description="Webhooks en échec." />} />
-
-              {/* M4 — Communication Center (dev uniquement, vue complète safe) */}
-              <Route path="communication" element={<DevCommunicationLayout />}>
-                <Route index element={<DevCommunicationDashboard />} />
-                <Route path="identite-support" element={<SupportIdentityPage />} />
-                <Route path="mail-deliveries" element={<DevMailDeliveriesPage />} />
-                <Route path="send-logs" element={<DevSendLogsPage />} />
-              </Route>
-
-              {/* M5 — Theme Studio (dev uniquement) : 2 thèmes vitrine + panel */}
-              <Route path="theme-studio" element={<ThemeStudioLayout />}>
-                <Route index element={<ThemeStudioDashboard />} />
-                <Route path="vitrine" element={<VitrineThemeEditorPage />} />
-                <Route path="panel" element={<PanelThemeEditorPage />} />
+                {/* M5 — Theme Studio */}
+                <Route path="theme-studio" element={<ThemeStudioLayout />}>
+                  <Route index element={<ThemeStudioDashboard />} />
+                  <Route path="vitrine" element={<VitrineThemeEditorPage />} />
+                  <Route path="panel" element={<PanelThemeEditorPage />} />
+                </Route>
               </Route>
             </Route>
           </Route>
         </Route>
-      </Route>
 
-      <Route path="*" element={<Placeholder title="Page introuvable" description="404." />} />
-    </Routes>
+        <Route path="*" element={<Placeholder title="Page introuvable" description="404." />} />
+      </Routes>
+    </Suspense>
   );
 }

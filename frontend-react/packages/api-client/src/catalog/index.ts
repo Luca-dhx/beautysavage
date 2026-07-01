@@ -9,5 +9,6 @@ export * from './reviews';
 export * from './sessions';
 export * from './home';
 export * from './learning';
+export * from './invoicePublic';
 export * from './site';
 export * from './theme';

@@ -56,9 +56,10 @@ describe('VitrineFooter + pages légales', () => {
     expect(within(footer).getByRole('link', { name: 'Confidentialité' })).toBeInTheDocument();
   });
 
-  it('la route /cgv rend une vraie page (plus de lien mort)', () => {
+  it('la route /cgv rend une vraie page (plus de lien mort)', async () => {
     stubCatalog();
     renderWithProviders(<App />, '/cgv');
-    expect(screen.getByRole('heading', { name: 'Conditions générales de vente' })).toBeInTheDocument();
+    // RX-GO-2 — LegalPage est désormais lazy → attendre le chargement du chunk.
+    expect(await screen.findByRole('heading', { name: 'Conditions générales de vente' })).toBeInTheDocument();
   });
 });

@@ -35,7 +35,8 @@ describe('RX-GO — garde-fous de serving React', () => {
   });
 
   it('deep-links vitrine servis en SPA (200 build présent / 503 build absent, jamais 404)', async () => {
-    for (const p of ['/app/mon-compte/rendez-vous', '/app/decision', '/app/refund-tracking/tok', '/app/paiement/succes']) {
+    for (const p of ['/app/mon-compte/rendez-vous', '/app/decision', '/app/refund-tracking/tok', '/app/paiement/succes',
+      '/app/inscription', '/app/verify-email', '/app/reinitialiser-mot-de-passe', '/app/invoice/tok']) {
       const res = await agent.get(p).redirects(0);
       expect([200, 503]).toContain(res.status);
     }

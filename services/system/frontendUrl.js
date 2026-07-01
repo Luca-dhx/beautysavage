@@ -23,6 +23,16 @@ const FRONTEND_ROUTES = {
     vanilla: (p) => `vitrine.html?page=refund-tracking&token=${enc(p.token)}`,
     react: (p) => `app/refund-tracking/${enc(p.token)}`,
   },
+  // Facture publique par token (RX-GO-2). Vanilla: slug=invoice ; React: token en PATH (/app/invoice/:token).
+  'invoice': {
+    vanilla: (p) => `vitrine.html?slug=invoice&token=${enc(p.token)}`,
+    react: (p) => `app/invoice/${enc(p.token)}`,
+  },
+  // Réinitialisation mot de passe (RX-GO-2). Vanilla: /reset-password ; React: /app/reinitialiser-mot-de-passe.
+  'password-reset': {
+    vanilla: (p) => `reset-password?token=${enc(p.token)}`,
+    react: (p) => `app/reinitialiser-mot-de-passe?token=${enc(p.token)}`,
+  },
 };
 
 /**

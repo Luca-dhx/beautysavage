@@ -42,7 +42,8 @@
     "m2MailEventDispatch": "completed",
     "m11aCheckoutGlobalBooking": "completed",
     "m11bGlobalCalendarFinalization": "completed",
-    "m12Customer360": "completed"
+    "m12Customer360": "completed",
+    "rx3ReactStorefrontFoundations": "in_progress"
   },
   "c1CatalogueStudio": {
     "date": "2026-06-30",

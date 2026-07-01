@@ -17,6 +17,7 @@ import { LoginPage } from './pages/LoginPage';
 import { MyFormationsPage } from './pages/MyFormationsPage';
 import { FormationPlayerPage } from './pages/FormationPlayerPage';
 import { MyAccountPage } from './pages/MyAccountPage';
+import { LegalPage } from './pages/LegalPage';
 
 // Routing vitrine R1 — catalogue public réel. Checkout/paiement = placeholders (R2).
 export function App() {
@@ -49,6 +50,11 @@ export function App() {
         <Route path="mes-formations/:id" element={<FormationPlayerPage />} />
         {/* RX1 — Espace compte client (hub + déconnexion) */}
         <Route path="mon-compte" element={<MyAccountPage />} />
+
+        {/* RX3 — Pages légales (footer réel) */}
+        <Route path="mentions-legales" element={<LegalPage kind="mentions-legales" />} />
+        <Route path="cgv" element={<LegalPage kind="cgv" />} />
+        <Route path="confidentialite" element={<LegalPage kind="confidentialite" />} />
 
         <Route path="*" element={<Placeholder title="Page introuvable" description="404." />} />
       </Route>

@@ -1,0 +1,133 @@
+/* RX3 — Shell vitrine (header/footer). Tokens --bs-* uniquement, mobile-first, zéro scroll horizontal. */
+
+/* ── En-tête ─────────────────────────────────────────────────────────────── */
+.vh {
+  display: flex;
+  align-items: center;
+  gap: var(--bs-space-3);
+  width: 100%;
+}
+.vh__brand {
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  color: var(--bs-color-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.vh__nav {
+  display: none;
+  gap: var(--bs-space-1);
+  margin-right: auto;
+}
+.vh__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--bs-space-1);
+  margin-left: auto;
+}
+.vh-cart {
+  position: relative;
+  gap: var(--bs-space-1);
+}
+.vh-cart__text,
+.vh__account-text {
+  display: none;
+}
+.vh-cart__badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+}
+.vh__account {
+  gap: var(--bs-space-1);
+}
+.vh__burger {
+  display: inline-flex;
+}
+
+/* Menu mobile (dans le Drawer) */
+.vh-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bs-space-1);
+}
+.vh-menu__link {
+  width: 100%;
+}
+.vh-menu__sep {
+  border: none;
+  border-top: 1px solid var(--bs-color-border);
+  margin: var(--bs-space-2) 0;
+  width: 100%;
+}
+
+/* Desktop : navigation inline visible, actions texte, plus de burger. */
+@media (min-width: 860px) {
+  .vh__nav {
+    display: flex;
+  }
+  .vh-cart__text,
+  .vh__account-text {
+    display: inline;
+  }
+  .vh-cart__badge {
+    position: static;
+  }
+  .vh__burger {
+    display: none;
+  }
+}
+
+/* ── Pied de page ────────────────────────────────────────────────────────── */
+.vf {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--bs-space-4);
+  width: 100%;
+}
+.vf__name {
+  font-size: 1.05rem;
+  color: var(--bs-color-text);
+}
+.vf__tagline {
+  margin: var(--bs-space-1) 0 0;
+  color: var(--bs-color-muted);
+  font-size: 0.9rem;
+}
+.vf__col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bs-space-1);
+}
+.vf__col-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--bs-color-text);
+  margin-bottom: var(--bs-space-1);
+}
+.vf__link {
+  min-height: var(--bs-tap-target);
+  display: inline-flex;
+  align-items: center;
+  color: var(--bs-color-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.vf__link:hover {
+  color: var(--bs-color-primary);
+}
+.vf__copy {
+  margin: 0;
+  color: var(--bs-color-muted);
+  font-size: 0.82rem;
+}
+
+@media (min-width: 640px) {
+  .vf {
+    grid-template-columns: 2fr 1fr 1fr;
+  }
+  .vf__copy {
+    grid-column: 1 / -1;
+  }
+}

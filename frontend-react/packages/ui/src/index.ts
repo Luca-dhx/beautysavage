@@ -4,3 +4,6 @@ export * from './embed';
 export * from './theme';
 export * from './motion';
 export * from './polish';
+export * from './overlay';
+export * from './forms';
+export * from './gallery';

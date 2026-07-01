@@ -149,3 +149,23 @@ rollback/migration, jamais cible d'évolution). Chaque écran migré DOIT respec
   traditionnel ; **pas de gros tableaux** (cards/timeline/graphes/badges/résumés).
 - **Zéro régression fonctionnelle** : React ne doit jamais offrir moins que Vanilla.
 - **Servir** : vitrine sous `/app`, manager sous `/manager` (flag `REACT_OFFICIAL_FRONTEND`, rollback OFF).
+
+## 16. Primitives partagées `@bs/ui` (RX3)
+
+RX3 a promu dans `@bs/ui` des primitives jusque-là dupliquées par feature. **Réutiliser ces primitives
+avant d'en recréer** (rappel §2). Import unique depuis `@bs/ui`.
+
+- **`Drawer`** — LE drawer produit (bottom-sheet mobile / side-panel desktop). Escape + clic scrim,
+  `role="dialog"` `aria-modal`, verrou de scroll, `footer` d'actions, `side='right'|'left'`. Remplace les
+  ré-implémentations locales (`c3-drawer`, `fin-tl-drawer`, etc.) pour toute NOUVELLE UI. Animé via
+  `motionPreset('drawer')` (neutralisé en reduced-motion).
+- **`StickyBar`** — barre CTA collée (sticky), safe-area ; `desktopInline` pour rester dans le flux d'un
+  aside desktop. Pattern « sticky CTA mobile » officiel (fiches, checkout).
+- **`FormField` / `TextInput` / `TextArea` / `Select` / `Checkbox`** — formulaires harmonisés (label lié,
+  `aria-invalid` + `role="alert"`, hint→error, ≥44px, focus visible). Ne plus utiliser d'`<input>`/
+  `<select>` bruts dans les nouveaux écrans.
+- **`Gallery`** — image principale + vignettes (clavier, `aria-current`). Remplace le `photos[0]` unique
+  des fiches.
+- **`CatalogueToolbar`** (vitrine `features/catalog/`) + logique pure `applyCatalogueQuery` — barre
+  recherche/tri/filtre **partagée** entre prestations/formations/produits. Le tri/filtre actif est
+  TOUJOURS visible ; filtrage d'une liste déjà chargée (aucun N+1, aucun fetch par carte).

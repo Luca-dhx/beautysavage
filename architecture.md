@@ -4305,3 +4305,26 @@ Endpoints GET /api/gestion/finance/gift-cards[/:id] (admin/dev). Timeline enrich
 détail ; pas de double-count. React features/finance : FinanceGiftCardsPage (/finance/cartes-cadeaux) +
 GiftCardFinanceDetailPage (/finance/cartes-cadeaux/:giftCardId), fin-gc-*. Tests +24. Détail :
 `docs/RX2_6_GIFT_CARD_FINANCE_REPORT.md`.
+
+## RX3 — React Storefront Foundations (Session 1)
+
+Fondations de la finalisation de la vitrine React (front-only, aucun changement backend). Audit complet
+`docs/RX3_VITRINE_AUDIT.md` (Vanilla ↔ React, verdicts conserver/améliorer/supprimer, endpoints, gaps).
+Rapport `docs/RX3_REACT_STOREFRONT_REPORT.md`.
+
+Primitives partagées promues dans `@bs/ui` (réutiliser avant de recréer, ProductUXGuideline §16) :
+`Drawer` (bottom-sheet mobile / side-panel desktop, un seul drawer produit), `StickyBar` (CTA collé),
+`FormField/TextInput/TextArea/Select/Checkbox` (dette RC1), `Gallery` (image + vignettes). CSS dans
+`packages/ui/src/polish.css`, tokens `--bs-*` only, ≥44px, focus visible, reduced-motion.
+
+Shell vitrine officiel (`apps/vitrine/src/layouts/`) : `VitrineHeader` (nav active NavLink, badge panier
+depuis CartProvider, menu burger → Drawer mobile), `VitrineFooter` (footer réel), pages légales routées
+`/mentions-legales` `/cgv` `/confidentialite` (`pages/LegalPage.tsx`, contenu front ; branchement contenu
+éditable différé RX4). Remplace le header/footer placeholder R0.
+
+Catalogue uniformisé : `features/catalog/catalogueQuery.ts` (pur `applyCatalogueQuery` + hook) +
+`CatalogueToolbar` (recherche insensible accents/casse, tri, filtre type chips, compteur) partagés par
+prestations/formations/produits. Filtrage d'une liste déjà chargée → zéro N+1. Backend = autorité (prix).
+
+Vérifs : typecheck OK, lint 0 erreur, 372 tests front verts, build vitrine + manager OK. Backend intact.
+Reste RX3 : fiches premium, accueil, checkout multi-item, cartes cadeaux, avis (sessions suivantes).

@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@bs/auth';
 import '@bs/ui/tokens.css';
 import '@bs/ui/polish.css';
+// RX-FIX — Bootstrap Icons (classes `bi bi-*`). Sans cet import, les icônes du manager étaient invisibles.
+import 'bootstrap-icons/font/bootstrap-icons.css';
 import { PanelThemeProvider } from './features/theme/PanelThemeProvider';
 import { App } from './App';
 

@@ -4,6 +4,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { RequireRole } from '@bs/auth';
 import { LoadingState } from '@bs/ui';
 import { ManagerLayout } from './layouts/ManagerLayout';
+import { ManagerModeGate } from './layouts/ManagerModeGate';
 import { DevLayout } from './layouts/DevLayout';
 import { Placeholder } from './pages/Placeholder';
 import { ComingSoon } from './pages/ComingSoon';
@@ -81,6 +82,8 @@ export function App() {
         <Route path="/login" element={<ManagerLoginPage />} />
 
         <Route element={<RequireRole allow={['admin', 'dev']} loginPath="/login" />}>
+          {/* RX-BLOCKER — bascule idempotente en mode gestion avant tout rendu (sinon /api/gestion/* 302 → KO). */}
+          <Route element={<ManagerModeGate />}>
           <Route element={<ManagerLayout />}>
             {/* RX-GO-2 — vrai tableau de bord (hub), plus de placeholder vide */}
             <Route index element={<ManagerHome />} />
@@ -177,6 +180,7 @@ export function App() {
                 </Route>
               </Route>
             </Route>
+          </Route>
           </Route>
         </Route>
 

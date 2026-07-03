@@ -19,8 +19,9 @@ function renderAt(path: string, user: AuthUser | null) {
   );
 }
 
-const dev: AuthUser = { id: '1', email: 'dev@b.c', role: 'dev' };
-const admin: AuthUser = { id: '2', email: 'admin@b.c', role: 'admin' };
+// RX-BLOCKER — managers déjà en mode gestion (le ManagerModeGate est alors « prêt » sans appel réseau).
+const dev: AuthUser = { id: '1', email: 'dev@b.c', role: 'dev', currentMode: 'gestion' };
+const admin: AuthUser = { id: '2', email: 'admin@b.c', role: 'admin', currentMode: 'gestion' };
 
 describe('Manager App', () => {
   it('redirige un visiteur anonyme vers /login', async () => {

@@ -19,3 +19,4 @@ export * from './customerNotes';
 export * from './catalogue';
 export * from './learning';
 export * from './systemConfiguration';
+export * from './mode';

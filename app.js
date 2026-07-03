@@ -73,6 +73,8 @@ import practitionerRouter from './routers/practitionerRouter.js';
 import availabilityRouter from './routers/availabilityRouter.js';
 import gestionBookingRouter from './routers/gestionBookingRouter.js';
 import customer360Router from './routers/customer360Router.js';
+import managerUsersRouter from './routers/managerUsersRouter.js';
+import { getManagerInvitation, acceptManagerInvitation } from './controllers/managerUsersController.js';
 import financeRouter from './routers/financeRouter.js';
 import calendarRouter from './routers/calendarRouter.js';
 import serviceSettingsRouter from './routers/serviceSettingsRouter.js';
@@ -276,7 +278,11 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
   contentSecurityPolicy: cspOptions
 }));
-app.use(morgan('dev'));
+// RX-BLOCKER-2-FINAL — silence le log HTTP par requête en test (bruit qui donne l'impression que « rien ne se
+// passe » et masque les récapitulatifs vitest). Aucun impact fonctionnel : morgan est purement du logging.
+if (process.env.NODE_ENV !== 'test') {
+  app.use(morgan('dev'));
+}
 
 // Cookie parser must run before protected Stripe routes (requireAuth)
 // and Stripe router must stay before express.json() for webhook raw body.
@@ -419,6 +425,9 @@ console.log('MongoDB connectee');
 
 app.use('/auth', authRouter);
 app.use('/auth/password-reset', passwordResetRouter);
+// RX-BLOCKER-2 — Acceptation d'invitation manager (public, token-based, sans auth).
+app.get('/auth/manager-invitations/:token', getManagerInvitation);
+app.post('/auth/manager-invitations/:token/accept', acceptManagerInvitation);
 app.use('/api/mode', modeRouter);
 app.use('/api/vitrine', vitrineRouter);
 app.get('/api/refund-tracking/:token', getRefundByTrackingToken);
@@ -461,6 +470,8 @@ app.use('/api/gestion/dev/notification-categories', notificationCategoryRouter);
 // S1 — Paramètres Système (config domaines/institut/localisation/fiscalité/maintenance), strict dev —
 // chemin spécifique, monté AVANT le routeur /api/gestion/dev générique.
 app.use('/api/gestion/dev/system-configuration', systemConfigurationDevRouter);
+// RX-BLOCKER-2 — Gestion des comptes manager (dev-only) : chemin spécifique, AVANT les broad-mounts dev.
+app.use('/api/gestion/manager-users', managerUsersRouter);
 // M3E — Supervision mail admin (roleView=admin, institut/client). Monté AVANT les routeurs
 // dev-only broad-mount sur '/api/gestion' (ex. commissionRouter requireStrictDev).
 app.use('/api/gestion/mail-deliveries', mailDeliveriesAdminRouter);

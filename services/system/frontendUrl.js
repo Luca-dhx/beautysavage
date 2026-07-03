@@ -28,10 +28,20 @@ const FRONTEND_ROUTES = {
     vanilla: (p) => `vitrine.html?slug=invoice&token=${enc(p.token)}`,
     react: (p) => `app/invoice/${enc(p.token)}`,
   },
-  // Réinitialisation mot de passe (RX-GO-2). Vanilla: /reset-password ; React: /app/reinitialiser-mot-de-passe.
+  // Réinitialisation mot de passe CLIENT (RX-GO-2). Vanilla: /reset-password ; React: /app/reinitialiser-mot-de-passe.
   'password-reset': {
     vanilla: (p) => `reset-password?token=${enc(p.token)}`,
     react: (p) => `app/reinitialiser-mot-de-passe?token=${enc(p.token)}`,
+  },
+  // RX-BLOCKER-2 — Invitation MANAGER. Le SPA /manager est servi quel que soit le flag → toujours React.
+  'manager-invitation': {
+    vanilla: (p) => `manager/invitation/${enc(p.token)}`,
+    react: (p) => `manager/invitation/${enc(p.token)}`,
+  },
+  // RX-BLOCKER-2 — Réinitialisation mot de passe MANAGER (toujours React /manager, servi quel que soit le flag).
+  'manager-password-reset': {
+    vanilla: (p) => `manager/reinitialiser-mot-de-passe/${enc(p.token)}`,
+    react: (p) => `manager/reinitialiser-mot-de-passe/${enc(p.token)}`,
   },
 };
 

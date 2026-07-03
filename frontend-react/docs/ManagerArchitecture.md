@@ -494,3 +494,17 @@ place). `GiftCardFinanceDetailPage` (`/finance/cartes-cadeaux/:giftCardId`) : so
 splittés (parts Stripe/carte cadeau + anomalies rollback), transactions, actions. api-client
 listFinanceGiftCards/getFinanceGiftCardDetail. Préfixe fin-gc-*, tokens --bs-*, zéro hex. AUCUNE mention
 d'expiration. Backend autorité (code/token jamais complets). Détail : `docs/RX2_6_GIFT_CARD_FINANCE_REPORT.md`.
+
+
+## RX-BLOCKER-2 — Comptes manager, invitations & reset (`features/managerUsers/` + `pages/Manager*`)
+`ManagerUsersPage` (`/manager/users`, **dev-only** : `RequireRole allow={['dev']}` sous `ManagerLayout`) : liste
+en cards + badges statut, `CreateDrawer` (prénom/nom/e-mail/rôle, **aucun champ mot de passe**), actions
+renvoyer/activer/désactiver via TanStack mutations (`queryKey ['manager-users']`). api-client
+`manager/managerUsers.ts` (list/create/resend/disable/enable → `/api/gestion/manager-users*`).
+Pages d'auth **publiques** (hors `RequireRole`/`ManagerLayout`, coquille `ManagerAuthShell`) :
+`ManagerInvitationPage` (`/invitation/:token` → `auth/invitations.ts` get/accept), `ManagerForgotPasswordPage`
+(`/mot-de-passe-oublie` → `requestPasswordReset`), `ManagerResetPasswordPage`
+(`/reinitialiser-mot-de-passe/:token` → `validateResetToken`+`completePasswordReset`, **mêmes** endpoints que le
+client). Le backend route l'expéditeur par rôle (manager→support, client→commerciale). Politique mot de passe
+partagée (`passwordError`), tokens `--bs-*`, zéro hex, mobile-first. Token jamais affiché/loggé. Liens e-mail
+flag-aware (`services/system/frontendUrl.js`). Détail : `docs/RX_BLOCKER_2_USERS_INVITATIONS_REPORT.md`.

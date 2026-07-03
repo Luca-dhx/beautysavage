@@ -95,6 +95,44 @@ const TEMPLATE_FUNCTIONS = {
     },
     signature: "L'équipe Beauty Savage"
   }),
+  // RX-BLOCKER-2 — Invitation manager (expéditeur support). Lien /manager/invitation/:token.
+  manager_invitation: createMailTemplateDefinition({
+    subject: "Invitation à rejoindre l'espace de gestion Beauty Savage",
+    siteName: 'Beauty Savage',
+    eyebrow: 'Invitation',
+    title: "Bienvenue dans l'équipe",
+    intro: 'Bonjour {{firstName}} {{lastName}},',
+    paragraphs: [
+      "Vous avez été invité(e) à rejoindre l'espace de gestion Beauty Savage en tant que {{roleLabel}}.",
+      'Cliquez sur le lien ci-dessous pour définir votre mot de passe et activer votre compte.'
+    ],
+    callout: {
+      label: 'Important',
+      content: "Ce lien d'invitation expire dans 7 jours et n'est utilisable qu'une seule fois.",
+      tone: 'warning'
+    },
+    cta: { label: "Accepter l'invitation", url: '{{link}}' },
+    signature: "L'équipe Beauty Savage"
+  }),
+  // RX-BLOCKER-2 — Reset mot de passe manager (expéditeur support). Lien /manager/reinitialiser-mot-de-passe/:token.
+  manager_password_reset: createMailTemplateDefinition({
+    subject: 'Réinitialisez votre mot de passe — Gestion Beauty Savage',
+    siteName: 'Beauty Savage',
+    eyebrow: 'Sécurité du compte',
+    title: 'Réinitialisez votre mot de passe',
+    intro: 'Bonjour {{firstName}} {{lastName}},',
+    paragraphs: [
+      'Une réinitialisation de mot de passe a été demandée pour votre compte de gestion.',
+      'Utilisez le lien sécurisé ci-dessous pour définir un nouveau mot de passe.'
+    ],
+    callout: {
+      label: 'Important',
+      content: "Le lien expire dans 30 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.",
+      tone: 'warning'
+    },
+    cta: { label: 'Réinitialiser le mot de passe', url: '{{link}}' },
+    signature: "L'équipe Beauty Savage"
+  }),
   commission_available: createMailTemplateDefinition({
     subject: 'Commissions {{period}} — paiement disponible',
     siteName: 'Beauty Savage',

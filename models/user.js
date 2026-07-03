@@ -47,6 +47,14 @@ userSchema.add({
   lastLogin: { type: Date, default: null },
   active: { type: Boolean, default: true }
 });
+// RX-BLOCKER-2 — Cycle de vie d'un compte MANAGER invité (additif ; absent chez les clients existants).
+// 'invited' = créé, mot de passe pas encore défini ; 'active' = invitation acceptée ; 'disabled' = désactivé.
+userSchema.add({
+  managerInviteStatus: { type: String, enum: ['invited', 'active', 'disabled'], default: undefined },
+  managerInviteSentAt: { type: Date, default: null },
+  managerActivatedAt: { type: Date, default: null },
+  disabledAt: { type: Date, default: null }
+});
 
 userSchema.pre('save', function(next) {
   if (typeof this.isActive !== 'boolean' && typeof this.active === 'boolean') {

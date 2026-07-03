@@ -5,7 +5,8 @@ import {
   loadResetToken,
   markResetTokenUsed
 } from '../services/passwordResetService.js';
-import { sendPasswordResetEmail } from '../services/mailService.js';
+// RX-BLOCKER-2 — routage d'expéditeur par rôle : manager (admin/dev) → support ; client → commerciale.
+import { sendManagerPasswordResetEmail, sendClientPasswordResetEmail } from '../services/authMailService.js';
 import { invalidateSessionTokens, loadSessionUser } from '../utils/session.js';
 import User from '../models/user.js';
 
@@ -37,7 +38,14 @@ export async function requestResetToken(req, res) {
     if (targetUser && resolveUserActive(targetUser)) {
       const { token } = await createResetPasswordToken(targetUser._id);
       try {
-        await sendPasswordResetEmail(targetUser, token);
+        // Routage expéditeur + lien selon le rôle (aucun sender hardcodé) :
+        //   admin/dev → support + /manager/reinitialiser-mot-de-passe ; client → commerciale + /app.
+        const isManager = ['admin', 'dev'].includes(String(targetUser.role || '').trim().toLowerCase());
+        if (isManager) {
+          await sendManagerPasswordResetEmail(targetUser, token);
+        } else {
+          await sendClientPasswordResetEmail(targetUser, token);
+        }
       } catch (error) {
         console.error('[passwordReset] Erreur envoi email', error);
       }

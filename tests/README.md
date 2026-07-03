@@ -919,3 +919,20 @@ Backend touché (minimal) → p1 822 verts + p0/integration/audits.
   `--vanilla`=OFF), env non muté, URLs affichées, `build` inclut React, aucun script `run/` n'écrit le `.env`.
 Scripts `run/` (dev/start/build) NON lancés en test (bootent l'app réelle) → couverture par helpers purs +
 lecture package.json. Cf. `docs/RX_RUN_LAUNCH_AUDIT.md` + `docs/RX_RUN_2_ONE_COMMAND_REPORT.md`.
+
+## RX-BLOCKER-2 — Comptes manager, invitations & routage reset (auth/mail sensibles)
+- `tests/p1/managerUsersInvitation.test.js` — accès `/api/gestion/manager-users` (dev 200 / admin 403 /
+  client 403 / anonyme refusé), création admin+dev **sans mot de passe** + token **hashé** en DB
+  (`tokenHash !== token brut`), 409 doublon, acceptation (GET safe → accept → login) + **usage unique**
+  (`400 used`), mots de passe faibles/mismatch/token invalide.
+- `tests/p1/authMailSenderRouting.test.js` — routage expéditeur au niveau service : invitation & reset
+  **manager → support**, reset **client → commerciale** ; liens `/manager/invitation`,
+  `/manager/reinitialiser-mot-de-passe`, `/app` ; **aucun sender hardcodé**.
+- `tests/p1/managerPasswordResetRouting.test.js` — `POST /auth/password-reset/request` route par rôle
+  (admin/dev → sender manager ; client → sender client), **200 neutre** anti-énumération, reset manager
+  **bout-en-bout** (validate → complete → login) + usage unique.
+- Front : `apps/manager/src/features/managerUsers/managerUsers.test.tsx` (cards/zéro table, création sans champ
+  password, renvoi invitation) + `apps/manager/src/pages/managerAuthPages.test.tsx` (invitation/forgot/reset :
+  états valide/faible/expiré/invalide).
+- **Brevo mocké partout** (aucun mail réel) ; tokens jamais loggés en clair. Cf.
+  `docs/RX_BLOCKER_2_USERS_INVITATIONS_REPORT.md`.

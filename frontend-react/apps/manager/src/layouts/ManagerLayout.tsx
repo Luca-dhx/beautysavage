@@ -33,9 +33,15 @@ function NavItems({ isDev, onNavigate }: { isDev: boolean; onNavigate?: () => vo
         </NavLink>
       ))}
       {isDev ? (
-        <NavLink to="/dev" className="bs-nav-link" style={{ fontWeight: 600 }} onClick={onNavigate}>
-          Développeur
-        </NavLink>
+        <>
+          {/* RX-BLOCKER-2 — gestion des comptes manager, dev-only */}
+          <NavLink to="/users" className="bs-nav-link" onClick={onNavigate}>
+            Utilisateurs
+          </NavLink>
+          <NavLink to="/dev" className="bs-nav-link" style={{ fontWeight: 600 }} onClick={onNavigate}>
+            Développeur
+          </NavLink>
+        </>
       ) : null}
     </>
   );

@@ -4397,3 +4397,30 @@ Front (front-only) :
 - Avis : storefront = lecture publiée (TrainingReviews) ; soumission = RX4 (ReviewDrawer).
 
 Verifs : typecheck OK, lint 0 erreur, 450 tests front verts, build OK ; backend p1 822 verts + p0/integration/audits.
+
+
+## RX-BLOCKER-2 — Comptes manager, invitations & routage reset mot de passe
+
+Système de comptes de gestion (admin/dev) **par invitation tokenisée**, réutilisant les moteurs existants
+(aucun second moteur d'auth/mail).
+
+- **Invitation** : `models/ManagerInvitationToken.js` (miroir `ResetPasswordToken` : sha256, TTL 7 j, usage
+  unique) + `services/managerInvitationService.js`. Le dev crée l'utilisateur **sans mot de passe** (hash
+  placeholder aléatoire, `isActive:false`) ; l'utilisateur choisit son mot de passe via le lien.
+- **Mail d'auth** : `services/authMailService.js` = point unique. Invitation + reset **manager → `support`** ;
+  reset **client → `commerciale`**. Expéditeur résolu par rôle (`resolveSender`), **aucun fallback `MAIL_FROM`**
+  (identité absente → envoi `false`). Templates `manager_invitation` + `manager_password_reset`
+  (`mailTemplateRuntime`). Liens flag-aware (`services/system/frontendUrl.js`).
+- **API** : `controllers/managerUsersController.js` + `routers/managerUsersRouter.js`
+  (`requireAuth`+`requireMode('gestion')`+`requireStrictDev`) → `GET/POST /api/gestion/manager-users`,
+  `POST .../:id/send-invitation|disable|enable` ; public `GET /auth/manager-invitations/:token` +
+  `POST .../accept`. `passwordResetController.requestResetToken` route l'expéditeur selon le rôle de la cible
+  (200 neutre anti-énumération).
+- **Front** (manager React) : `/users` (dev-only, cards, création sans champ mot de passe),
+  `/invitation/:token`, `/mot-de-passe-oublie`, `/reinitialiser-mot-de-passe/:token` (mêmes endpoints
+  `/auth/password-reset/*` que le client). Tokens `--bs-*`, zéro hex, mobile-first ; token jamais affiché/loggé.
+- **User** (additif) : `managerInviteStatus` / `managerInviteSentAt` / `managerActivatedAt` / `disabledAt`.
+
+Sécurité : tokens opaques hashés/expirables/usage unique/jamais loggés ; dev gère admin+dev, admin ne crée pas
+de dev, client exclu du manager ; Brevo mocké en test (aucun mail réel). Détails :
+`docs/RX_BLOCKER_2_USERS_INVITATIONS_AUDIT.md` + `..._REPORT.md`.

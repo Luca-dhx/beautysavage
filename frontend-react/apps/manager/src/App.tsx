@@ -73,6 +73,11 @@ const CommissionOverviewPage = l(fin, 'CommissionOverviewPage');
 const CommissionDetailPage = l(fin, 'CommissionDetailPage');
 const FinanceGiftCardsPage = l(fin, 'FinanceGiftCardsPage');
 const GiftCardFinanceDetailPage = l(fin, 'GiftCardFinanceDetailPage');
+// RX-BLOCKER-2 — Gestion des utilisateurs manager (dev-only) + pages d'auth publiques (invitation / reset).
+const ManagerUsersPage = l(() => import('./features/managerUsers'), 'ManagerUsersPage');
+const ManagerInvitationPage = l(() => import('./pages/ManagerInvitationPage'), 'ManagerInvitationPage');
+const ManagerForgotPasswordPage = l(() => import('./pages/ManagerForgotPasswordPage'), 'ManagerForgotPasswordPage');
+const ManagerResetPasswordPage = l(() => import('./pages/ManagerResetPasswordPage'), 'ManagerResetPasswordPage');
 
 // Manager = admin ou dev. /dev/* = dev uniquement. /login public.
 export function App() {
@@ -80,6 +85,10 @@ export function App() {
     <Suspense fallback={<LoadingState label="Chargement…" />}>
       <Routes>
         <Route path="/login" element={<ManagerLoginPage />} />
+        {/* RX-BLOCKER-2 — pages d'auth publiques (sans session) : acceptation d'invitation + reset manager */}
+        <Route path="/invitation/:token" element={<ManagerInvitationPage />} />
+        <Route path="/mot-de-passe-oublie" element={<ManagerForgotPasswordPage />} />
+        <Route path="/reinitialiser-mot-de-passe/:token" element={<ManagerResetPasswordPage />} />
 
         <Route element={<RequireRole allow={['admin', 'dev']} loginPath="/login" />}>
           {/* RX-BLOCKER — bascule idempotente en mode gestion avant tout rendu (sinon /api/gestion/* 302 → KO). */}
@@ -115,6 +124,10 @@ export function App() {
             </Route>
             <Route path="cartes-cadeaux/templates" element={<GiftCardLibraryPage />} />
             <Route path="avis" element={<ReviewModerationPage />} />
+            {/* RX-BLOCKER-2 — comptes manager : dev-only (V1, évite l'escalade de privilèges) */}
+            <Route element={<RequireRole allow={['dev']} loginPath="/login" deniedPath="/" />}>
+              <Route path="users" element={<ManagerUsersPage />} />
+            </Route>
             {/* RX2 — Finance */}
             <Route path="finance" element={<FinanceDashboardPage />} />
             <Route path="finance/timeline" element={<FinanceTimelinePage />} />

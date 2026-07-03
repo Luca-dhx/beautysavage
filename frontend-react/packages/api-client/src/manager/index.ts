@@ -20,3 +20,4 @@ export * from './catalogue';
 export * from './learning';
 export * from './systemConfiguration';
 export * from './mode';
+export * from './managerUsers';

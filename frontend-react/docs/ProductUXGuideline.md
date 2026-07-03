@@ -241,3 +241,21 @@ facture, remboursement, attestations, notifications). **Cards partout, jamais de
   **validés côté serveur** (ne pas dupliquer la logique métier ; afficher proprement un 400/409).
 - **Pas de second moteur** : réutiliser `session-cancel-flows` et `refund-tracking` ; ne créer aucun endpoint
   qui duplique un moteur d'annulation/remboursement existant.
+
+## 18. Comptes manager, invitations & reset mot de passe (RX-BLOCKER-2)
+- **Le dev ne choisit jamais de mot de passe** : la création d'un compte manager (`/manager/users`, **dev-only**)
+  n'a **aucun champ mot de passe** — l'utilisateur le définit via un **lien tokenisé** reçu par e-mail. Le
+  drawer l'affiche explicitement (« l'utilisateur recevra un e-mail pour définir son mot de passe »).
+- **Cards, jamais de tableau** : la liste des comptes = cards (nom, rôle, statut `Invitation envoyée / Actif /
+  Désactivé`), actions inline (renvoyer l'invitation, activer, désactiver). Mobile-first.
+- **Pages d'auth autonomes** : invitation (`/manager/invitation/:token`), mot de passe oublié
+  (`/manager/mot-de-passe-oublie`), reset (`/manager/reinitialiser-mot-de-passe/:token`) vivent **hors**
+  `ManagerLayout` (pas de nav gestion) — coquille `ManagerAuthShell`, colonne centrée, tokens `--bs-*` (zéro hex).
+- **Token = accès, jamais affiché** : un token opaque n'est **jamais** rendu à l'écran ni journalisé côté client.
+  Un lien invalide/expiré/utilisé → écran **rassurant** dédié (jamais d'erreur technique), avec action de repli
+  (redemander un lien / aller à la connexion).
+- **Pas de second moteur d'auth/mail** : le reset manager réutilise **exactement** `/auth/password-reset/*`
+  (mêmes `validate`/`complete` que le client) ; c'est le **backend** qui route l'expéditeur selon le rôle
+  (manager → support, client → commerciale). Le front ne connaît qu'un endpoint.
+- **Politique mot de passe partagée** : ≥8 caractères, au moins une lettre et un chiffre — parité stricte avec
+  le backend (`passwordError` dans `ManagerAuthShell`).

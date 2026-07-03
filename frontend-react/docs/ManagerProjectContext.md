@@ -303,3 +303,15 @@ moyen de paiement, débitée à la main, avec son solde actuel bien visible, ses
 bénéficiaire, sa source de paiement (Stripe ou sur place), son QR (masqué, jamais le code complet) et ses
 remboursements détaillés (part Stripe, part recréditée sur la carte, anomalies à traiter). Cards et timeline,
 jamais de tableau, mobile-first.
+
+
+## RX-BLOCKER-2 — Comptes manager & invitations
+
+Le développeur crée les comptes de gestion (admin/dev) depuis « Utilisateurs » (`/manager/users`, dev-only)
+sans jamais taper de mot de passe : chaque nouvel utilisateur reçoit un e-mail (envoyé par le **support**) avec
+un lien personnel pour définir lui-même son mot de passe et activer son compte. La liste se lit en cards (nom,
+rôle, statut : invitation envoyée / actif / désactivé) avec des actions simples (renvoyer l'invitation, activer,
+désactiver). Un manager qui a oublié son mot de passe passe par « Mot de passe oublié ? » depuis l'écran de
+connexion (lien envoyé par le support) ; un client passe par le même mécanisme côté vitrine (lien envoyé par la
+commerciale). Les liens sont à usage unique, expirables, et un lien périmé affiche un écran rassurant avec la
+possibilité d'en redemander un. Pages d'auth en colonne centrée, mobile-first, jamais de tableau.

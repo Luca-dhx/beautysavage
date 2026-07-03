@@ -1,7 +1,7 @@
 // RX-GO-2 — Connexion manager React (réutilise POST /auth/login). Remplace le placeholder : les rôles
 // admin/dev accèdent au manager ; un rôle client est refusé. Aucun métier nouveau.
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, Button, ErrorState } from '@bs/ui';
 import { useAuth } from '@bs/auth';
 import { login, ApiError } from '@bs/api-client';
@@ -49,6 +49,8 @@ export function ManagerLoginPage() {
           </label>
           {error ? <ErrorState title="Échec de la connexion." detail={error} /> : null}
           <Button type="submit" disabled={submitting}>{submitting ? 'Connexion…' : 'Se connecter'}</Button>
+          {/* RX-BLOCKER-2 — reset manager (e-mail envoyé par le support) */}
+          <Link to="/mot-de-passe-oublie" style={{ textAlign: 'center', fontSize: '0.9rem' }}>Mot de passe oublié ?</Link>
         </form>
       </Card>
     </section>

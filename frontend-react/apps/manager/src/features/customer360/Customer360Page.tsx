@@ -1,5 +1,5 @@
-// M12 — Customer 360 (Client Hub). Page fiche client : Hero → KPIs → Quick Actions → onglets
-// (Activité / Détails / Finances) avec timeline + sections repliables. Mobile-first, Motion Guideline.
+// M12 - Customer 360 (Client Hub). Page fiche client: Hero -> KPIs -> Quick Actions -> tabs
+// (Activite / Details / Finances) avec timeline + sections repliables. Mobile-first.
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -14,11 +14,11 @@ import {
   type C3Tab, type QuickAction,
 } from './components';
 import {
-  CreateGiftCardDrawer, ManualGiftCardDebitDrawer, ManualBookingDrawer, CustomerNoteDrawer,
+  CreateGiftCardDrawer, ManualGiftCardDebitDrawer, CustomerNoteDrawer,
 } from './m13Drawers';
 import './customer360.css';
 
-type M13Drawer = 'booking' | 'giftcard' | 'debit' | 'note' | null;
+type M13Drawer = 'giftcard' | 'debit' | 'note' | null;
 
 type DrawerState = { title: string; rows: { label: string; value: string }[] } | null;
 
@@ -32,16 +32,22 @@ export function Customer360Page() {
   const [m13Drawer, setM13Drawer] = useState<M13Drawer>(null);
 
   const phone = data?.summary.phone || null;
-  const invalidate360 = () => { if (id) void qc.invalidateQueries({ queryKey: ['customer360', id] }); };
+  const invalidate360 = () => {
+    if (id) void qc.invalidateQueries({ queryKey: ['customer360', id] });
+  };
 
-  const callClient = () => { if (phone) window.location.href = `tel:${phone}`; };
+  const callClient = () => {
+    if (phone) window.location.href = `tel:${phone}`;
+  };
+
   const scrollToRefunds = () => {
     setTab('details');
-    setTimeout(() => document.querySelector('[data-testid="c3-acc-refunds"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+    setTimeout(() => {
+      document.querySelector('[data-testid="c3-acc-refunds"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
   };
 
   const quickActions: QuickAction[] = useMemo(() => [
-    { key: 'booking', icon: 'bi-calendar-plus', label: 'Réserver', onClick: () => setM13Drawer('booking') },
     { key: 'giftcard', icon: 'bi-gift', label: 'Créer carte cadeau', onClick: () => setM13Drawer('giftcard') },
     { key: 'note', icon: 'bi-journal-plus', label: 'Ajouter une note', onClick: () => setM13Drawer('note') },
     { key: 'call', icon: 'bi-telephone', label: 'Appeler le client', onClick: callClient, disabled: !phone },
@@ -54,7 +60,9 @@ export function Customer360Page() {
     return (
       <section className="c3-page">
         <ErrorState title="Fiche client indisponible." detail="Impossible de charger les données." />
-        <button type="button" className="c3-quickbtn" onClick={() => void refetch()} style={{ marginTop: 'var(--bs-space-3)' }}>Réessayer</button>
+        <button type="button" className="c3-quickbtn" onClick={() => void refetch()} style={{ marginTop: 'var(--bs-space-3)' }}>
+          Réessayer
+        </button>
       </section>
     );
   }
@@ -70,24 +78,30 @@ export function Customer360Page() {
       ],
     });
   };
-  const onBookingSelect = (b: CustomerBooking) => setDrawer({
-    title: b.serviceName,
-    rows: [
-      { label: 'Quand', value: fmtDateTime(b.startAt) },
-      { label: 'Statut', value: b.status },
-      { label: 'Total', value: money(b.totalPrice) },
-      { label: 'Acompte', value: money(b.depositAmount) },
-      { label: 'Solde sur place', value: money(b.balanceDueAmount) },
-    ],
-  });
-  const onSaleSelect = (s: CustomerSale) => setDrawer({
-    title: `Achat ${s.saleId}`,
-    rows: [
-      { label: 'Date', value: fmtDate(s.createdAt) },
-      { label: 'Montant', value: money(s.totalAmount) },
-      { label: 'Articles', value: s.items.map((i) => i.name).join(', ') || '—' },
-    ],
-  });
+
+  const onBookingSelect = (booking: CustomerBooking) => {
+    setDrawer({
+      title: booking.serviceName,
+      rows: [
+        { label: 'Quand', value: fmtDateTime(booking.startAt) },
+        { label: 'Statut', value: booking.status },
+        { label: 'Total', value: money(booking.totalPrice) },
+        { label: 'Acompte', value: money(booking.depositAmount) },
+        { label: 'Solde sur place', value: money(booking.balanceDueAmount) },
+      ],
+    });
+  };
+
+  const onSaleSelect = (sale: CustomerSale) => {
+    setDrawer({
+      title: `Achat ${sale.saleId}`,
+      rows: [
+        { label: 'Date', value: fmtDate(sale.createdAt) },
+        { label: 'Montant', value: money(sale.totalAmount) },
+        { label: 'Articles', value: sale.items.map((item) => item.name).join(', ') || '—' },
+      ],
+    });
+  };
 
   return (
     <section className="c3-page" data-testid="c3-page">
@@ -143,8 +157,11 @@ export function Customer360Page() {
       <CustomerDrawer open={Boolean(drawer)} title={drawer?.title || ''} onClose={() => setDrawer(null)}>
         {drawer ? (
           <div className="c3-detail">
-            {drawer.rows.map((r) => (
-              <div className="c3-row" key={r.label}><span>{r.label}</span><strong>{r.value}</strong></div>
+            {drawer.rows.map((row) => (
+              <div className="c3-row" key={row.label}>
+                <span>{row.label}</span>
+                <strong>{row.value}</strong>
+              </div>
             ))}
           </div>
         ) : null}
@@ -152,7 +169,6 @@ export function Customer360Page() {
 
       {id ? (
         <>
-          <ManualBookingDrawer open={m13Drawer === 'booking'} customerId={id} onClose={() => setM13Drawer(null)} onDone={invalidate360} />
           <CreateGiftCardDrawer open={m13Drawer === 'giftcard'} customerId={id} onClose={() => setM13Drawer(null)} onDone={invalidate360} />
           <ManualGiftCardDebitDrawer open={m13Drawer === 'debit'} onClose={() => setM13Drawer(null)} onDone={invalidate360} />
           <CustomerNoteDrawer open={m13Drawer === 'note'} customerId={id} onClose={() => setM13Drawer(null)} onDone={invalidate360} />

@@ -6,6 +6,7 @@ import { usePublicService } from '../features/catalog/hooks/usePublicServices';
 import { ServiceOptions } from '../features/serviceDetail/ServiceOptions';
 import { ServiceProcess } from '../features/serviceDetail/ServiceProcess';
 import { ServiceFaq } from '../features/serviceDetail/ServiceFaq';
+import { ServiceReviews } from '../features/serviceDetail/ServiceReviews';
 import { SimilarServices } from '../features/serviceDetail/SimilarServices';
 import { ServicePurchaseCard } from '../features/serviceDetail/ServicePurchaseCard';
 import { ServiceBookingDrawer } from '../features/serviceDetail/ServiceBookingDrawer';
@@ -89,6 +90,7 @@ export function ServiceDetailPage() {
       </div>
 
       <SimilarServices currentId={data.id} />
+      <ServiceReviews serviceId={data.id} />
 
       {/* CTA sticky mobile (dupliqué du panneau desktop) */}
       <StickyBar className="sd-stickybar" desktopInline={false}>

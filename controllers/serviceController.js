@@ -1,9 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import mongoose from 'mongoose';
 
 import Service from '../models/Service.js';
 import PractitionerProfile from '../models/PractitionerProfile.js';
 import { getActivePromotion, calculateFinalPrice } from '../services/promotionService.js';
+import {
+  getPublishedReviewStats,
+  listPublishedReviews
+} from '../services/reviews/publicReviewQueries.js';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -419,6 +424,36 @@ export async function getPublicServiceBySlug(req, res) {
     return res.json({ ok: true, service: payload });
   } catch (err) {
     console.error('[serviceController] getPublicServiceBySlug', err);
+    return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
+  }
+}
+
+export async function getServiceReviewStats(req, res) {
+  try {
+    const serviceId = String(req.params.id || '').trim();
+    if (!mongoose.Types.ObjectId.isValid(serviceId)) {
+      return res.status(400).json({ ok: false, error: 'Prestation invalide.' });
+    }
+    const stats = await getPublishedReviewStats('service', serviceId);
+    return res.json({ ok: true, averageRating: stats.averageRating, reviewCount: stats.reviewCount });
+  } catch (err) {
+    console.error('[serviceController] getServiceReviewStats', err);
+    return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
+  }
+}
+
+export async function getServiceReviews(req, res) {
+  try {
+    const serviceId = String(req.params.id || '').trim();
+    if (!mongoose.Types.ObjectId.isValid(serviceId)) {
+      return res.status(400).json({ ok: false, error: 'Prestation invalide.' });
+    }
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const sort = String(req.query.sort || 'recent');
+    const result = await listPublishedReviews('service', serviceId, { page, sort, pageSize: 5 });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('[serviceController] getServiceReviews', err);
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
   }
 }

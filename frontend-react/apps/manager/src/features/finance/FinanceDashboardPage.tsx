@@ -69,7 +69,7 @@ export function FinanceDashboardPage() {
                 label="À encaisser sur place"
                 unit="solde"
                 metric={data.actions.balancesToCollect}
-                onClick={() => navigate('/reservations')}
+                onClick={() => navigate('/planning')}
               />
               <ActionCard
                 icon="bi-arrow-counterclockwise"
@@ -77,7 +77,7 @@ export function FinanceDashboardPage() {
                 unit="remboursement"
                 warn
                 metric={data.actions.refundsToProcess}
-                onClick={() => navigate('/remboursements')}
+                onClick={() => navigate('/finance/timeline?type=refund')}
               />
               <ActionCard
                 icon="bi-file-earmark-text"
@@ -85,7 +85,7 @@ export function FinanceDashboardPage() {
                 unit="facture"
                 warn
                 metric={data.actions.unpaidInvoices}
-                onClick={() => navigate('/ventes')}
+                onClick={() => navigate('/finance/timeline?type=sale')}
               />
             </div>
           </section>

@@ -93,6 +93,7 @@ import ContractCheckoutIntent from './models/ContractCheckoutIntent.js';
 import Contract from './models/Contract.js';
 import CommissionPayment from './models/CommissionPayment.js';
 import Service from './models/Service.js';
+import Review from './models/Review.js';
 import ScheduleException from './models/ScheduleException.js';
 import Sale from './models/Sale.js';
 import RefundRequest from './models/RefundRequest.js';
@@ -375,6 +376,8 @@ await CommissionPayment.syncIndexes();
 console.log('[DB] CommissionPayment indexes synchronized');
 await Service.syncIndexes();
 console.log('[DB] Service indexes synchronized');
+await Review.syncIndexes();
+console.log('[DB] Review indexes synchronized');
 // Phase 1B-1: deterministically ensure the unique partial index on
 // Sale.stripePaymentIntentId (one sale per Stripe PaymentIntent). Targeted
 // createIndex (not syncIndexes) to avoid touching unrelated legacy index defs.

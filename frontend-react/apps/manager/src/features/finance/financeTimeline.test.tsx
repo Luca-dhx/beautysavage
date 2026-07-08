@@ -1,5 +1,4 @@
-// RX2.2 — Financial Timeline React : summary sticky, chips période/type, cards, drawer, états,
-// actions (disabled vs lien), aucune table.
+// RX2.2 - Financial Timeline React: sticky summary, period/type chips, cards, drawer, no table.
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -27,6 +26,7 @@ const ITEMS = [
     actions: [{ kind: 'refund_process', enabled: true, to: '/remboursements' }],
   },
 ];
+
 const PAYLOAD = {
   ok: true, period: 'month', type: 'all', status: null,
   summary: { netAmount: 50, grossIn: 80, grossOut: 30, count: 2, refundCount: 1, balanceDueAmount: 0 },
@@ -34,6 +34,7 @@ const PAYLOAD = {
 };
 
 const calls: string[] = [];
+
 function installFetch(payload: unknown, status = 200) {
   calls.length = 0;
   vi.stubGlobal('fetch', vi.fn(async (url: string) => {
@@ -41,13 +42,14 @@ function installFetch(payload: unknown, status = 200) {
     return new Response(JSON.stringify(payload), { status, headers: { 'Content-Type': 'application/json' } });
   }));
 }
+
 afterEach(() => vi.unstubAllGlobals());
 
-function renderPage() {
+function renderPage(path = '/finance/timeline') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/finance/timeline']}>
+      <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/finance/timeline" element={<FinanceTimelinePage />} />
           <Route path="/clients/:id" element={<div>Fiche client</div>} />
@@ -58,7 +60,7 @@ function renderPage() {
 }
 
 describe('Financial Timeline (RX2.2)', () => {
-  it('rend le summary, les chips et les cards (pas de table)', async () => {
+  it('renders summary, filter chips and cards without any table', async () => {
     installFetch(PAYLOAD);
     const { container } = renderPage();
     expect(await screen.findByTestId('fin-tl-summary')).toBeInTheDocument();
@@ -70,40 +72,46 @@ describe('Financial Timeline (RX2.2)', () => {
     expect(calls[0]).toContain('/api/gestion/finance/timeline');
   });
 
-  it('ouvre le drawer au tap et affiche montant + actions', async () => {
+  it('reads the initial type filter from the URL', async () => {
+    installFetch(PAYLOAD);
+    renderPage('/finance/timeline?type=sale');
+    await screen.findByTestId('fin-tl-summary');
+    expect(calls.some((url) => url.includes('type=sale'))).toBe(true);
+  });
+
+  it('opens the drawer and shows amount plus actions', async () => {
     installFetch(PAYLOAD);
     renderPage();
     fireEvent.click(await screen.findByText('Paiement reçu'));
     const drawer = await screen.findByTestId('fin-tl-drawer');
     expect(within(drawer).getByText('+80,00 €')).toBeInTheDocument();
-    // invoice_view disabled → bouton désactivé ; customer_view → lien actif.
     expect(within(drawer).getByText('Voir la facture')).toBeDisabled();
     expect(within(drawer).getByText('Voir le client')).toBeInTheDocument();
   });
 
-  it('changer de période refetch avec le bon param', async () => {
+  it('changing the period refetches with the right query param', async () => {
     installFetch(PAYLOAD);
     renderPage();
     await screen.findByTestId('fin-tl-summary');
     fireEvent.click(screen.getByRole('tab', { name: "Aujourd'hui" }));
-    await waitFor(() => expect(calls.some((u) => u.includes('period=today'))).toBe(true));
+    await waitFor(() => expect(calls.some((url) => url.includes('period=today'))).toBe(true));
   });
 
-  it('filtre type refetch avec le bon param', async () => {
+  it('changing the type refetches with the right query param', async () => {
     installFetch(PAYLOAD);
     renderPage();
     await screen.findByTestId('fin-tl-summary');
     fireEvent.click(screen.getByRole('tab', { name: /Remboursements/ }));
-    await waitFor(() => expect(calls.some((u) => u.includes('type=refund'))).toBe(true));
+    await waitFor(() => expect(calls.some((url) => url.includes('type=refund'))).toBe(true));
   });
 
-  it('état vide', async () => {
+  it('shows the empty state', async () => {
     installFetch({ ...PAYLOAD, items: [], summary: { netAmount: 0, grossIn: 0, grossOut: 0, count: 0, refundCount: 0, balanceDueAmount: 0 } });
     renderPage();
     expect(await screen.findByTestId('fin-tl-empty')).toBeInTheDocument();
   });
 
-  it('état erreur récupérable', async () => {
+  it('shows a recoverable error state', async () => {
     installFetch({ ok: false }, 500);
     renderPage();
     expect(await screen.findByRole('alert')).toBeInTheDocument();

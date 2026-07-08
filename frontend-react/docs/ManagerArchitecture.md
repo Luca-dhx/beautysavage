@@ -508,3 +508,33 @@ Pages d'auth **publiques** (hors `RequireRole`/`ManagerLayout`, coquille `Manage
 client). Le backend route l'expéditeur par rôle (manager→support, client→commerciale). Politique mot de passe
 partagée (`passwordError`), tokens `--bs-*`, zéro hex, mobile-first. Token jamais affiché/loggé. Liens e-mail
 flag-aware (`services/system/frontendUrl.js`). Détail : `docs/RX_BLOCKER_2_USERS_INVITATIONS_REPORT.md`.
+
+## RX-POLISH-BLOCKER — Manager UX, planning, avis et dev panel
+
+Livraison transverse de finition produit sur l'app manager, sans suppression de backend métier.
+
+- **Navigation / finance** : `ManagerLayout` expose un vrai groupe `Finance` expansible avec sous-liens
+  visibles et état actif enfant précis. Les routes historiques `/ventes` et `/remboursements` redirigent
+  vers la timeline finance filtrée (`?type=sale|refund`) ; `/reservations` renvoie vers `/planning`.
+- **Planning réel** : `features/planning/` utilise une grille horaire jour/semaine branchée au calendrier
+  global institut. Les réservations et sessions présentielles sont positionnées sur la journée, avec zones
+  fermées grisées, créneaux bloqués et repères horaires.
+- **Disponibilités / exceptions** : `packages/api-client/src/manager/availability.ts` et l'UI planning
+  branchent les horaires hebdomadaires + exceptions ponctuelles (fermeture, blocage de créneau,
+  ouverture exceptionnelle). Le backend reste autoritaire sur les conflits.
+- **Détail booking** : le drawer de réservation affiche `Total`, `Acompte payé`, `Reste à payer` à partir
+  des montants backend uniquement.
+- **Réservation manuelle** : le parcours visible de réservation manuelle de prestation est retiré de l'UX
+  manager / Customer 360 ; le backend reste conservé hors démo.
+- **Avis premium** : `features/reviews/ReviewModerationPage` modère désormais les avis `formation` et
+  `service`, filtre par statut/type, et permet la création d'avis manuel sans faux client via
+  `sourceType='manual_institute'`.
+- **Langage de notation** : les avis manager utilisent `PawRating` / `PawInput`, sans étoiles visibles.
+- **Dev panel utile** : les routes `/dev`, `/dev/integrated-api`, `/dev/event-logs`, `/dev/webhook-failures`
+  affichent des vues réelles ou des diagnostics utiles au lieu d'un `ComingSoon` vide.
+
+Tests clés :
+`managerPlanningCalendar.test.tsx`, `managerPlanningAvailability.test.tsx`,
+`bookingDetailAmounts.test.tsx`, `reviews.test.tsx`, `devPanelNoEmptyComingSoon.test.tsx`,
+`managerDevPanelRoutes.test.js`, `planningAvailabilitySettings.test.js`, `planningDayExceptions.test.js`,
+`reviewManualCreation.test.js`.

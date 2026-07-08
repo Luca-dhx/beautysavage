@@ -757,13 +757,19 @@ export async function postFormationReview(req, res) {
     if (!purchase) {
       return res.status(403).json({ ok: false, error: 'Achat requis pour laisser un avis.' });
     }
-    const existingReview = await Review.findOne({ userId, formationId: formation._id }).lean();
+    const existingReview = await Review.findOne({
+      userId,
+      formationId: formation._id,
+      $or: [{ targetType: 'formation' }, { targetType: { $exists: false } }]
+    }).lean();
     if (existingReview) {
       return res.status(409).json({ ok: false, error: 'Vous avez dÃ©jÃ  laissÃ© un avis.' });
     }
     const review = new Review({
       userId,
       formationId: formation._id,
+      targetType: 'formation',
+      sourceType: 'client',
       rating,
       comment,
       createdAt: new Date()
@@ -1731,4 +1737,3 @@ export async function changeFormationSession(req, res) {
     return res.status(status).json({ ok: false, error: message });
   }
 }
-

@@ -1,12 +1,155 @@
-/* C3 — Modération avis (manager). Prefixe rvm-. Tokens --bs-* only, mobile-first, 44px, zéro hex/table. */
-.rvm-filters { display: flex; gap: var(--bs-space-1); overflow-x: auto; padding-bottom: var(--bs-space-1); }
-.rvm-count { font-weight: 700; }
-.rvm-list { display: flex; flex-direction: column; gap: var(--bs-space-2); }
-.rvm-card { display: flex; flex-direction: column; gap: var(--bs-space-1); padding: var(--bs-space-3); border: 1px solid var(--bs-color-border); border-radius: var(--bs-radius); background: var(--bs-color-surface); }
-.rvm-card__head { display: flex; align-items: center; justify-content: space-between; gap: var(--bs-space-2); }
-.rvm-card__author { font-weight: 600; }
-.rvm-card__formation { font-size: 0.82rem; color: var(--bs-color-muted); }
-.rvm-stars { color: var(--bs-color-secondary); display: inline-flex; gap: 1px; }
-.rvm-card__comment { margin: 0; color: var(--bs-color-text); }
-.rvm-card__comment--empty { color: var(--bs-color-muted); font-style: italic; }
-.rvm-card__actions { display: flex; gap: var(--bs-space-1); flex-wrap: wrap; padding-top: var(--bs-space-1); }
+.rvm-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bs-space-3);
+  padding: var(--bs-space-3);
+  border: 1px solid var(--bs-color-border);
+  border-radius: var(--bs-radius);
+  background: var(--bs-color-surface);
+  margin-bottom: var(--bs-space-3);
+}
+
+.rvm-panel__head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--bs-space-2);
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.rvm-panel__title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.rvm-panel__subtitle {
+  margin: 4px 0 0;
+  color: var(--bs-color-muted);
+  font-size: 0.92rem;
+}
+
+.rvm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--bs-space-2);
+}
+
+.rvm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rvm-field > span {
+  font-size: 0.84rem;
+  color: var(--bs-color-muted);
+}
+
+.rvm-field select,
+.rvm-field input,
+.rvm-field textarea {
+  min-height: 44px;
+  width: 100%;
+  border: 1px solid var(--bs-color-border);
+  border-radius: var(--bs-radius);
+  padding: 10px 12px;
+  background: var(--bs-color-background);
+  color: var(--bs-color-text);
+}
+
+.rvm-field textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.rvm-field--full {
+  grid-column: 1 / -1;
+}
+
+.rvm-panel__actions {
+  display: flex;
+  gap: var(--bs-space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.rvm-error {
+  color: var(--bs-color-danger);
+  font-size: 0.88rem;
+}
+
+.rvm-filters {
+  display: flex;
+  gap: var(--bs-space-1);
+  overflow-x: auto;
+  padding-bottom: var(--bs-space-1);
+}
+
+.rvm-count {
+  font-weight: 700;
+}
+
+.rvm-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bs-space-2);
+}
+
+.rvm-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bs-space-2);
+  padding: var(--bs-space-3);
+  border: 1px solid var(--bs-color-border);
+  border-radius: var(--bs-radius);
+  background: var(--bs-color-surface);
+}
+
+.rvm-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--bs-space-2);
+}
+
+.rvm-card__identity {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rvm-card__author {
+  font-weight: 600;
+}
+
+.rvm-card__meta {
+  display: flex;
+  gap: var(--bs-space-1);
+  flex-wrap: wrap;
+}
+
+.rvm-card__target {
+  font-size: 0.92rem;
+  color: var(--bs-color-text);
+}
+
+.rvm-card__source {
+  font-size: 0.82rem;
+  color: var(--bs-color-muted);
+}
+
+.rvm-card__comment {
+  margin: 0;
+  color: var(--bs-color-text);
+}
+
+.rvm-card__comment--empty {
+  color: var(--bs-color-muted);
+  font-style: italic;
+}
+
+.rvm-card__actions {
+  display: flex;
+  gap: var(--bs-space-1);
+  flex-wrap: wrap;
+}

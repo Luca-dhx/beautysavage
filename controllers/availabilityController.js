@@ -9,6 +9,7 @@ import {
   computeAvailableSlotsForPractitioner as computeBookableSlotsForPractitioner,
   sortSlotsByStart
 } from '../services/serviceAvailabilityService.js';
+import { resolveInstitutePractitionerProfile } from '../services/calendar/instituteCalendarContext.js';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -18,6 +19,248 @@ function pad2(n) {
 
 function toDateStr(date) {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+function normalizeDate(value) {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : new Date(value.getTime());
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function parseScheduleTimeToMinutes(timeStr) {
+  const [hours, minutes] = String(timeStr || '').split(':').map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  return hours * 60 + minutes;
+}
+
+function buildInterval(startMin, endMin) {
+  if (!Number.isFinite(startMin) || !Number.isFinite(endMin) || startMin >= endMin) {
+    return null;
+  }
+  return { startMin, endMin };
+}
+
+function slotToInterval(slot) {
+  const startMin = parseScheduleTimeToMinutes(slot?.startTime);
+  const endMin = parseScheduleTimeToMinutes(slot?.endTime);
+  return buildInterval(startMin, endMin);
+}
+
+function normalizeIntervals(rawIntervals = []) {
+  const sorted = rawIntervals
+    .filter(Boolean)
+    .map(interval => buildInterval(Number(interval.startMin), Number(interval.endMin)))
+    .filter(Boolean)
+    .sort((left, right) => left.startMin - right.startMin || left.endMin - right.endMin);
+
+  if (!sorted.length) return [];
+
+  const merged = [sorted[0]];
+  for (let index = 1; index < sorted.length; index += 1) {
+    const current = sorted[index];
+    const previous = merged[merged.length - 1];
+    if (current.startMin <= previous.endMin) {
+      previous.endMin = Math.max(previous.endMin, current.endMin);
+      continue;
+    }
+    merged.push(current);
+  }
+  return merged;
+}
+
+function subtractIntervals(baseIntervals, blockedIntervals) {
+  if (!baseIntervals.length || !blockedIntervals.length) return baseIntervals;
+
+  let current = baseIntervals;
+  for (const blocker of blockedIntervals) {
+    const next = [];
+    for (const interval of current) {
+      if (blocker.endMin <= interval.startMin || blocker.startMin >= interval.endMin) {
+        next.push(interval);
+        continue;
+      }
+      if (blocker.startMin > interval.startMin) {
+        next.push({
+          startMin: interval.startMin,
+          endMin: Math.min(blocker.startMin, interval.endMin)
+        });
+      }
+      if (blocker.endMin < interval.endMin) {
+        next.push({
+          startMin: Math.max(blocker.endMin, interval.startMin),
+          endMin: interval.endMin
+        });
+      }
+    }
+    current = next.filter(interval => interval.endMin > interval.startMin);
+    if (!current.length) break;
+  }
+  return current;
+}
+
+function applyLunchBreak(intervals, lunchBreak) {
+  if (!lunchBreak?.isActive) return intervals;
+  const lunchInterval = slotToInterval(lunchBreak);
+  if (!lunchInterval) return intervals;
+  return subtractIntervals(intervals, [lunchInterval]);
+}
+
+function extractExceptionIntervals(exception) {
+  if (!exception) return [];
+  const slots = Array.isArray(exception.slots) ? exception.slots.map(slotToInterval).filter(Boolean) : [];
+  if (slots.length) return normalizeIntervals(slots);
+  const singleInterval = slotToInterval({
+    startTime: exception.startTime,
+    endTime: exception.endTime
+  });
+  return normalizeIntervals(singleInterval ? [singleInterval] : []);
+}
+
+function buildAvailabilityIntervalsForDay({ schedule, date, exception } = {}) {
+  const normalizedDate = normalizeDate(date);
+  if (!normalizedDate) return [];
+  const daySchedule = Array.isArray(schedule?.weeklySchedule)
+    ? schedule.weeklySchedule.find(entry => Number(entry?.dayOfWeek) === normalizedDate.getDay())
+    : null;
+  const weeklyIntervals = daySchedule?.isWorking
+    ? normalizeIntervals((Array.isArray(daySchedule?.slots) ? daySchedule.slots : []).map(slotToInterval))
+    : [];
+
+  if (exception?.type === 'block' && exception.isFullDay) {
+    return [];
+  }
+
+  let availability = weeklyIntervals;
+  const exceptionIntervals = extractExceptionIntervals(exception);
+  if (exception?.type === 'modify') {
+    availability = exceptionIntervals;
+  } else if (exception?.type === 'add') {
+    availability = normalizeIntervals([...weeklyIntervals, ...exceptionIntervals]);
+  } else if (exception?.type === 'block') {
+    availability = subtractIntervals(weeklyIntervals, exceptionIntervals);
+  }
+
+  return applyLunchBreak(availability, schedule?.lunchBreak);
+}
+
+function intervalContains(interval, startMin, endMin) {
+  return startMin >= interval.startMin && endMin <= interval.endMin;
+}
+
+function buildConflictError(conflicts, message) {
+  const error = new Error(message);
+  error.status = 409;
+  error.code = 'BOOKING_CONFLICT';
+  error.conflicts = conflicts;
+  return error;
+}
+
+function serializeBookingConflict(booking) {
+  return {
+    bookingId: String(booking.bookingId || ''),
+    startAt: booking.startAt,
+    endAt: booking.endAt,
+    status: booking.status
+  };
+}
+
+async function listUpcomingBookings(practitionerId, { fromDate, toDate } = {}) {
+  const filter = {
+    practitionerId,
+    status: { $nin: ['cancelled'] }
+  };
+  if (fromDate || toDate) {
+    filter.startAt = {};
+    if (fromDate) filter.startAt.$gte = fromDate;
+    if (toDate) filter.startAt.$lte = toDate;
+  }
+  return ServiceBooking.find(filter)
+    .sort({ startAt: 1 })
+    .select('bookingId startAt endAt status')
+    .lean();
+}
+
+async function assertScheduleConflicts(practitionerId, schedule) {
+  const fromDate = new Date();
+  fromDate.setHours(0, 0, 0, 0);
+  const bookings = await listUpcomingBookings(practitionerId, { fromDate });
+  if (!bookings.length) return;
+
+  const lastBookingDate = new Date(bookings[bookings.length - 1].startAt);
+  lastBookingDate.setHours(23, 59, 59, 999);
+  const exceptions = await ScheduleException.find({
+    practitionerId,
+    date: { $gte: fromDate, $lte: lastBookingDate }
+  }).lean();
+  const exceptionByDay = new Map(exceptions.map(exception => [toDateStr(exception.date), exception]));
+
+  const conflicts = bookings
+    .filter(booking => {
+      const bookingDate = new Date(booking.startAt);
+      const availability = buildAvailabilityIntervalsForDay({
+        schedule,
+        date: bookingDate,
+        exception: exceptionByDay.get(toDateStr(bookingDate)) || null
+      });
+      const startMin = bookingDate.getHours() * 60 + bookingDate.getMinutes();
+      const endDate = new Date(booking.endAt);
+      const endMin = endDate.getHours() * 60 + endDate.getMinutes();
+      return !availability.some(interval => intervalContains(interval, startMin, endMin));
+    })
+    .map(serializeBookingConflict);
+
+  if (conflicts.length) {
+    throw buildConflictError(conflicts, 'Ce planning fermerait des créneaux déjà réservés.');
+  }
+}
+
+async function assertExceptionConflicts(practitionerId, schedule, exception) {
+  if (!exception || exception.type === 'add') return;
+
+  const exceptionDate = normalizeDate(`${String(exception.date).slice(0, 10)}T12:00:00`);
+  if (!exceptionDate) return;
+
+  const dayStart = new Date(exceptionDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(exceptionDate);
+  dayEnd.setHours(23, 59, 59, 999);
+  const bookings = await listUpcomingBookings(practitionerId, { fromDate: dayStart, toDate: dayEnd });
+  if (!bookings.length) return;
+
+  const availability = buildAvailabilityIntervalsForDay({
+    schedule,
+    date: exceptionDate,
+    exception
+  });
+  const conflicts = bookings
+    .filter(booking => {
+      const startDate = new Date(booking.startAt);
+      const endDate = new Date(booking.endAt);
+      const startMin = startDate.getHours() * 60 + startDate.getMinutes();
+      const endMin = endDate.getHours() * 60 + endDate.getMinutes();
+      return !availability.some(interval => intervalContains(interval, startMin, endMin));
+    })
+    .map(serializeBookingConflict);
+
+  if (conflicts.length) {
+    throw buildConflictError(conflicts, 'Cette exception entre en conflit avec une réservation existante.');
+  }
+}
+
+function buildExceptionInput(input = {}) {
+  const isFullDay = Boolean(input.isFullDay);
+  return {
+    practitionerId: input.practitionerId,
+    date: String(input.date || '').slice(0, 10),
+    type: input.type || 'block',
+    isFullDay,
+    startTime: isFullDay ? null : (input.startTime || null),
+    endTime: isFullDay ? null : (input.endTime || null),
+    slots: Array.isArray(input.slots) ? input.slots : [],
+    reason: input.reason || ''
+  };
 }
 
 /**
@@ -126,6 +369,14 @@ export async function saveSchedule(req, res) {
       }
     }
 
+    const existingSchedule = await PractitionerSchedule.findOne({ practitionerId }).lean();
+    const nextSchedule = {
+      practitionerId,
+      weeklySchedule,
+      lunchBreak: lunchBreak !== undefined ? lunchBreak : (existingSchedule?.lunchBreak || null)
+    };
+    await assertScheduleConflicts(practitionerId, nextSchedule);
+
     const update = {
       weeklySchedule,
       updatedAt: new Date()
@@ -142,6 +393,9 @@ export async function saveSchedule(req, res) {
 
     return res.json({ ok: true, schedule });
   } catch (error) {
+    if (error?.status === 409) {
+      return res.status(409).json({ ok: false, error: error.message, code: error.code, conflicts: error.conflicts || [] });
+    }
     console.error('saveSchedule error', error);
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
   }
@@ -154,9 +408,10 @@ export async function getMySchedule(req, res) {
   res.setHeader('Pragma', 'no-cache');
   try {
     const userId = req.sessionUserId;
-    const profile = await PractitionerProfile.findOne({ userId }).lean();
+    const profile = await PractitionerProfile.findOne({ userId }).lean()
+      || await resolveInstitutePractitionerProfile();
     if (!profile) {
-      return res.status(404).json({ ok: false, error: 'Profil praticienne introuvable.' });
+      return res.status(404).json({ ok: false, error: 'Calendrier institut introuvable.' });
     }
     const schedule = await PractitionerSchedule.findOne({ practitionerId: profile._id });
     return res.json({ ok: true, schedule: schedule || null, practitionerId: String(profile._id) });
@@ -212,26 +467,35 @@ export async function createException(req, res) {
       });
     }
 
+    const schedule = await PractitionerSchedule.findOne({ practitionerId }).lean();
+    const exceptionInput = buildExceptionInput({
+      practitionerId,
+      date,
+      type,
+      isFullDay,
+      startTime,
+      endTime,
+      slots,
+      reason
+    });
+    await assertExceptionConflicts(practitionerId, schedule, exceptionInput);
+
     const exception = await ScheduleException.findOneAndUpdate(
       {
         practitionerId,
         date: new Date(date + 'T00:00:00.000Z')
       },
       {
-        $set: {
-          type,
-          isFullDay: Boolean(isFullDay),
-          startTime: isFullDay ? null : (startTime || null),
-          endTime: isFullDay ? null : (endTime || null),
-          slots: Array.isArray(slots) ? slots : [],
-          reason: reason || ''
-        }
+        $set: exceptionInput
       },
       { upsert: true, new: true }
     );
 
     return res.json({ ok: true, exception });
   } catch (error) {
+    if (error?.status === 409) {
+      return res.status(409).json({ ok: false, error: error.message, code: error.code, conflicts: error.conflicts || [] });
+    }
     console.error('createException error', error);
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });
   }
@@ -241,14 +505,31 @@ export async function createException(req, res) {
 
 export async function updateException(req, res) {
   try {
+    const current = await ScheduleException.findById(req.params.id).lean();
+    if (!current) return res.status(404).json({ ok: false, error: 'Exception introuvable.' });
+    const merged = buildExceptionInput({
+      practitionerId: String(current.practitionerId || ''),
+      date: req.body?.date || current.date,
+      type: req.body?.type || current.type,
+      isFullDay: req.body?.isFullDay ?? current.isFullDay,
+      startTime: req.body?.startTime ?? current.startTime,
+      endTime: req.body?.endTime ?? current.endTime,
+      slots: req.body?.slots ?? current.slots,
+      reason: req.body?.reason ?? current.reason
+    });
+    const schedule = await PractitionerSchedule.findOne({ practitionerId: merged.practitionerId }).lean();
+    await assertExceptionConflicts(merged.practitionerId, schedule, merged);
+
     const exc = await ScheduleException.findByIdAndUpdate(
       req.params.id,
-      { $set: req.body },
+      { $set: merged },
       { new: true }
     );
-    if (!exc) return res.status(404).json({ ok: false, error: 'Exception introuvable.' });
     return res.json({ ok: true, exception: exc });
   } catch (err) {
+    if (err?.status === 409) {
+      return res.status(409).json({ ok: false, error: err.message, code: err.code, conflicts: err.conflicts || [] });
+    }
     console.error('updateException error', err);
     return res.status(500).json({ ok: false, error: err.message });
   }
@@ -265,15 +546,28 @@ export async function batchUpsertExceptions(req, res) {
     }
 
     const results = [];
+    const scheduleCache = new Map();
     for (const exc of exceptions) {
       const { practitionerId, date, type, isFullDay, slots, reason } = exc;
       if (!practitionerId || !date) continue;
+      const normalized = buildExceptionInput({
+        practitionerId,
+        date,
+        type,
+        isFullDay,
+        slots,
+        reason
+      });
+      if (!scheduleCache.has(practitionerId)) {
+        scheduleCache.set(practitionerId, await PractitionerSchedule.findOne({ practitionerId }).lean());
+      }
+      await assertExceptionConflicts(practitionerId, scheduleCache.get(practitionerId), normalized);
 
       // Normaliser en minuit UTC pour cohérence avec createException (new Date("YYYY-MM-DD") = UTC midnight)
       const dateOnly = new Date(String(date).slice(0, 10) + 'T00:00:00.000Z');
 
       const filter = { practitionerId, date: dateOnly };
-      const update = { $set: { type: type || 'block', isFullDay: Boolean(isFullDay), slots: slots || [], reason: reason || '' } };
+      const update = { $set: normalized };
       const opts = { upsert: true, new: true, runValidators: true };
 
       const result = await ScheduleException.findOneAndUpdate(filter, update, opts);
@@ -282,6 +576,9 @@ export async function batchUpsertExceptions(req, res) {
 
     return res.json({ ok: true, count: results.length });
   } catch (err) {
+    if (err?.status === 409) {
+      return res.status(409).json({ ok: false, error: err.message, code: err.code, conflicts: err.conflicts || [] });
+    }
     return res.status(500).json({ ok: false, error: err.message });
   }
 }

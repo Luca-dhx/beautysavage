@@ -55,7 +55,6 @@ export type LearningLessonInput = Partial<
   Pick<LearningLesson, 'title' | 'description' | 'videoUrl' | 'visible' | 'isFree' | 'estimatedMinutes' | 'order'>
 > & { chapterId?: string; resources?: LearningResource[] };
 
-// ── Arbre pédagogique ───────────────────────────────────────────────────────────
 export async function getLearningTree(formationId: string): Promise<LearningTree> {
   const res = await apiGet<{ ok: boolean } & LearningTree>(`${BASE}/formations/${encodeURIComponent(formationId)}/tree`);
   return { chapters: res.chapters ?? [], lessons: res.lessons ?? [] };
@@ -65,13 +64,16 @@ export async function createChapter(formationId: string, input: LearningChapterI
   const res = await apiPost<{ ok: boolean; chapter: LearningChapter }>(`${BASE}/formations/${encodeURIComponent(formationId)}/chapters`, input);
   return res.chapter;
 }
+
 export async function updateChapter(chapterId: string, input: LearningChapterInput): Promise<LearningChapter> {
   const res = await apiPut<{ ok: boolean; chapter: LearningChapter }>(`${BASE}/chapters/${encodeURIComponent(chapterId)}`, input);
   return res.chapter;
 }
+
 export async function deleteChapter(chapterId: string): Promise<void> {
   await apiDelete(`${BASE}/chapters/${encodeURIComponent(chapterId)}`);
 }
+
 export async function reorderChapters(formationId: string, orderedChapterIds: string[]): Promise<void> {
   await apiPut(`${BASE}/formations/${encodeURIComponent(formationId)}/chapters/reorder`, { orderedChapterIds });
 }
@@ -80,18 +82,20 @@ export async function createLesson(formationId: string, input: LearningLessonInp
   const res = await apiPost<{ ok: boolean; lesson: LearningLesson }>(`${BASE}/formations/${encodeURIComponent(formationId)}/lessons`, input);
   return res.lesson;
 }
+
 export async function updateLesson(lessonId: string, input: LearningLessonInput): Promise<LearningLesson> {
   const res = await apiPut<{ ok: boolean; lesson: LearningLesson }>(`${BASE}/lessons/${encodeURIComponent(lessonId)}`, input);
   return res.lesson;
 }
+
 export async function deleteLesson(lessonId: string): Promise<void> {
   await apiDelete(`${BASE}/lessons/${encodeURIComponent(lessonId)}`);
 }
+
 export async function reorderLessons(formationId: string, orderedLessonIds: string[]): Promise<void> {
   await apiPut(`${BASE}/formations/${encodeURIComponent(formationId)}/lessons/reorder`, { orderedLessonIds });
 }
 
-// ── Présence ──────────────────────────────────────────────────────────────────
 export type AttendanceStatus = 'pending' | 'present' | 'absent';
 
 export interface SessionParticipant {
@@ -101,6 +105,7 @@ export interface SessionParticipant {
   method: string | null;
   checkedInAt: string | null;
 }
+
 export interface ParticipantsResult {
   participants: SessionParticipant[];
   summary: { total: number; present: number; remaining: number };
@@ -110,9 +115,11 @@ export async function listSessionParticipants(sessionId: string): Promise<Partic
   const res = await apiGet<{ ok: boolean } & ParticipantsResult>(`${BASE}/sessions/${encodeURIComponent(sessionId)}/participants`);
   return { participants: res.participants ?? [], summary: res.summary ?? { total: 0, present: 0, remaining: 0 } };
 }
+
 export async function markAttendance(sessionId: string, userId: string, status: AttendanceStatus): Promise<void> {
   await apiPost(`${BASE}/sessions/${encodeURIComponent(sessionId)}/attendance`, { userId, status });
 }
+
 export async function scanAttendance(sessionId: string, token: string): Promise<{ userId: string; name: string; status: AttendanceStatus }> {
   const res = await apiPost<{ ok: boolean; participant: { userId: string; name: string; status: AttendanceStatus } }>(
     `${BASE}/sessions/${encodeURIComponent(sessionId)}/scan`,
@@ -121,7 +128,6 @@ export async function scanAttendance(sessionId: string, token: string): Promise<
   return res.participant;
 }
 
-// ── Attestation (preview only, C3) ───────────────────────────────────────────────
 export interface AttestationTemplate {
   id: string;
   name: string;
@@ -129,14 +135,17 @@ export interface AttestationTemplate {
   variables: string[];
   active: boolean;
 }
+
 export async function getAttestationTemplate(): Promise<AttestationTemplate> {
   const res = await apiGet<{ ok: boolean; template: AttestationTemplate }>(`${BASE}/attestation-template`);
   return res.template;
 }
+
 export async function updateAttestationTemplate(input: { name?: string; html?: string }): Promise<AttestationTemplate> {
   const res = await apiPut<{ ok: boolean; template: AttestationTemplate }>(`${BASE}/attestation-template`, input);
   return res.template;
 }
+
 export async function previewAttestation(data?: Record<string, string>): Promise<{ html: string; prepared: boolean; generated: boolean }> {
   const res = await apiPost<{ ok: boolean; preview: { html: string; prepared: boolean; generated: boolean } }>(
     `${BASE}/attestation-template/preview`,
@@ -145,34 +154,69 @@ export async function previewAttestation(data?: Record<string, string>): Promise
   return res.preview;
 }
 
-// ── Modération des avis (C3) ──────────────────────────────────────────────────────
 export type ReviewStatus = 'pending' | 'published' | 'rejected';
+export type ReviewTargetType = 'formation' | 'service';
+export type ReviewSourceType = 'client' | 'manual_institute';
 
 export interface ModerationReview {
   id: string;
+  targetType: ReviewTargetType;
+  targetId: string | null;
+  targetName: string;
   formationId: string | null;
-  formationName: string;
+  formationName: string | null;
+  serviceId: string | null;
+  serviceName: string | null;
   authorName: string;
   rating: number;
   comment: string;
   status: ReviewStatus;
   createdAt: string | null;
   moderatedAt: string | null;
+  sourceType: ReviewSourceType;
+  isManual: boolean;
+  sourceLabel: string;
 }
 
 export interface ReviewModerationResult {
   reviews: ModerationReview[];
   counts: { pending: number; published: number; rejected: number };
+  countsByType: { formation: number; service: number };
 }
 
-export async function listReviewsForModeration(params?: { status?: ReviewStatus; formationId?: string }): Promise<ReviewModerationResult> {
+export interface ManualReviewInput {
+  targetType: ReviewTargetType;
+  targetId: string;
+  displayName: string;
+  rating: number;
+  comment?: string;
+  status: 'pending' | 'published';
+}
+
+export async function listReviewsForModeration(params?: {
+  status?: ReviewStatus;
+  type?: ReviewTargetType;
+  formationId?: string;
+  serviceId?: string;
+}): Promise<ReviewModerationResult> {
   const res = await apiGet<{ ok: boolean } & ReviewModerationResult>(`${BASE}/reviews`, {
     status: params?.status,
+    type: params?.type,
     formationId: params?.formationId,
+    serviceId: params?.serviceId,
   });
-  return { reviews: res.reviews ?? [], counts: res.counts ?? { pending: 0, published: 0, rejected: 0 } };
+  return {
+    reviews: res.reviews ?? [],
+    counts: res.counts ?? { pending: 0, published: 0, rejected: 0 },
+    countsByType: res.countsByType ?? { formation: 0, service: 0 },
+  };
 }
 
 export async function moderateReview(reviewId: string, status: ReviewStatus): Promise<void> {
   await apiPatch(`${BASE}/reviews/${encodeURIComponent(reviewId)}`, { status });
+}
+
+export async function createManualReview(input: ManualReviewInput): Promise<ModerationReview> {
+  const res = await apiPost<{ ok: boolean; review: ModerationReview }>(`${BASE}/reviews/manual`, input);
+  return res.review;
 }

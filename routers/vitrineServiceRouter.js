@@ -3,13 +3,17 @@ import express from 'express';
 import {
   listPublicServices,
   getPublicServiceBySlug,
-  listBoostedServices
+  listBoostedServices,
+  getServiceReviewStats,
+  getServiceReviews
 } from '../controllers/serviceController.js';
 
 const router = express.Router();
 
 router.get('/boosted', listBoostedServices);
 router.get('/', listPublicServices);
+router.get('/:id/reviews/stats', getServiceReviewStats);
+router.get('/:id/reviews', getServiceReviews);
 router.get('/:slug', getPublicServiceBySlug);
 
 export default router;

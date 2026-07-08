@@ -4424,3 +4424,33 @@ Système de comptes de gestion (admin/dev) **par invitation tokenisée**, réuti
 Sécurité : tokens opaques hashés/expirables/usage unique/jamais loggés ; dev gère admin+dev, admin ne crée pas
 de dev, client exclu du manager ; Brevo mocké en test (aucun mail réel). Détails :
 `docs/RX_BLOCKER_2_USERS_INVITATIONS_AUDIT.md` + `..._REPORT.md`.
+
+
+## RX-POLISH-BLOCKER — Manager UX, planning, avis et dev panel
+
+Livraison transverse de finition produit sur le manager React et la vitrine avis, sans casser les flux
+backend existants.
+
+- **Navigation manager** : la sidebar expose un groupe `Finance` expansible avec sous-liens visibles et
+  état actif enfant précis. Les routes historiques `/ventes` et `/remboursements` redirigent vers la
+  timeline finance filtrée ; `/reservations` renvoie vers `/planning`.
+- **Planning réel** : `features/planning/` passe en calendrier horaire jour/semaine branché au calendrier
+  global institut, avec zones fermées, blocages, disponibilités hebdomadaires et exceptions ponctuelles.
+- **Montants booking** : le détail calendrier affiche `Total`, `Acompte payé`, `Reste à payer`, dérivés
+  du backend uniquement.
+- **Réservation manuelle** : le parcours visible de réservation manuelle prestation est retiré de l'UX
+  manager/Customer 360 ; le backend reste conservé pour usage futur ou hors démo.
+- **Avis** : `Review` devient polymorphe `formation|service`, supporte `sourceType='manual_institute'`,
+  et la modération manager gère filtres par type/statut + création manuelle. La vitrine expose aussi des
+  avis publics de prestation.
+- **Notation produit** : les interfaces avis utilisent `PawRating` / `PawInput` ; plus d'étoiles visibles
+  dans le parcours avis Beauty Savage traité par ce chantier.
+- **Dev panel** : les routes `/dev`, `/dev/integrated-api`, `/dev/event-logs`, `/dev/webhook-failures`
+  affichent désormais des pages utiles ou diagnostics réels au lieu d'un placeholder vide.
+
+Tests clés :
+backend `planningAvailabilitySettings`, `planningDayExceptions`, `reviewManualCreation`,
+`managerDevPanelRoutes` ; frontend `managerPlanningCalendar`, `managerPlanningAvailability`,
+`bookingDetailAmounts`, `reviews`, `serviceDetail`, `pawRatingEverywhere`, `devPanelNoEmptyComingSoon`.
+
+Détails : `docs/RX_POLISH_BLOCKER_AUDIT.md` et `docs/RX_POLISH_BLOCKER_REPORT.md`.

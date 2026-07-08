@@ -10918,5 +10918,29 @@
     "tests": "Backend tests/p1 : managerUsersInvitation (acces dev/admin/client, creation sans mdp, token hashe, accept->login usage unique, faibles/mismatch/invalides), authMailSenderRouting (support/commerciale + liens), managerPasswordResetRouting (route par role + anti-enumeration + reset manager bout-en-bout). Front : features/managerUsers/managerUsers.test.tsx (cards/zero table/sans champ password/renvoi) + pages/managerAuthPages.test.tsx (invitation/forgot/reset : valide/faible/expire/invalide). Brevo mocke partout, aucun mail reel.",
     "limits": "/manager/users dev-only en V1 (pas de vue admin lecture seule). Renvoi invitation = nouveau token (jamais de re-exposition). Repointage liens e-mail vers React uniquement sous REACT_OFFICIAL_FRONTEND=ON.",
     "next": "Notifications comptes manager (creation/desactivation) + eventuelle vue admin lecture seule + audit trail des actions dev."
+  },
+  "rxPolishBlocker": {
+    "date": "2026-07-08",
+    "branch": "phase-0-security-baseline",
+    "audits": [
+      "docs/RX_POLISH_BLOCKER_AUDIT.md",
+      "docs/RX_POLISH_BLOCKER_REPORT.md"
+    ],
+    "summary": "Finition transverse manager/vitrine/dev panel pour retirer les signaux de produit inacheve sans regression metier. Sidebar finance groupee, planning manager en vrai calendrier horaire, disponibilites hebdomadaires + exceptions ponctuelles, detail booking avec total/acompte/reste, parcours visible de reservation manuelle retire, moderation avis service+formation avec creation manuelle, PawRating partout sur les zones avis touchees, routes dev utiles au lieu de faux ComingSoon.",
+    "backend": "Review devient polymorphe formation|service avec sourceType client|manual_institute ; endpoints publics avis prestation + stats ; creation d avis manuel manager ; requireDev conserve admin+dev pour les surfaces manager partagees ; disponibilites/exceptions planning couvertes par les tests P1 ; routes diagnostics dev manager verifiees.",
+    "frontend": "ManagerLayout expose un groupe Finance expansible ; FinanceTimeline lit l URL ; PlanningPage rend une grille horaire jour/semaine avec closed/blocked slots + panneau disponibilites/exceptions ; Booking detail montre Total/Acompte/Reste ; Customer360 ne propose plus la reservation manuelle ; ReviewModerationPage gere type/statut + formulaire avis manuel ; ServiceDetailPage affiche ServiceReviews ; dev panel remplace les ecrans vides par des pages utiles.",
+    "tests": [
+      "tests/p1/planningAvailabilitySettings.test.js",
+      "tests/p1/planningDayExceptions.test.js",
+      "tests/p1/reviewManualCreation.test.js",
+      "tests/p1/managerDevPanelRoutes.test.js",
+      "frontend-react/apps/manager/src/features/planning/managerPlanningCalendar.test.tsx",
+      "frontend-react/apps/manager/src/features/planning/managerPlanningAvailability.test.tsx",
+      "frontend-react/apps/manager/src/features/planning/bookingDetailAmounts.test.tsx",
+      "frontend-react/apps/manager/src/features/devPanel/devPanelNoEmptyComingSoon.test.tsx",
+      "frontend-react/apps/vitrine/src/features/account/pawRatingEverywhere.test.tsx"
+    ],
+    "limits": "Le backend de reservation manuelle prestation est conserve mais volontairement masque de l UX standard. Certaines pages hors perimetre peuvent encore utiliser des placeholders expliques si aucun backend utile n existe encore.",
+    "next": "Executer la validation large release, puis commit selectif 'Polish manager planning reviews and dev panel UX' et push de la branche."
   }
 }

@@ -1,8 +1,6 @@
 // M10 — Planning global institut (feature). Point d'entrée.
 export { PlanningPage, PlanningCalendar } from './PlanningPage';
 export {
-  CalendarItemCard,
-  FormationSessionCard,
   CalendarItemDetailDrawer,
   CalendarFiltersDrawer,
   BookingActionsPanel,
@@ -13,13 +11,19 @@ export {
   DayColumn,
   WeekView,
   MobileDayAgenda,
+  PlanningLegend,
+  PlanningAvailabilityPanel,
   PlanningEmptyState,
   PlanningSkeleton,
 } from './components';
 export {
   usePlanning,
+  usePlanningAvailability,
   planningRange,
   groupItemsByDay,
+  groupExceptionsByDay,
+  buildAvailabilityWindows,
+  inferHourRange,
   startOfWeek,
   startOfDay,
   addDays,

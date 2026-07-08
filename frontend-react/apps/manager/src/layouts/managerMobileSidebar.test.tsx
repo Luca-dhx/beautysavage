@@ -1,4 +1,4 @@
-// RX-BLOCKER — Sidebar mobile manager : burger → drawer slide-in (overlay + fermeture), pas de <table>.
+// RX-BLOCKER - Sidebar mobile manager: burger -> drawer slide-in, finance group precise active state.
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -10,15 +10,19 @@ import { ManagerLayout } from './ManagerLayout';
 function stub() {
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
 }
-function renderLayout(user: AuthUser) {
+
+function renderLayout(user: AuthUser, path = '/') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
       <AuthProvider loader={async () => user}>
-        <MemoryRouter initialEntries={['/']}>
+        <MemoryRouter initialEntries={[path]}>
           <Routes>
             <Route element={<ManagerLayout />}>
               <Route index element={<div>CONTENU</div>} />
+              <Route path="finance" element={<div>FINANCE</div>} />
+              <Route path="finance/timeline" element={<div>TIMELINE</div>} />
+              <Route path="finance/commissions" element={<div>COMMISSIONS</div>} />
             </Route>
           </Routes>
         </MemoryRouter>
@@ -26,33 +30,45 @@ function renderLayout(user: AuthUser) {
     </QueryClientProvider>,
   );
 }
+
 const dev: AuthUser = { id: '1', email: 'dev@b.c', role: 'dev', currentMode: 'gestion' };
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe('ManagerLayout — sidebar mobile (RX-BLOCKER)', () => {
-  it('burger présent ; drawer fermé par défaut', () => {
+describe('ManagerLayout - sidebar mobile (RX-BLOCKER)', () => {
+  it('burger present; drawer closed by default', () => {
     stub();
     renderLayout(dev);
     expect(screen.getByRole('button', { name: 'Ouvrir le menu' })).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { name: 'Menu de navigation' })).toBeNull();
   });
 
-  it('clic burger → drawer ouvert (nav) ; fermeture → drawer fermé', () => {
+  it('finance group opens on demand and closes drawer after navigation', () => {
     stub();
     const { container } = renderLayout(dev);
     fireEvent.click(screen.getByRole('button', { name: 'Ouvrir le menu' }));
     const drawer = screen.getByRole('dialog', { name: 'Menu de navigation' });
-    expect(drawer).toBeInTheDocument();
-    // Les liens de nav sont présents dans le drawer (statiques, indépendants de l'auth).
-    expect(within(drawer).getByRole('link', { name: 'Clients' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Fermer le menu' }));
+    expect(within(drawer).queryByRole('link', { name: 'Ventes' })).toBeNull();
+
+    fireEvent.click(within(drawer).getByTestId('manager-finance-toggle'));
+    const salesLink = within(drawer).getByRole('link', { name: 'Ventes' });
+    expect(salesLink).toBeInTheDocument();
+
+    fireEvent.click(salesLink);
     expect(screen.queryByRole('dialog', { name: 'Menu de navigation' })).toBeNull();
-    // Zéro tableau.
     expect(container.querySelector('table')).toBeNull();
   });
 
-  it('Escape ferme le drawer', () => {
+  it('marks the sales child active when timeline filter comes from the URL', () => {
+    stub();
+    renderLayout(dev, '/finance/timeline?type=sale');
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir le menu' }));
+    const drawer = screen.getByRole('dialog', { name: 'Menu de navigation' });
+    expect(within(drawer).getByRole('link', { name: 'Ventes' })).toHaveAttribute('aria-current', 'page');
+    expect(within(drawer).getByRole('link', { name: 'Remboursements' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('Escape closes the drawer', () => {
     stub();
     renderLayout(dev);
     fireEvent.click(screen.getByRole('button', { name: 'Ouvrir le menu' }));

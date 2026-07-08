@@ -936,3 +936,25 @@ lecture package.json. Cf. `docs/RX_RUN_LAUNCH_AUDIT.md` + `docs/RX_RUN_2_ONE_COM
   états valide/faible/expiré/invalide).
 - **Brevo mocké partout** (aucun mail réel) ; tokens jamais loggés en clair. Cf.
   `docs/RX_BLOCKER_2_USERS_INVITATIONS_REPORT.md`.
+
+## RX-POLISH-BLOCKER — Manager UX, planning, avis, dev panel
+
+Backend :
+- `tests/p1/planningAvailabilitySettings.test.js` — horaires hebdomadaires manager, sauvegarde et lecture.
+- `tests/p1/planningDayExceptions.test.js` — blocage journée/créneau, conflits, garde backend autoritaire.
+- `tests/p1/reviewManualCreation.test.js` — avis manuel prestation sans faux client, publication/modération,
+  exposition publique stats/liste.
+- `tests/p1/managerDevPanelRoutes.test.js` — accès dev aux diagnostics utiles, admin autorisé sur les routes
+  manager partagées mais refusé sur les diagnostics strictement dev.
+
+Frontend :
+- `frontend-react/apps/manager/src/features/planning/managerPlanningCalendar.test.tsx`
+- `frontend-react/apps/manager/src/features/planning/managerPlanningAvailability.test.tsx`
+- `frontend-react/apps/manager/src/features/planning/bookingDetailAmounts.test.tsx`
+- `frontend-react/apps/manager/src/features/devPanel/devPanelNoEmptyComingSoon.test.tsx`
+- `frontend-react/apps/vitrine/src/features/account/pawRatingEverywhere.test.tsx`
+- Mises à jour :
+  `frontend-react/apps/manager/src/features/reviews/reviews.test.tsx`,
+  `frontend-react/apps/vitrine/src/features/serviceDetail/serviceDetail.test.tsx`,
+  `frontend-react/packages/api-client/src/catalog/reviewsApi.test.ts`,
+  `frontend-react/packages/api-client/src/manager/reviewModerationApi.test.ts`.

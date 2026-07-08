@@ -270,3 +270,20 @@ lien « Mon compte » au lieu de l'e-mail. Détail : rapport 222.
 - `@bs/api-client catalog/home.ts` (5 wrappers accueil) ; `PublicGiftCardConfig` +maxAmount/presetAmounts ;
   `checkout` `GiftCardCheckoutState`/`buildGiftCardCheckoutState`.
 - `VitrineFooter` : social-links hydratés. Backend minimal : recipient carte cadeau persisté (finalizer).
+
+## RX-POLISH-BLOCKER — Avis prestations et langage Paw
+
+Finition transverse de l'expérience avis côté vitrine.
+
+- **Avis prestations publics** : le détail prestation consomme désormais des endpoints publics dédiés
+  (`/api/vitrine/services/:id/reviews` et `/reviews/stats`) via `catalog/reviews.ts`, puis affiche une
+  vraie section `ServiceReviews` sur `ServiceDetailPage`.
+- **Avis formations + prestations** : la vitrine partage le même langage de notation sur les zones avis
+  de formation, prestation et compte client.
+- **Paw only** : `PawRating` devient la représentation officielle ; les vues avis ne doivent plus exposer
+  d'étoiles visibles.
+- **Modération respectée** : seuls les avis publiés remontent publiquement ; un avis manuel institut
+  reste interne tant qu'il n'est pas publié.
+
+Tests clés :
+`catalog/reviewsApi.test.ts`, `serviceDetail.test.tsx`, `pawRatingEverywhere.test.tsx`.

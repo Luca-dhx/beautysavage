@@ -259,3 +259,18 @@ facture, remboursement, attestations, notifications). **Cards partout, jamais de
   (manager → support, client → commerciale). Le front ne connaît qu'un endpoint.
 - **Politique mot de passe partagée** : ≥8 caractères, au moins une lettre et un chiffre — parité stricte avec
   le backend (`passwordError` dans `ManagerAuthShell`).
+
+## 19. Finitions RX-POLISH-BLOCKER
+- **Aucune route produit ne doit déboucher sur un faux vide** : un `ComingSoon` n'est acceptable que
+  s'il apporte un diagnostic utile, un prochain pas concret, ou s'il redirige vers la vraie surface.
+  Une route de navigation existante ne doit jamais finir sur une page vide générique.
+- **Un seul langage visuel pour les avis** : `PawRating` / `PawInput` sont les composants officiels.
+  Les étoiles visibles (`★`, `☆`, `bi-star*`) sont interdites dans les interfaces avis Beauty Savage.
+- **Un seul calendrier produit** : le planning manager doit rester un calendrier horaire réel, avec
+  heures visibles, zones fermées grisées, blocages, aujourd'hui, et détail booking. Les réglages
+  disponibilités/exceptions doivent alimenter cette même surface, pas un deuxième calendrier divergent.
+- **Parcours hors démo invisibles par défaut** : si une capacité backend existe mais n'est pas prête pour
+  le produit (ex. réservation manuelle prestation), elle doit être retirée des CTA et raccourcis manager
+  standards plutôt que laissée visible mais ambiguë.
+- **Montants de booking backend only** : les récapitulatifs `Total / Acompte / Reste` viennent des données
+  serveur, jamais d'un recalcul front.

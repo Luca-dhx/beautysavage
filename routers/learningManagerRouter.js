@@ -23,7 +23,11 @@ import {
   previewAttestation,
   getManagerAttestation
 } from '../controllers/learningController.js';
-import { listReviewsForModeration, moderateReview } from '../controllers/reviewModerationController.js';
+import {
+  listReviewsForModeration,
+  moderateReview,
+  createManualReview
+} from '../controllers/reviewModerationController.js';
 
 const router = express.Router();
 
@@ -53,6 +57,7 @@ router.get('/customers/:customerId/formations/:formationId/attestation', getMana
 
 // Modération des avis
 router.get('/reviews', listReviewsForModeration);
+router.post('/reviews/manual', createManualReview);
 router.patch('/reviews/:reviewId', moderateReview);
 
 export default router;

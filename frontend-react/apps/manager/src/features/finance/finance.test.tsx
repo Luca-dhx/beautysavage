@@ -42,7 +42,8 @@ function renderPage() {
       <MemoryRouter initialEntries={['/finance']}>
         <Routes>
           <Route path="/finance" element={<FinanceDashboardPage />} />
-          <Route path="/remboursements" element={<div>Page remboursements</div>} />
+          <Route path="/planning" element={<div>Planning</div>} />
+          <Route path="/finance/timeline" element={<div>Page timeline finance</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -71,12 +72,12 @@ describe('Finance Dashboard (RX2.1)', () => {
     expect(screen.getByText('1 facture')).toBeInTheDocument();
   });
 
-  it('navigue vers /remboursements au clic sur la carte remboursements', async () => {
+  it('navigue vers la timeline refund au clic sur la carte remboursements', async () => {
     installFetch(DASH);
     renderPage();
     const card = await screen.findByText('2 remboursements');
     fireEvent.click(card);
-    expect(await screen.findByText('Page remboursements')).toBeInTheDocument();
+    expect(await screen.findByText('Page timeline finance')).toBeInTheDocument();
   });
 
   it('changer de période refetch avec le bon range', async () => {

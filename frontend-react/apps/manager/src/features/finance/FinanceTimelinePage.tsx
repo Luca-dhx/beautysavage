@@ -1,7 +1,7 @@
-// RX2.2 — Financial Timeline : la colonne vertébrale narrative. Résumé sticky + chips + cards.
-// On lit, on comprend. Cards/drawer, jamais de table. Mobile = desktop.
+// RX2.2 - Financial Timeline: sticky summary + period/type chips + cards.
+// Readable at a glance, drawer details, no table.
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { FinanceTimelinePeriod, FinanceTimelineTypeFilter, FinanceTimelineItem } from '@bs/api-client';
 import { useFinanceTimeline } from './useFinance';
 import { FinanceSkeleton, FinanceError } from './components';
@@ -13,11 +13,39 @@ import { FinanceMovementDrawer } from './movementDrawer';
 import './finance.css';
 import './timeline.css';
 
+function parsePeriod(value: string | null): FinanceTimelinePeriod {
+  return value === 'today' || value === 'week' || value === 'month'
+    ? value
+    : 'month';
+}
+
+function parseType(value: string | null): FinanceTimelineTypeFilter {
+  return value === 'sale' || value === 'refund'
+    ? value
+    : 'all';
+}
+
+function buildSearchParams(period: FinanceTimelinePeriod, type: FinanceTimelineTypeFilter): URLSearchParams {
+  const params = new URLSearchParams();
+  if (period !== 'month') params.set('period', period);
+  if (type !== 'all') params.set('type', type);
+  return params;
+}
+
 export function FinanceTimelinePage() {
-  const [period, setPeriod] = useState<FinanceTimelinePeriod>('month');
-  const [type, setType] = useState<FinanceTimelineTypeFilter>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const period = parsePeriod(searchParams.get('period'));
+  const type = parseType(searchParams.get('type'));
   const [selected, setSelected] = useState<FinanceTimelineItem | null>(null);
   const { data, isLoading, isError, refetch } = useFinanceTimeline({ period, type, limit: 100 });
+
+  const updatePeriod = (nextPeriod: FinanceTimelinePeriod) => {
+    setSearchParams(buildSearchParams(nextPeriod, type), { replace: true });
+  };
+
+  const updateType = (nextType: FinanceTimelineTypeFilter) => {
+    setSearchParams(buildSearchParams(period, nextType), { replace: true });
+  };
 
   return (
     <div className="fin-tl-page" data-testid="finance-timeline">
@@ -30,7 +58,7 @@ export function FinanceTimelinePage() {
 
       {data ? <FinanceTimelineSummary summary={data.summary} /> : null}
 
-      <FinanceTimelineFilters period={period} type={type} onPeriod={setPeriod} onType={setType} />
+      <FinanceTimelineFilters period={period} type={type} onPeriod={updatePeriod} onType={updateType} />
 
       {isLoading ? <FinanceSkeleton /> : null}
       {isError ? <FinanceError onRetry={() => void refetch()} /> : null}

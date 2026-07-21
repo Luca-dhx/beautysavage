@@ -3,6 +3,7 @@
 :root {
   --bs-color-primary: #5f4ff7;
   --bs-color-primary-hover: #4c3ee0;
+  --bs-color-on-primary: #ffffff; /* couleur de texte lisible sur fond primaire */
   --bs-color-secondary: #f24692;
   --bs-color-accent: #7a4ad0;
   --bs-color-success: #1f7a3a;

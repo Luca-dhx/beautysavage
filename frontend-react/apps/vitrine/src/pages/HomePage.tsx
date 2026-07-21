@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { SectionHeader, CatalogueGrid, CatalogueCard, MediaImage, PriceLabel, Card } from '@bs/ui';
+import { MediaImage, Card } from '@bs/ui';
 import { resolveMediaUrl, formatDuration, getBoostedServices } from '@bs/api-client';
 import { usePublicServices } from '../features/catalog/hooks/usePublicServices';
 import { usePublicShop } from '../features/catalog/hooks/usePublicShop';
 import { usePublicGiftCards } from '../features/catalog/hooks/usePublicGiftCards';
 import { servicePriceProps, trainingPriceProps } from '../features/catalog/priceProps';
 import { HomeHero } from '../features/home/HomeHero';
+import { HomeCarousel, type CarouselItem } from '../features/home/HomeCarousel';
 import { HomeWhy } from '../features/home/HomeWhy';
 import { HomeReviews } from '../features/home/HomeReviews';
 import { HomeFaq } from '../features/home/HomeFaq';
@@ -20,57 +21,55 @@ export function HomePage() {
   const shop = usePublicShop();
   const giftCard = usePublicGiftCards();
 
-  const prestations = (boosted.data?.length ? boosted.data : services.data ?? []).slice(0, 3);
-  const formations = (shop.data?.formations ?? []).slice(0, 3);
+  const prestations = (boosted.data?.length ? boosted.data : services.data ?? []).slice(0, 10);
+  const formations = (shop.data?.formations ?? []).slice(0, 10);
   const featuredFormationId = shop.data?.formations?.[0]?.id;
+
+  const prestationItems: CarouselItem[] = prestations.map((s) => ({
+    id: s.id,
+    to: `/prestations/${s.slug}`,
+    title: s.name,
+    media: resolveMediaUrl(s.photos?.[0]),
+    mediaAlt: s.name,
+    badge: s.hasPromo ? s.promotionLabel ?? 'Promo' : null,
+    meta: formatDuration(s.duration) || null,
+    price: servicePriceProps(s),
+    ctaLabel: 'Réserver',
+  }));
+
+  const formationItems: CarouselItem[] = formations.map((t) => ({
+    id: t.id,
+    to: `/formations/${t.id}`,
+    title: t.name,
+    media: resolveMediaUrl(t.coverImage),
+    mediaAlt: t.name,
+    badge: t.activePromotion ? t.activePromotion.label ?? 'Promo' : null,
+    meta: t.type ? TYPE_LABEL[t.type] ?? t.type : null,
+    price: trainingPriceProps(t),
+    ctaLabel: 'Réserver',
+  }));
 
   return (
     <div className="home">
       <HomeHero />
 
-      {/* Prestations */}
-      <section className="home-section" aria-label="Prestations">
-        <SectionHeader title="Nos prestations" subtitle="Réservez votre moment beauté." action={<Link to="/prestations">Voir tout →</Link>} />
-        {prestations.length ? (
-          <CatalogueGrid>
-            {prestations.map((s) => (
-              <CatalogueCard
-                key={s.id}
-                media={<MediaImage src={resolveMediaUrl(s.photos?.[0])} alt={s.name} />}
-                badge={s.hasPromo ? s.promotionLabel ?? 'Promo' : undefined}
-                title={s.name}
-                meta={formatDuration(s.duration) || undefined}
-                price={<PriceLabel {...servicePriceProps(s)} />}
-                action={<Link className="bs-btn bs-btn--secondary" to={`/prestations/${s.slug}`}>Réserver</Link>}
-              />
-            ))}
-          </CatalogueGrid>
-        ) : (
-          <p className="bs-note">Découvrez bientôt nos prestations.</p>
-        )}
-      </section>
+      <HomeCarousel
+        ariaLabel="Prestations"
+        title="Nos prestations"
+        subtitle="Réservez votre moment beauté."
+        viewAllTo="/prestations"
+        items={prestationItems}
+        emptyLabel="Découvrez bientôt nos prestations."
+      />
 
-      {/* Formations */}
-      <section className="home-section" aria-label="Formations">
-        <SectionHeader title="Nos formations" subtitle="En ligne ou en présentiel." action={<Link to="/formations">Voir tout →</Link>} />
-        {formations.length ? (
-          <CatalogueGrid>
-            {formations.map((t) => (
-              <CatalogueCard
-                key={t.id}
-                media={<MediaImage src={resolveMediaUrl(t.coverImage)} alt={t.name} />}
-                badge={t.activePromotion ? t.activePromotion.label ?? 'Promo' : undefined}
-                title={t.name}
-                meta={t.type ? TYPE_LABEL[t.type] ?? t.type : undefined}
-                price={<PriceLabel {...trainingPriceProps(t)} />}
-                action={<Link className="bs-btn bs-btn--secondary" to={`/formations/${t.id}`}>Détail</Link>}
-              />
-            ))}
-          </CatalogueGrid>
-        ) : (
-          <p className="bs-note">Découvrez bientôt nos formations.</p>
-        )}
-      </section>
+      <HomeCarousel
+        ariaLabel="Formations"
+        title="Nos formations"
+        subtitle="En ligne ou en présentiel."
+        viewAllTo="/formations"
+        items={formationItems}
+        emptyLabel="Découvrez bientôt nos formations."
+      />
 
       {/* Cartes cadeaux */}
       <section className="home-section" aria-label="Cartes cadeaux">

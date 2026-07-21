@@ -8,17 +8,22 @@ import { ApiError } from '@bs/api-client';
 import './auth.css';
 
 /** Coquille centrée pour un écran auth (colonne unique, marque, retour accueil). */
-export function AuthShell({ title, subtitle, children, footer }: {
-  title: string; subtitle?: string; children: ReactNode; footer?: ReactNode;
+export function AuthShell({ title, subtitle, icon = 'bi-heart-fill', children, footer }: {
+  title: string; subtitle?: string; icon?: string; children: ReactNode; footer?: ReactNode;
 }) {
   return (
     <section className="bs-auth">
+      <span className="bs-auth__aura" aria-hidden="true" />
       <Card className="bs-auth__card">
+        <div className="bs-auth__brand">
+          <span className="bs-auth__emblem" aria-hidden="true"><i className={`bi ${icon}`} /></span>
+          <span className="bs-auth__brandname">Beauty Savage</span>
+        </div>
         <h1 className="bs-auth__title">{title}</h1>
         {subtitle ? <p className="bs-auth__subtitle">{subtitle}</p> : null}
         {children}
         {footer ? <div className="bs-auth__footer">{footer}</div> : null}
-        <p className="bs-auth__home"><Link to="/">← Retour à l’accueil</Link></p>
+        <p className="bs-auth__home"><Link to="/"><i className="bi bi-arrow-left" aria-hidden="true" /> Retour à l’accueil</Link></p>
       </Card>
     </section>
   );

@@ -141,9 +141,39 @@ body {
   color: var(--bs-color-muted);
 }
 .bs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--bs-space-2);
   text-align: center;
+  padding: var(--bs-space-4);
   border: 1px dashed var(--bs-color-border);
-  border-radius: var(--bs-radius);
+  border-radius: calc(var(--bs-radius) * 2);
+  background: color-mix(in srgb, var(--bs-color-primary) 3%, var(--bs-color-surface));
+  color: var(--bs-color-muted);
+}
+.bs-empty__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  font-size: 1.6rem;
+  color: color-mix(in srgb, var(--bs-color-primary) 60%, var(--bs-color-muted));
+  background: color-mix(in srgb, var(--bs-color-primary) 10%, transparent);
+}
+.bs-empty__label {
+  font-weight: 600;
+  color: var(--bs-color-text);
+}
+.bs-empty__hint {
+  font-size: 0.88rem;
+  color: var(--bs-color-muted);
+  max-width: 46ch;
+}
+.bs-empty__action {
+  margin-top: var(--bs-space-1);
 }
 
 .bs-grid {

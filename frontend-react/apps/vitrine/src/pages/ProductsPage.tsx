@@ -59,11 +59,11 @@ export function ProductsPage() {
                 ))}
               </CatalogueGrid>
             ) : (
-              <EmptyState label="Aucun produit ne correspond à votre recherche." />
+              <EmptyState icon="bi-search" label="Aucun produit ne correspond à votre recherche." hint="Essayez un autre mot-clé ou réinitialisez la recherche." />
             )}
           </>
         ) : (
-          <EmptyState label="Aucun produit disponible pour le moment." />
+          <EmptyState icon="bi-box-seam" label="Aucun produit disponible pour le moment." hint="Nos produits seront bientôt disponibles à la vente." />
         )
       ) : null}
     </section>

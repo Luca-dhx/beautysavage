@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { SectionHeader, MediaImage, PriceLabel } from '@bs/ui';
+import { MediaImage, PriceLabel } from '@bs/ui';
 import type { PriceLabelProps } from '@bs/ui';
 
-// RX-HOME — Carrousel 3D horizontal (prestations / formations). Cartes compactes en « coverflow » :
-// chaque cellule se replie en profondeur selon sa distance au centre (rotateY + scale + opacity),
-// recalculé au scroll via rAF. Mobile-first, scroll tactile + snap, flèches sur desktop, CTA direct.
-// Respecte prefers-reduced-motion (désactive l'effet 3D, garde le scroll simple).
+// RX-HOME — Vitrine des prestations / formations. Cartes carrées premium.
+// • ≥ 2 éléments : carrousel 3D « coverflow » horizontal (rotateY + scale + opacity recalculés au
+//   scroll via rAF), scroll tactile + snap, flèches sur desktop.
+// • ≤ 1 élément : pas de carrousel (inutile) → carte unique centrée, sans flèches ni effet 3D.
+// Mobile-first, CTA direct, respect de prefers-reduced-motion.
 
 export interface CarouselItem {
   id: string;
@@ -23,10 +24,12 @@ export interface CarouselItem {
 export interface HomeCarouselProps {
   title: string;
   subtitle?: string;
+  titleIcon?: string;
   viewAllTo?: string;
   viewAllLabel?: string;
   items: CarouselItem[];
   emptyLabel?: string;
+  emptyIcon?: string;
   ariaLabel: string;
 }
 
@@ -34,11 +37,37 @@ const REDUCED = typeof window !== 'undefined' && typeof window.matchMedia === 'f
   ? window.matchMedia('(prefers-reduced-motion: reduce)')
   : null;
 
-export function HomeCarousel({ title, subtitle, viewAllTo, viewAllLabel = 'Voir tout →', items, emptyLabel = 'Découvrez bientôt notre sélection.', ariaLabel }: HomeCarouselProps) {
+function SectionHead({ title, subtitle, titleIcon, viewAllTo, viewAllLabel }: {
+  title: string; subtitle?: string; titleIcon?: string; viewAllTo?: string; viewAllLabel: string;
+}) {
+  return (
+    <div className="home-cf__head">
+      <div className="home-cf__heading">
+        {titleIcon ? <span className="home-cf__title-icon" aria-hidden="true"><i className={titleIcon} /></span> : null}
+        <div className="home-cf__headings">
+          <h2 className="home-cf__title">{title}</h2>
+          {subtitle ? <p className="home-cf__subtitle">{subtitle}</p> : null}
+        </div>
+      </div>
+      {viewAllTo ? (
+        <Link className="home-cf__viewall" to={viewAllTo}>
+          <span>{viewAllLabel}</span>
+          <i className="bi bi-arrow-right" aria-hidden="true" />
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
+export function HomeCarousel({
+  title, subtitle, titleIcon, viewAllTo, viewAllLabel = 'Voir tout', items,
+  emptyLabel = 'Découvrez bientôt notre sélection.', emptyIcon = 'bi-stars', ariaLabel,
+}: HomeCarouselProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const frame = useRef<number>(0);
+  const isCarousel = items.length > 1;
 
-  // Applique la transformation « coverflow » à chaque cellule selon sa distance au centre du track.
+  // Transformation « coverflow » : chaque cellule se replie selon sa distance au centre du track.
   const paint = useCallback(() => {
     const track = trackRef.current;
     if (!track) return;
@@ -73,6 +102,7 @@ export function HomeCarousel({ title, subtitle, viewAllTo, viewAllLabel = 'Voir 
   }, [paint]);
 
   useEffect(() => {
+    if (!isCarousel) return;
     paint();
     const onResize = () => onScroll();
     window.addEventListener('resize', onResize);
@@ -80,7 +110,7 @@ export function HomeCarousel({ title, subtitle, viewAllTo, viewAllLabel = 'Voir 
       window.removeEventListener('resize', onResize);
       cancelAnimationFrame(frame.current);
     };
-  }, [paint, onScroll, items.length]);
+  }, [paint, onScroll, isCarousel, items.length]);
 
   const scrollBy = (dir: 1 | -1) => {
     const track = trackRef.current;
@@ -92,8 +122,14 @@ export function HomeCarousel({ title, subtitle, viewAllTo, viewAllLabel = 'Voir 
 
   return (
     <section className="home-section home-cf-section" aria-label={ariaLabel}>
-      <SectionHeader title={title} subtitle={subtitle} action={viewAllTo ? <Link to={viewAllTo}>{viewAllLabel}</Link> : undefined} />
-      {items.length ? (
+      <SectionHead title={title} subtitle={subtitle} titleIcon={titleIcon} viewAllTo={viewAllTo} viewAllLabel={viewAllLabel} />
+
+      {items.length === 0 ? (
+        <div className="home-cf__empty">
+          <i className={`bi ${emptyIcon}`} aria-hidden="true" />
+          <span>{emptyLabel}</span>
+        </div>
+      ) : isCarousel ? (
         <div className="home-cf">
           <button type="button" className="home-cf__nav home-cf__nav--prev" aria-label="Précédent" onClick={() => scrollBy(-1)}>
             <i className="bi bi-chevron-left" aria-hidden="true" />
@@ -110,7 +146,9 @@ export function HomeCarousel({ title, subtitle, viewAllTo, viewAllLabel = 'Voir 
           </button>
         </div>
       ) : (
-        <p className="bs-note">{emptyLabel}</p>
+        <div className="home-cf-single">
+          <CarouselCard item={items[0]} />
+        </div>
       )}
     </section>
   );
@@ -120,13 +158,16 @@ function CarouselCard({ item }: { item: CarouselItem }): ReactNode {
   return (
     <article className="bs-card home-card">
       <Link to={item.to} className="home-card__media" aria-label={item.title}>
-        <MediaImage src={item.media} alt={item.mediaAlt ?? item.title} ratio="3 / 4" />
+        <MediaImage src={item.media} alt={item.mediaAlt ?? item.title} ratio="1 / 1" />
         {item.badge ? <span className="home-card__badge">{item.badge}</span> : null}
+        <span className="home-card__shine" aria-hidden="true" />
       </Link>
       <div className="home-card__body">
         <h3 className="home-card__title">{item.title}</h3>
-        {item.meta ? <div className="home-card__meta">{item.meta}</div> : null}
-        {item.price ? <div className="home-card__price"><PriceLabel {...item.price} /></div> : null}
+        <div className="home-card__row">
+          {item.meta ? <span className="home-card__meta">{item.meta}</span> : <span />}
+          {item.price ? <span className="home-card__price"><PriceLabel {...item.price} /></span> : null}
+        </div>
         <Link className="bs-btn home-card__cta" to={item.to}>
           <i className="bi bi-calendar-heart" aria-hidden="true" /> {item.ctaLabel ?? 'Réserver'}
         </Link>

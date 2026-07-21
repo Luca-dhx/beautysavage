@@ -57,18 +57,22 @@ export function HomePage() {
         ariaLabel="Prestations"
         title="Nos prestations"
         subtitle="Réservez votre moment beauté."
+        titleIcon="bi bi-scissors"
         viewAllTo="/prestations"
         items={prestationItems}
         emptyLabel="Découvrez bientôt nos prestations."
+        emptyIcon="bi-scissors"
       />
 
       <HomeCarousel
         ariaLabel="Formations"
         title="Nos formations"
         subtitle="En ligne ou en présentiel."
+        titleIcon="bi bi-mortarboard"
         viewAllTo="/formations"
         items={formationItems}
         emptyLabel="Découvrez bientôt nos formations."
+        emptyIcon="bi-mortarboard"
       />
 
       {/* Cartes cadeaux */}
@@ -76,13 +80,17 @@ export function HomePage() {
         <Card className="home-gift">
           <div className="home-gift__media">
             <MediaImage src={resolveMediaUrl(giftCard.data?.image)} alt="Carte cadeau Beauty Savage" ratio="4 / 3" />
+            <span className="home-gift__ribbon" aria-hidden="true"><i className="bi bi-gift-fill" /></span>
           </div>
           <div className="home-gift__body">
+            <span className="home-gift__eyebrow"><i className="bi bi-stars" aria-hidden="true" /> Idée cadeau</span>
             <h2 className="home-gift__title">Offrez la beauté</h2>
             <p className="home-gift__text">
               Une carte cadeau utilisable sur l’ensemble de nos prestations et formations. Le cadeau qui fait toujours plaisir.
             </p>
-            <Link className="bs-btn" to="/cartes-cadeaux">Offrir une carte cadeau</Link>
+            <Link className="bs-btn home-gift__cta" to="/cartes-cadeaux">
+              <i className="bi bi-gift" aria-hidden="true" /> Offrir une carte cadeau
+            </Link>
           </div>
         </Card>
       </section>
@@ -91,13 +99,35 @@ export function HomePage() {
       <HomeReviews formationId={featuredFormationId} />
       <HomeFaq />
 
-      {/* CTA final */}
+      {/* CTA final — bloc premium avec illustrations & effets */}
       <section className="home-cta" aria-label="Commencer">
-        <h2 className="home-cta__title">Prête à commencer ?</h2>
-        <div className="home-cta__actions">
-          <Link className="bs-btn" to="/prestations">Réserver</Link>
-          <Link className="bs-btn bs-btn--secondary" to="/formations">Se former</Link>
-          <Link className="bs-btn bs-btn--secondary" to="/cartes-cadeaux">Offrir</Link>
+        <span className="home-cta__glow" aria-hidden="true" />
+        <span className="home-cta__blob home-cta__blob--a" aria-hidden="true" />
+        <span className="home-cta__blob home-cta__blob--b" aria-hidden="true" />
+        <div className="home-cta__inner">
+          <span className="home-cta__badge"><i className="bi bi-heart-fill" aria-hidden="true" /> Beauty Savage</span>
+          <h2 className="home-cta__title">Prête à commencer ?</h2>
+          <p className="home-cta__lead">Réservez une prestation, formez-vous ou offrez un moment de beauté — en quelques clics.</p>
+          <div className="home-cta__cards">
+            <Link className="home-cta__card" to="/prestations">
+              <span className="home-cta__card-icon"><i className="bi bi-calendar-heart" aria-hidden="true" /></span>
+              <span className="home-cta__card-title">Réserver</span>
+              <span className="home-cta__card-sub">Votre moment beauté</span>
+              <i className="bi bi-arrow-right home-cta__card-go" aria-hidden="true" />
+            </Link>
+            <Link className="home-cta__card" to="/formations">
+              <span className="home-cta__card-icon"><i className="bi bi-mortarboard" aria-hidden="true" /></span>
+              <span className="home-cta__card-title">Se former</span>
+              <span className="home-cta__card-sub">En ligne ou présentiel</span>
+              <i className="bi bi-arrow-right home-cta__card-go" aria-hidden="true" />
+            </Link>
+            <Link className="home-cta__card" to="/cartes-cadeaux">
+              <span className="home-cta__card-icon"><i className="bi bi-gift" aria-hidden="true" /></span>
+              <span className="home-cta__card-title">Offrir</span>
+              <span className="home-cta__card-sub">Une carte cadeau</span>
+              <i className="bi bi-arrow-right home-cta__card-go" aria-hidden="true" />
+            </Link>
+          </div>
         </div>
       </section>
     </div>

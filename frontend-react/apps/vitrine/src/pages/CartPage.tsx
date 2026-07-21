@@ -12,8 +12,17 @@ export function CartPage() {
     return (
       <section>
         <SectionHeader title="Panier" />
-        <EmptyState label="Votre panier est vide." />
-        <p><Link to="/prestations">Découvrir les prestations →</Link></p>
+        <EmptyState
+          icon="bi-bag-heart"
+          label="Votre panier est vide."
+          hint="Parcourez nos prestations et formations pour composer votre moment beauté."
+          action={
+            <div style={{ display: 'flex', gap: 'var(--bs-space-2)', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Link className="bs-btn" to="/prestations"><i className="bi bi-scissors" aria-hidden="true" /> Découvrir les prestations</Link>
+              <Link className="bs-btn bs-btn--secondary" to="/formations"><i className="bi bi-mortarboard" aria-hidden="true" /> Voir les formations</Link>
+            </div>
+          }
+        />
       </section>
     );
   }

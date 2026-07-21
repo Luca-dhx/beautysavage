@@ -51,6 +51,8 @@ export function LoginPage() {
   return (
     <AuthShell
       title="Connexion"
+      subtitle="Ravis de vous revoir — accédez à votre espace beauté."
+      icon="bi-person-hearts"
       footer={
         <>
           <span>Pas encore de compte ? <Link to="/inscription">Créer un compte</Link></span>
@@ -73,7 +75,10 @@ export function LoginPage() {
           </div>
         ) : null}
         {error ? <ErrorState title="Échec de la connexion." detail={error} /> : null}
-        <Button type="submit" disabled={submitting}>{submitting ? 'Connexion…' : 'Se connecter'}</Button>
+        <Button type="submit" className="bs-auth__submit" disabled={submitting}>
+          <i className={`bi ${submitting ? 'bi-arrow-repeat bs-auth__spin' : 'bi-box-arrow-in-right'}`} aria-hidden="true" />
+          {submitting ? 'Connexion…' : 'Se connecter'}
+        </Button>
       </form>
     </AuthShell>
   );

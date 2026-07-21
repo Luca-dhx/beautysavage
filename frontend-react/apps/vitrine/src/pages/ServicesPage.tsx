@@ -60,11 +60,11 @@ export function ServicesPage() {
                 ))}
               </CatalogueGrid>
             ) : (
-              <EmptyState label="Aucune prestation ne correspond à votre recherche." />
+              <EmptyState icon="bi-search" label="Aucune prestation ne correspond à votre recherche." hint="Essayez un autre mot-clé ou réinitialisez la recherche." />
             )}
           </>
         ) : (
-          <EmptyState label="Aucune prestation disponible pour le moment." />
+          <EmptyState icon="bi-scissors" label="Aucune prestation disponible pour le moment." hint="Notre catalogue arrive très bientôt — revenez nous voir." />
         )
       ) : null}
     </section>

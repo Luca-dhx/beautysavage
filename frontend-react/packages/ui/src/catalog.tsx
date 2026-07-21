@@ -20,10 +20,21 @@ export function SectionHeader({ title, subtitle, action }: SectionHeaderProps) {
   );
 }
 
-export function EmptyState({ label = 'Rien à afficher pour le moment.' }: { label?: string }) {
+export function EmptyState({ label = 'Rien à afficher pour le moment.', icon = 'bi-inboxes', hint, action }: {
+  label?: string;
+  /** Icône Bootstrap (sans le préfixe redondant). */
+  icon?: string;
+  /** Ligne d'aide secondaire optionnelle. */
+  hint?: ReactNode;
+  /** Action optionnelle (ex. bouton « Découvrir le catalogue »). */
+  action?: ReactNode;
+}) {
   return (
     <div className="bs-state bs-empty" role="status">
-      {label}
+      <span className="bs-empty__icon" aria-hidden="true"><i className={`bi ${icon}`} /></span>
+      <span className="bs-empty__label">{label}</span>
+      {hint ? <span className="bs-empty__hint">{hint}</span> : null}
+      {action ? <div className="bs-empty__action">{action}</div> : null}
     </div>
   );
 }

@@ -72,11 +72,11 @@ export function TrainingsPage() {
                 ))}
               </CatalogueGrid>
             ) : (
-              <EmptyState label="Aucune formation ne correspond à votre recherche." />
+              <EmptyState icon="bi-search" label="Aucune formation ne correspond à votre recherche." hint="Essayez un autre mot-clé ou réinitialisez la recherche." />
             )}
           </>
         ) : (
-          <EmptyState label="Aucune formation disponible pour le moment." />
+          <EmptyState icon="bi-mortarboard" label="Aucune formation disponible pour le moment." hint="De nouvelles formations seront bientôt en ligne." />
         )
       ) : null}
     </section>

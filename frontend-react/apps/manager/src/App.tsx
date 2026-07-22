@@ -27,6 +27,7 @@ const catalogue = () => import('./features/catalogue');
 const results = () => import('./features/results');
 const finance = () => import('./features/finance');
 const devPanel = () => import('./features/devPanel');
+const integratedApiMgmt = () => import('./features/integratedApi');
 
 const AdminCommunicationLayout = l(comm, 'AdminCommunicationLayout');
 const DevCommunicationLayout = l(comm, 'DevCommunicationLayout');
@@ -92,7 +93,7 @@ const GiftCardFinanceDetailPage = l(finance, 'GiftCardFinanceDetailPage');
 
 const DevDashboardPage = l(devPanel, 'DevDashboardPage');
 const DevContractsPage = l(devPanel, 'DevContractsPage');
-const IntegratedApiDiagnosticsPage = l(devPanel, 'IntegratedApiDiagnosticsPage');
+const IntegratedApiManagementPage = l(integratedApiMgmt, 'IntegratedApiManagementPage');
 const EventLogsPage = l(devPanel, 'EventLogsPage');
 const WebhookFailuresPage = l(devPanel, 'WebhookFailuresPage');
 
@@ -184,7 +185,7 @@ export function App() {
                   <Route index element={<DevDashboardPage />} />
                   <Route path="contrats" element={<DevContractsPage />} />
                   <Route path="commissions" element={<Navigate to="/finance/commissions" replace />} />
-                  <Route path="integrated-api" element={<IntegratedApiDiagnosticsPage />} />
+                  <Route path="integrated-api" element={<IntegratedApiManagementPage />} />
                   <Route path="system" element={<SystemSettingsPage />} />
 
                   <Route path="email-templates" element={<MailTemplateStudioLayout />}>

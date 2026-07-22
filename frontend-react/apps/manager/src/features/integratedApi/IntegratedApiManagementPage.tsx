@@ -133,7 +133,7 @@ export function IntegratedApiManagementPage() {
   return (
     <div>
       <header style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0 }}>Intégrations API</h1>
+        <h1 style={{ margin: 0 }}>API intégrée</h1>
         <p style={{ marginTop: 4, opacity: 0.8 }}>
           Clés Stripe (institut / plateforme) et Brevo, chiffrées au coffre. Aucun secret n’est jamais réaffiché —
           un champ vide conserve la valeur existante.

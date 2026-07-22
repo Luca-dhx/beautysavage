@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ErrorState } from '@bs/ui';
 import type { CatalogueTraining, CatalogueTrainingInput } from '@bs/api-client';
+import { uploadFormationImage } from '@bs/api-client';
 import {
   CatalogueEditorShell,
   CatalogueModuleStepper,
@@ -20,6 +21,8 @@ import { useTrainingDetail, useTrainingMutations, useSessionsList } from './useC
 import { TrainingSessionEditor } from './TrainingSessionEditor';
 import { ChapterEditor } from './learning/ChapterEditor';
 import { EvaluationEditor } from './learning/EvaluationEditor';
+import { FaqEditor } from '../faq/FaqEditor';
+import { CatalogueGalleryEditor } from './CatalogueGalleryEditor';
 
 type Draft = Partial<CatalogueTraining>;
 
@@ -40,9 +43,9 @@ function modulesFor(type: Draft['type']): ModuleDescriptor[] {
     // C2 — Learning Studio : contenu pédagogique (chapitres → leçons → ressources).
     base.push({ key: 'contenu', label: 'Contenu', icon: 'bi-collection-play' });
   }
-  base.push({ key: 'medias', label: 'Médias', icon: 'bi-images' });
   base.push({ key: 'questionnaire', label: 'Questionnaire', icon: 'bi-ui-checks' });
   base.push({ key: 'rendus', label: 'Rendus', icon: 'bi-camera' });
+  base.push({ key: 'faq', label: 'FAQ', icon: 'bi-patch-question' });
   base.push({ key: 'vitrine', label: 'Vitrine', icon: 'bi-shop' });
   return base;
 }
@@ -77,7 +80,8 @@ export function TrainingEditor({ id }: { id?: string }) {
   const moduleLabels = useMemo(() => Object.fromEntries(modules.map((m) => [m.key, m.label])), [modules]);
   const validation = useMemo(() => validateTraining(draft, sessions.data ?? []), [draft, sessions.data]);
   const doneCount = modules.filter((m) => {
-    const s = validation.modules[m.key]?.status;
+    // Un module sans règle de validation (ex. FAQ) est optionnel → compté « fait ».
+    const s = validation.modules[m.key]?.status ?? 'optional';
     return s === 'complete' || s === 'optional';
   }).length;
 
@@ -94,6 +98,8 @@ export function TrainingEditor({ id }: { id?: string }) {
       // RC1 quick win — la bande-annonce était éditable mais omise du payload (perte de données).
       trailerVideoUrl: draft.trailerVideoUrl,
       status: draft.status,
+      photos: draft.photos,
+      faq: draft.faq,
     };
     try {
       const saved = await save.mutateAsync({ input, id });
@@ -163,6 +169,16 @@ export function TrainingEditor({ id }: { id?: string }) {
                 </CatField>
               </div>
             ) : null}
+            <CatField label="Galerie" hint="La 1re image est la couverture. Ajout par URL ou upload, glisser-déposer pour l'ordre.">
+              <CatalogueGalleryEditor
+                images={[draft.coverImage, ...(draft.photos ?? [])].filter(Boolean) as string[]}
+                onChange={(imgs) => { set('coverImage', imgs[0] ?? ''); set('photos', imgs.slice(1)); }}
+                onUpload={(file) => uploadFormationImage(file)}
+              />
+            </CatField>
+            <CatField label="Bande-annonce (URL vidéo)">
+              <input className="cat-input" value={draft.trailerVideoUrl ?? ''} onChange={(e) => set('trailerVideoUrl', e.target.value)} />
+            </CatField>
           </div>
         ) : null}
 
@@ -211,17 +227,6 @@ export function TrainingEditor({ id }: { id?: string }) {
           )
         ) : null}
 
-        {active === 'medias' ? (
-          <div className="cat-form">
-            <CatField label="Image de couverture (URL)">
-              <input className="cat-input" value={draft.coverImage ?? ''} onChange={(e) => set('coverImage', e.target.value)} />
-            </CatField>
-            <CatField label="Bande-annonce (URL vidéo)">
-              <input className="cat-input" value={draft.trailerVideoUrl ?? ''} onChange={(e) => set('trailerVideoUrl', e.target.value)} />
-            </CatField>
-          </div>
-        ) : null}
-
         {active === 'questionnaire' ? (
           isNew ? <p className="cat-note">Enregistrez la formation pour configurer le questionnaire.</p>
             : <EvaluationEditor formationId={id as string} part="questionnaire" />
@@ -242,6 +247,14 @@ export function TrainingEditor({ id }: { id?: string }) {
               </select>
             </CatField>
             <CataloguePreviewCard title={draft.name ?? ''} subtitle={draft.type === 'presentiel' ? 'Formation présentielle' : 'Formation distancielle'} price={Number(draft.price) || 0} image={draft.coverImage} />
+          </div>
+        ) : null}
+
+        {active === 'faq' ? (
+          <div className="cat-form">
+            <CatField label="Questions fréquentes de la formation" hint="Affichées sur la fiche vitrine. Rien n'est publié tant qu'aucune question n'est renseignée.">
+              <FaqEditor value={draft.faq ?? []} onChange={(faq) => set('faq', faq)} />
+            </CatField>
           </div>
         ) : null}
       </CatalogueEditorShell>

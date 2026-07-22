@@ -4454,3 +4454,56 @@ backend `planningAvailabilitySettings`, `planningDayExceptions`, `reviewManualCr
 `bookingDetailAmounts`, `reviews`, `serviceDetail`, `pawRatingEverywhere`, `devPanelNoEmptyComingSoon`.
 
 Détails : `docs/RX_POLISH_BLOCKER_AUDIT.md` et `docs/RX_POLISH_BLOCKER_REPORT.md`.
+
+---
+
+## Système d'évaluation et certification des formations (FORMATION-EVALUATION, commit 0e1d861)
+
+Moteur générique **optionnel** d'évaluation + certification des formations (une formation sans
+évaluation reste 100 % valide). Détails complets : `docs/TRAINING_EVALUATION_SYSTEM.md` +
+`docs/TRAINING_CERTIFICATION.md`. Câblage UI manager restauré post-rewind : `docs/POST_REWIND_STABILIZATION_REPORT.md`.
+
+### Architecture (agrégat + cycle de vie)
+
+```
+Training
+  └─ EvaluationDefinition (agrégat : sections → questions[true_false | quiz mono/multi] → réponses
+                           + deliverables[photo_before_after | video], versionné, soft-delete)
+   ─── cycle de vie client (collections séparées) ───
+  EvaluationAttempt (in_progress → submitted → accepted | refused)
+  EvaluationDecision (immuable = historique)
+  Certificate (diplôme = conséquence d'une validation, jamais dans la définition ; PDF pdfkit + QR qrcode)
+```
+
+### Backend
+- Modèles : `EvaluationDefinition`, `EvaluationAttempt`, `EvaluationDecision`, `Certificate`.
+- Services `services/evaluation/` : scoring (institut only) · definition (sanitize/upsert/projection
+  client SANS corrections) · certificate (pdfkit + qrcode, `storage/certificates` gitignoré, idempotent)
+  · events (Communication Center) · decision (accept→diplôme / refuse→purge + nouvelle tentative,
+  commentaire obligatoire).
+- Routes : `/api/client/evaluation` (gating achat + complétion + propriété, uploads multer→`/uploads/evaluations`
+  60 Mo) et `/api/gestion/evaluation` (`requireDev`).
+
+### Parcours
+- **Client** (dans le player, après complétion) : questionnaire (sans score/correction) → rendus
+  (photo avant/après, vidéo) → récapitulatif → soumission → « Vos résultats ont été transmis » →
+  diplôme obtenu OU « Recommencer » (motif).
+- **Institut** (menu **Résultats**) : liste + fiche (score, bonnes réponses, photos avant/après + zoom,
+  vidéo, historique) → commentaire obligatoire → Valider (diplôme) ou Refuser.
+
+### Refus / Acceptation
+- **Refus** : décision immuable → données de travail (réponses/fichiers) purgées → nouvelle tentative → historique conservé.
+- **Acceptation** : décision → Certificate → PDF → QR → e-mail (diplôme en PJ) → notification.
+
+### Communication Center
+Événements `training.evaluation.submitted|accepted|refused` + `training.certificate.generated|sent` ;
+mails `evaluation_accepted` (diplôme PJ) / `evaluation_refused` (motif) ; notifications admin
+`evaluation_submitted|accepted|refused`.
+
+### Tests
+`npm run test:training` = 10 fichiers / 32 tests verts + 3 suites frontend (EvaluationResultPage,
+QuestionnaireEditor, EvaluationFlow).
+
+### Limites V1
+Évaluation manuelle · un seul évaluateur (pas de jury) · QR de vérification = évolution future ·
+vidéos ≤ 60 Mo · pas d'analyse IA.

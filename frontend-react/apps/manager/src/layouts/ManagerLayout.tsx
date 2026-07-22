@@ -14,6 +14,7 @@ const MANAGER_NAV = [
   { to: '/catalogue', label: 'Catalogue' },
   { to: '/resultats', label: 'Résultats' },
   { to: '/avis', label: 'Avis' },
+  { to: '/faq', label: 'FAQ accueil' },
   { to: '/cartes-cadeaux/templates', label: 'Modèles carte cadeau' },
   { to: '/communication', label: 'Communication' },
   { to: '/parametres', label: 'Paramètres' },
@@ -180,18 +181,24 @@ export function ManagerLayout() {
   return (
     <AppShell
       header={(
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div className="bs-mh">
           <IconButton label="Ouvrir le menu" className="bs-sidebar-burger" aria-expanded={open} onClick={() => setOpen(true)}>
             <i className="bi bi-list" aria-hidden="true" />
           </IconButton>
-          <strong style={{ marginRight: 'auto' }}>Beauty Savage - Espace {roleLabel(user?.role) || 'Manager'}</strong>
-          <span style={{ opacity: 0.6 }}>{user?.email}</span>
-          <NotificationMotionProvider>
-            <NotificationBell scope="admin" />
-          </NotificationMotionProvider>
-          <Button variant="secondary" onClick={() => void signOut()}>
-            Déconnexion
-          </Button>
+          <div className="bs-mh__brand">
+            <strong className="bs-mh__title">Beauty Savage</strong>
+            <span className="bs-mh__role">Espace {roleLabel(user?.role) || 'Manager'}</span>
+          </div>
+          <span className="bs-mh__email">{user?.email}</span>
+          <div className="bs-mh__actions">
+            <NotificationMotionProvider>
+              <NotificationBell scope="admin" />
+            </NotificationMotionProvider>
+            <Button variant="secondary" className="bs-mh__signout" onClick={() => void signOut()}>
+              <i className="bi bi-box-arrow-right" aria-hidden="true" />
+              <span className="bs-mh__signout-label">Déconnexion</span>
+            </Button>
+          </div>
         </div>
       )}
       footer={<span>Espace de gestion</span>}

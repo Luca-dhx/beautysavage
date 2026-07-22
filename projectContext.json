@@ -1,5 +1,17 @@
 {
   "id": "project-context",
+  "formationEvaluationSystem": {
+    "commit": "0e1d861",
+    "status": "backend + client + communication complete; manager UI re-wired post-rewind (POST-REWIND-STABILIZATION)",
+    "architecture": "Training -> EvaluationDefinition (aggregate root: sections->questions[true_false|quiz mono/multi]->answers + deliverables[photo_before_after|video], versioned, soft-delete) -> EvaluationAttempt (in_progress->submitted->accepted|refused) -> EvaluationDecision (immutable, history) -> Certificate (diploma, opaque number + QR)",
+    "backend": "services/evaluation/{evaluationScoringService,evaluationDefinitionService,certificateService,evaluationEventsService,evaluationDecisionService}; controllers evaluationClientController + evaluationManagerController; routers mounted /api/client/evaluation + /api/gestion/evaluation; PDF via pdfkit + QR via qrcode; storage/certificates gitignored",
+    "clientFlow": "formation completed -> questionnaire (no score/correction) -> deliverables (photo before/after + video upload, multer 60MB) -> submission -> institute review -> accepted (diploma) | refused (immutable decision + purge work data + new attempt, history kept)",
+    "communication": "events training.evaluation.submitted/accepted/refused + training.certificate.generated/sent; mails evaluation_accepted (diploma PDF attached)/evaluation_refused (motif); notifs evaluation_submitted/accepted/refused (admin)",
+    "frontend": "manager: features/results (Resultats console list+detail), catalogue/learning/EvaluationEditor (Questionnaire+Rendus tabs in TrainingEditor); vitrine: features/evaluation/EvaluationFlow (wired in learning/Player)",
+    "tests": "npm run test:training = 10 files / 32 green; frontend EvaluationResultPage + QuestionnaireEditor + EvaluationFlow (8)",
+    "docs": ["docs/TRAINING_EVALUATION_SYSTEM.md", "docs/TRAINING_CERTIFICATION.md", "docs/POST_REWIND_AUDIT.md", "docs/POST_REWIND_STABILIZATION_REPORT.md"],
+    "limitsV1": ["manual grading only", "single reviewer (no jury)", "QR verification endpoint is future", "video upload capped 60MB", "no AI analysis"]
+  },
   "stabilizationStatus": {
     "p0": "closed",
     "p1": "closed",

@@ -19,6 +19,7 @@ export * from './manualBooking';
 export * from './customerNotes';
 export * from './catalogue';
 export * from './learning';
+export * from './homeSettings';
 export * from './systemConfiguration';
 export * from './mode';
 export * from './managerUsers';

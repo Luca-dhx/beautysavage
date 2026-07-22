@@ -15,8 +15,7 @@
   width: min(520px, 90vw);
   height: 320px;
   transform: translateX(-50%);
-  background: radial-gradient(60% 60% at 50% 40%, color-mix(in srgb, var(--bs-color-primary) 18%, transparent), transparent 70%);
-  filter: blur(10px);
+  background: transparent;
   pointer-events: none;
 }
 .bs-auth__card {
@@ -38,7 +37,7 @@
   border-radius: 20px;
   font-size: 1.7rem;
   color: var(--bs-color-on-primary, #fff);
-  background: linear-gradient(135deg, var(--bs-color-primary), var(--bs-color-secondary));
+  background: var(--bs-color-primary);
   box-shadow: 0 16px 30px -12px color-mix(in srgb, var(--bs-color-primary) 75%, transparent);
 }
 .bs-auth__brandname { font-weight: 700; letter-spacing: 0.02em; color: var(--bs-color-text); }

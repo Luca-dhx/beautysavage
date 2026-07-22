@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { prefersReducedMotion } from './motion';
 
 // Composants catalogue (présentation pure — props préformatées, aucune dépendance data).
 
@@ -94,14 +95,17 @@ export interface CatalogueCardProps {
   price?: ReactNode;
   description?: string;
   action?: ReactNode;
+  /** Note (ex. <PawRating …/>) affichée sous le titre si des avis existent. */
+  rating?: ReactNode;
 }
 
-export function CatalogueCard({ title, media, badge, meta, price, description, action }: CatalogueCardProps) {
+export function CatalogueCard({ title, media, badge, meta, price, description, action, rating }: CatalogueCardProps) {
   return (
     <article className="bs-card bs-cat-card">
       {media ? <div className="bs-cat-card__media">{media}{badge ? <span className="bs-cat-card__badge">{badge}</span> : null}</div> : null}
       <div className="bs-cat-card__body">
         <h3 className="bs-cat-card__title">{title}</h3>
+        {rating ? <div className="bs-cat-card__rating">{rating}</div> : null}
         {meta ? <div className="bs-cat-card__meta">{meta}</div> : null}
         {description ? <p className="bs-cat-card__desc">{description}</p> : null}
         <div className="bs-cat-card__footer">
@@ -110,6 +114,17 @@ export function CatalogueCard({ title, media, badge, meta, price, description, a
         </div>
       </div>
     </article>
+  );
+}
+
+/** Note moyenne « pattes de chien » + nombre d'avis entre parenthèses (couleur secondaire). */
+export function PawRatingSummary({ average, count }: { average: number; count: number }) {
+  if (!count) return null;
+  return (
+    <span className="bs-rating-sum" aria-label={`${average.toFixed(1)} sur 5, ${count} avis`}>
+      <PawRating value={average} compact />
+      <span className="bs-rating-sum__count" aria-hidden="true">({count})</span>
+    </span>
   );
 }
 
@@ -144,23 +159,51 @@ export interface PawInputProps {
   label?: string;
 }
 
-/** Sélecteur de note interactif (1..5 pattes). RX4 — parcours avis. Clavier + aria. */
+/** Sélecteur de note interactif (1..5 pattes). RX4 — parcours avis. Clavier + aria.
+ * Les pattes se remplissent (ou se vident) UNE À UNE jusqu'au score choisi, dans les deux sens. */
 export function PawInput({ value, onChange, label = 'Votre note' }: PawInputProps) {
+  // `display` progresse vers `value` d'une patte à la fois ; `pop` = patte qui vient de basculer.
+  const [display, setDisplay] = useState(value);
+  const [pop, setPop] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (display === value) {
+      if (pop !== null) setPop(null);
+      return;
+    }
+    if (prefersReducedMotion()) {
+      setDisplay(value);
+      return;
+    }
+    const step = display < value ? 1 : -1;
+    const next = display + step;
+    const toggled = step > 0 ? next : display; // patte qui change d'état à cette étape
+    const timer = setTimeout(() => {
+      setPop(toggled);
+      setDisplay(next);
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [display, value, pop]);
+
   return (
     <span className="bs-paw-input" role="radiogroup" aria-label={label}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button
-          key={n}
-          type="button"
-          className={`bs-paw-input__btn${n <= value ? ' bs-paw-input__btn--on' : ''}`}
-          role="radio"
-          aria-checked={n === value}
-          aria-label={`${n} sur 5`}
-          onClick={() => onChange(n)}
-        >
-          <Paw filled={n <= value} />
-        </button>
-      ))}
+      {[1, 2, 3, 4, 5].map((n) => {
+        const filled = n <= display;
+        const cls = `bs-paw-input__btn${filled ? ' bs-paw-input__btn--on' : ''}${n === pop ? ' bs-paw-input__btn--pop' : ''}`;
+        return (
+          <button
+            key={n}
+            type="button"
+            className={cls}
+            role="radio"
+            aria-checked={n === value}
+            aria-label={`${n} sur 5`}
+            onClick={() => onChange(n)}
+          >
+            <Paw filled={filled} />
+          </button>
+        );
+      })}
     </span>
   );
 }

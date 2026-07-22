@@ -87,3 +87,23 @@ export const apiPut = <T = unknown>(path: string, body?: unknown): Promise<T> =>
 
 export const apiDelete = <T = unknown>(path: string, body?: unknown): Promise<T> =>
   apiFetch<T>(path, { method: 'DELETE', body });
+
+/** Upload multipart (FormData). Ne fixe PAS Content-Type (le boundary est géré par le navigateur). */
+export async function apiUpload<T = unknown>(path: string, formData: FormData): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(buildUrl(path), { method: 'POST', credentials: 'include', body: formData, headers: { Accept: 'application/json' } });
+  } catch (cause) {
+    throw new ApiError({ status: 0, code: 'NETWORK', message: 'Erreur réseau.', body: cause });
+  }
+  const text = await response.text();
+  let parsed: unknown = null;
+  if (text) {
+    try { parsed = JSON.parse(text); } catch { parsed = text; }
+  }
+  if (!response.ok) {
+    const payload = (parsed && typeof parsed === 'object' ? parsed : {}) as { code?: string; error?: string; message?: string };
+    throw new ApiError({ status: response.status, code: payload.code ?? null, message: payload.message || payload.error || `HTTP ${response.status}`, body: parsed });
+  }
+  return parsed as T;
+}

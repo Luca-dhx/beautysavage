@@ -5,6 +5,7 @@ import {
   CatalogueCard,
   MediaImage,
   PriceLabel,
+  PawRatingSummary,
   LoadingState,
   ErrorState,
   EmptyState,
@@ -61,11 +62,12 @@ export function TrainingsPage() {
                     media={<MediaImage src={resolveMediaUrl(t.coverImage)} alt={t.name} />}
                     badge={t.activePromotion ? t.activePromotion.label ?? 'Promo' : undefined}
                     title={t.name}
+                    rating={<PawRatingSummary average={t.averageRating ?? 0} count={t.reviewCount ?? 0} />}
                     meta={t.type ? TYPE_LABEL[t.type] ?? t.type : undefined}
                     price={<PriceLabel {...trainingPriceProps(t)} />}
                     action={
-                      <Link className="bs-btn bs-btn--secondary" to={`/formations/${t.id}`}>
-                        Détail
+                      <Link className="bs-btn bs-btn--secondary-solid" to={`/formations/${t.id}`}>
+                        Voir
                       </Link>
                     }
                   />

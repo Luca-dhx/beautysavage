@@ -15,6 +15,8 @@ import {
   getFormationEditorialMap
 } from '../services/formationEditorialService.js';
 import { getFormationPurchasedUsersCount } from '../services/formationPurchaseStatsService.js';
+import { getPublishedReviewStatsForTargets, listPublishedReviews } from '../services/reviews/publicReviewQueries.js';
+import { serializeFaq } from '../services/faq/faqSanitizer.js';
 
 const { Types } = mongoose;
 const FORMATION_STATUS_PUBLISHED = 'published';
@@ -172,7 +174,8 @@ async function buildDetail(item, kind, promotion) {
     editorialHtml,
     salesCount: purchasedUsersCount,
     purchasedUsersCount,
-    options
+    options,
+    faq: kind === 'formation' ? serializeFaq(item.faq) : []
   };
 }
 
@@ -220,20 +223,24 @@ export async function getShopListing(_req, res) {
     const productIds = Array.from(
       new Set(products.map(entry => entry._id?.toString()).filter(Boolean))
     );
-    const [formationPromotions, productPromotions, formationEditorialMap] = await Promise.all([
+    const [formationPromotions, productPromotions, formationEditorialMap, formationReviewStats] = await Promise.all([
       getActivePromotionsForTargets('formation', formationIds),
       getActivePromotionsForTargets('product', productIds),
-      getFormationEditorialMap(formationIds)
+      getFormationEditorialMap(formationIds),
+      getPublishedReviewStatsForTargets('formation', formationIds)
     ]);
     const payload = {
       formations: formations
-        .map(doc =>
-          buildFormationForShop(
+        .map(doc => {
+          const built = buildFormationForShop(
             doc,
             formationPromotions.get(doc._id?.toString()),
             formationEditorialMap.get(doc._id?.toString()) || ''
-          )
-        )
+          );
+          if (!built) return null;
+          const stats = formationReviewStats.get(doc._id?.toString()) || { averageRating: 0, reviewCount: 0 };
+          return { ...built, averageRating: stats.averageRating, reviewCount: stats.reviewCount };
+        })
         .filter(Boolean),
       products: products
         .map(doc => buildProductForShop(doc, productPromotions.get(doc._id?.toString())))
@@ -298,7 +305,6 @@ export async function getFormationReviewStats(req, res) {
     }
     const objectId = new Types.ObjectId(formationId);
     const aggregation = await Review.aggregate([
-      // C3 — modération : seuls les avis publiés (ou legacy sans statut) comptent en vitrine.
       { $match: { formationId: objectId, $or: [{ status: 'published' }, { status: { $exists: false } }] } },
       {
         $group: {
@@ -327,21 +333,8 @@ export async function getFormationReviews(req, res) {
     }
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
     const sort = String(req.query.sort || 'recent');
-    const pageSize = 5;
-    const sortStage =
-      sort === 'best'
-        ? { rating: -1, createdAt: -1, _id: -1 }
-        : { createdAt: -1, rating: -1, _id: -1 };
-    // C3 — modération : vitrine = avis publiés (ou legacy sans statut).
-    const match = { formationId: new Types.ObjectId(formationId), $or: [{ status: 'published' }, { status: { $exists: false } }] };
-    const cursor = Review.find(match)
-      .sort(sortStage)
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .select({ rating: 1, comment: 1, createdAt: 1, _id: 0 });
-    const [reviews, total] = await Promise.all([cursor.lean(), Review.countDocuments(match)]);
-    const hasMore = page * pageSize < total;
-    return res.json({ ok: true, reviews, page, hasMore, total });
+    const result = await listPublishedReviews('formation', formationId, { page, sort });
+    return res.json({ ok: true, ...result });
   } catch (error) {
     console.error('Erreur liste avis vitrine', error);
     return res.status(500).json({ ok: false, error: 'Impossible de lire les avis.' });

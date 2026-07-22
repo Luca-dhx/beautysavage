@@ -46,7 +46,7 @@ export function HomePage() {
     badge: t.activePromotion ? t.activePromotion.label ?? 'Promo' : null,
     meta: t.type ? TYPE_LABEL[t.type] ?? t.type : null,
     price: trainingPriceProps(t),
-    ctaLabel: 'Réserver',
+    ctaLabel: 'Voir',
   }));
 
   return (
@@ -99,11 +99,8 @@ export function HomePage() {
       <HomeReviews formationId={featuredFormationId} />
       <HomeFaq />
 
-      {/* CTA final — bloc premium avec illustrations & effets */}
+      {/* CTA final — bloc minimaliste (aplat, filet, icônes couleur simples) */}
       <section className="home-cta" aria-label="Commencer">
-        <span className="home-cta__glow" aria-hidden="true" />
-        <span className="home-cta__blob home-cta__blob--a" aria-hidden="true" />
-        <span className="home-cta__blob home-cta__blob--b" aria-hidden="true" />
         <div className="home-cta__inner">
           <span className="home-cta__badge"><i className="bi bi-heart-fill" aria-hidden="true" /> Beauty Savage</span>
           <h2 className="home-cta__title">Prête à commencer ?</h2>

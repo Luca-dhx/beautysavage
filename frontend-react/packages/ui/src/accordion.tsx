@@ -3,7 +3,6 @@
 // animation via motionPreset('accordion') (neutralisée en reduced-motion). Tokens --bs-* only.
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
-import { motionPreset } from './polish/motion';
 
 export interface AccordionItemData {
   id: string;
@@ -53,11 +52,12 @@ export function Accordion({ items, multiple = false, defaultOpen = [] }: Accordi
                 <i className={`bi bi-chevron-down bs-acc__chevron${isOpen ? ' bs-acc__chevron--open' : ''}`} aria-hidden="true" />
               </button>
             </h3>
-            {isOpen ? (
-              <div id={panelId} role="region" aria-labelledby={btnId} className={['bs-acc__panel', motionPreset('accordion')].filter(Boolean).join(' ')}>
-                {item.content}
+            {/* Dropdown animé (ease-in-out à l'ouverture ET à la fermeture) via grid-template-rows. */}
+            <div className={`bs-acc__panelwrap${isOpen ? ' bs-acc__panelwrap--open' : ''}`}>
+              <div id={panelId} role="region" aria-labelledby={btnId} className="bs-acc__panel" aria-hidden={!isOpen}>
+                <div className="bs-acc__panelinner">{item.content}</div>
               </div>
-            ) : null}
+            </div>
           </div>
         );
       })}

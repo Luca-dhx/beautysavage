@@ -7,8 +7,10 @@ import PractitionerProfile from '../models/PractitionerProfile.js';
 import { getActivePromotion, calculateFinalPrice } from '../services/promotionService.js';
 import {
   getPublishedReviewStats,
+  getPublishedReviewStatsForTargets,
   listPublishedReviews
 } from '../services/reviews/publicReviewQueries.js';
+import { sanitizeFaqInput, serializeFaq } from '../services/faq/faqSanitizer.js';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -58,6 +60,7 @@ function buildServicePayload(doc) {
       price: opt.price,
       isActive: opt.isActive
     })),
+    faq: serializeFaq(doc.faq),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt
   };
@@ -130,6 +133,8 @@ export async function createService(req, res) {
       bufferTime: parseNumber(bufferTime, 0),
       cancellationDays: parseNumber(cancellationDays, 7),
       options: Array.isArray(options) ? options.filter(o => o.name) : [],
+      photos: Array.isArray(req.body.photos) ? req.body.photos.map(p => String(p || '').trim()).filter(Boolean) : [],
+      faq: sanitizeFaqInput(req.body.faq),
       promotion: promotion || {},
       boost: boost || {},
       createdBy: req.sessionUser?._id || null,
@@ -181,6 +186,9 @@ export async function updateService(req, res) {
     if (bookingLeadDays !== undefined) doc.bookingLeadDays = Math.max(0, Number(bookingLeadDays) || 0);
     if (allowClientChoosePractitioner !== undefined) doc.allowClientChoosePractitioner = Boolean(allowClientChoosePractitioner);
     if (Array.isArray(options)) doc.options = options.filter(o => o.name);
+    // Galerie : la 1re image est la couverture. Persistée depuis l'éditeur (ajout URL/upload, ordre, suppression).
+    if (Array.isArray(req.body.photos)) doc.photos = req.body.photos.map(p => String(p || '').trim()).filter(Boolean);
+    if (req.body.faq !== undefined) doc.faq = sanitizeFaqInput(req.body.faq);
     if (promotion !== undefined) doc.promotion = promotion;
     if (boost !== undefined) doc.boost = boost;
     doc.updatedBy = req.sessionUser?._id || null;
@@ -388,6 +396,7 @@ async function buildPublicPayload(doc) {
       description: opt.description || '',
       price: opt.price
     })),
+    faq: serializeFaq(doc.faq),
     boost: doc.boost || {}
   };
 }
@@ -395,7 +404,13 @@ async function buildPublicPayload(doc) {
 export async function listPublicServices(req, res) {
   try {
     const docs = await Service.find({ isActive: true }).sort({ 'boost.order': 1, name: 1 }).lean();
-    return res.json({ ok: true, services: await Promise.all(docs.map(buildPublicPayload)) });
+    const payloads = await Promise.all(docs.map(buildPublicPayload));
+    const statsMap = await getPublishedReviewStatsForTargets('service', payloads.map(p => p.id));
+    const services = payloads.map(payload => {
+      const stats = statsMap.get(payload.id) || { averageRating: 0, reviewCount: 0 };
+      return { ...payload, averageRating: stats.averageRating, reviewCount: stats.reviewCount };
+    });
+    return res.json({ ok: true, services });
   } catch (err) {
     console.error('[serviceController] listPublicServices', err);
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });

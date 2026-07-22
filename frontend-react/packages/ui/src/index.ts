@@ -1,5 +1,7 @@
 export * from './components';
 export * from './catalog';
+export * from './reviewCarousel';
+export * from './dropdown';
 export * from './embed';
 export * from './theme';
 export * from './motion';

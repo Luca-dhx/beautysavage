@@ -30,11 +30,24 @@ export function Gallery({ images, ratio = '4 / 3', fallbackAlt = '' }: GalleryPr
     );
   }
 
-  const current = clean[Math.min(active, clean.length - 1)];
+  const idx = Math.min(active, clean.length - 1);
+  const current = clean[idx];
+  const go = (dir: number) => setActive((a) => ((a + dir) % clean.length + clean.length) % clean.length);
   return (
     <div className="bs-gallery">
       <div className="bs-media bs-gallery__main" style={{ aspectRatio: ratio }}>
-        <img className="bs-media__img" src={current.src} alt={current.alt || fallbackAlt} loading="lazy" />
+        <img key={idx} className="bs-media__img bs-gallery__img" src={current.src} alt={current.alt || fallbackAlt} loading="lazy" />
+        {clean.length > 1 ? (
+          <>
+            <button type="button" className="bs-gallery__nav bs-gallery__nav--prev" aria-label="Image précédente" onClick={() => go(-1)}>
+              <i className="bi bi-chevron-left" aria-hidden="true" />
+            </button>
+            <button type="button" className="bs-gallery__nav bs-gallery__nav--next" aria-label="Image suivante" onClick={() => go(1)}>
+              <i className="bi bi-chevron-right" aria-hidden="true" />
+            </button>
+            <span className="bs-gallery__counter" aria-hidden="true">{idx + 1}/{clean.length}</span>
+          </>
+        ) : null}
       </div>
       {clean.length > 1 ? (
         <div className="bs-gallery__thumbs" role="list">

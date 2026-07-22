@@ -1,5 +1,5 @@
 // RX-BLOCKER — Garde d'entrée en mode gestion. Un admin/dev connecté a par défaut currentMode='vitrine' ;
-// or les routes /api/gestion/* gardées par requireMode('gestion') REDIRIGENT (302 → /vitrine.html) sinon →
+// or les routes /api/gestion/* gardées par requireMode('gestion') redirigent (302) vers la vitrine sinon →
 // toutes les pages manager tombaient en « indisponible ». On bascule le mode côté serveur (idempotent) AVANT
 // de rendre l'espace, quelle que soit l'entrée (login / deep-link / refresh). Ne s'exécute qu'authentifié
 // admin/dev (monté sous RequireRole).

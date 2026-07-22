@@ -24,6 +24,14 @@ const formationSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  // FAQ éditable par formation (gérée depuis le manager, affichée sur la fiche vitrine).
+  faq: {
+    type: [new mongoose.Schema({
+      question: { type: String, default: '', trim: true },
+      answer: { type: String, default: '', trim: true }
+    }, { _id: false })],
+    default: []
+  },
   price: {
     type: Number,
     default: 0
@@ -38,6 +46,8 @@ const formationSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  // Galerie : images additionnelles (la couverture reste `coverImage`, affichée en 1re position).
+  photos: [{ type: String }],
   trailerVideoUrl: {
     type: String,
     trim: true,

@@ -9,7 +9,7 @@ afterEach(() => vi.unstubAllGlobals());
 function stubHome() {
   stubFetch((url) => {
     if (url.includes('/api/vitrine/site-identity')) return jsonResponse({ siteName: 'Institut Test', logoUrlResolved: '' });
-    if (url.includes('/api/vitrine/home-settings')) return jsonResponse({ ok: true, settings: { slogan: 'La beauté autrement', banner: {} } });
+    if (url.includes('/api/vitrine/home-settings')) return jsonResponse({ ok: true, settings: { slogan: 'La beauté autrement', banner: {}, faq: [{ question: 'Où êtes-vous ?', answer: 'Au centre-ville.' }] } });
     if (url.includes('/api/vitrine/services/boosted')) return jsonResponse({ ok: true, services: [{ id: 's1', slug: 'soin', name: 'Soin phare', price: 50, duration: 60 }] });
     if (url.includes('/api/vitrine/services')) return jsonResponse({ ok: true, services: [] });
     if (url.includes('/api/vitrine/shop')) return jsonResponse({ ok: true, formations: [{ id: 'f1', name: 'Formation A', price: 100 }], products: [] });

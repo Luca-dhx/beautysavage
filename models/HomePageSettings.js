@@ -68,6 +68,14 @@ const homePageSettingsSchema = new mongoose.Schema(
       type: aboutSchema,
       default: () => ({})
     },
+    // FAQ générale affichée sur la page d'accueil (gérée depuis le manager).
+    faq: {
+      type: [new mongoose.Schema({
+        question: { type: String, default: '', trim: true },
+        answer: { type: String, default: '', trim: true }
+      }, { _id: false })],
+      default: []
+    },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

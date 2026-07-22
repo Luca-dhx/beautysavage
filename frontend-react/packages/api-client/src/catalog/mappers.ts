@@ -31,6 +31,14 @@ const mapPractitioner = (r: Raw): PublicPractitioner => ({
   color: optStr(r.color),
 });
 
+export const mapFaq = (input: unknown): { question: string; answer: string }[] =>
+  rawArr(input)
+    .map((raw) => {
+      const r = asRaw(raw);
+      return { question: str(r.question), answer: str(r.answer) };
+    })
+    .filter((f) => f.question && f.answer);
+
 export const mapService = (input: unknown): PublicService => {
   const r = asRaw(input);
   return {
@@ -50,6 +58,9 @@ export const mapService = (input: unknown): PublicService => {
     capacity: optNum(r.capacity),
     options: rawArr(r.options).map(mapOption),
     practitioners: Array.isArray(r.practitioners) ? rawArr(r.practitioners).map(mapPractitioner) : undefined,
+    averageRating: optNum(r.averageRating),
+    reviewCount: optNum(r.reviewCount),
+    faq: mapFaq(r.faq),
   };
 };
 
@@ -72,6 +83,9 @@ export const mapTraining = (input: unknown): PublicTraining => {
     editorialHtml: optStr(r.editorialHtml),
     salesCount: optNum(r.salesCount),
     options: rawArr(r.options).map(mapOption),
+    averageRating: optNum(r.averageRating),
+    reviewCount: optNum(r.reviewCount),
+    faq: mapFaq(r.faq),
   };
 };
 

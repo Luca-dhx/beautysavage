@@ -18,10 +18,13 @@ export function FinanceDashboardPage() {
 
   return (
     <div className="fin-page" data-testid="finance-dashboard">
-      <div className="fin-head">
-        <h1 className="fin-head__title">Finance</h1>
+      <header className="fin-head">
+        <div className="fin-head__titles">
+          <h1 className="fin-head__title">Finance</h1>
+          <p className="fin-head__subtitle">Vue d'ensemble</p>
+        </div>
         <RangeSwitch value={range} onChange={setRange} />
-      </div>
+      </header>
 
       {isLoading ? <FinanceSkeleton /> : null}
       {isError ? <FinanceError onRetry={() => void refetch()} /> : null}
@@ -29,33 +32,6 @@ export function FinanceDashboardPage() {
       {data ? (
         <>
           <FinanceHero label={data.rangeLabel} revenue={data.today.revenue} salesCount={data.today.salesCount} />
-
-          <Link to="/finance/timeline" className="fin-card fin-actioncard" data-testid="fin-timeline-link">
-            <span className="fin-actioncard__icon"><i className="bi-list-ul" aria-hidden="true" /></span>
-            <span className="fin-actioncard__body">
-              <span className="fin-actioncard__value">Timeline financière</span>
-              <span className="fin-actioncard__label">Tous les mouvements, ordonnés</span>
-            </span>
-            <i className="bi-chevron-right fin-actioncard__chev" aria-hidden="true" />
-          </Link>
-
-          <Link to="/finance/commissions" className="fin-card fin-actioncard" data-testid="fin-commissions-link">
-            <span className="fin-actioncard__icon"><i className="bi-bank" aria-hidden="true" /></span>
-            <span className="fin-actioncard__body">
-              <span className="fin-actioncard__value">Commissions plateforme</span>
-              <span className="fin-actioncard__label">Commission du mois, détail, paiement</span>
-            </span>
-            <i className="bi-chevron-right fin-actioncard__chev" aria-hidden="true" />
-          </Link>
-
-          <Link to="/finance/cartes-cadeaux" className="fin-card fin-actioncard" data-testid="fin-giftcards-link">
-            <span className="fin-actioncard__icon"><i className="bi-gift" aria-hidden="true" /></span>
-            <span className="fin-actioncard__body">
-              <span className="fin-actioncard__value">Cartes cadeaux</span>
-              <span className="fin-actioncard__label">Solde actif, cycle de vie, transactions</span>
-            </span>
-            <i className="bi-chevron-right fin-actioncard__chev" aria-hidden="true" />
-          </Link>
 
           <section className="fin-section" aria-label="Ventilation des ventes">
             <BreakdownChips breakdown={data.today.breakdown} giftCardConsumption={data.today.giftCardConsumption} />
@@ -88,6 +64,38 @@ export function FinanceDashboardPage() {
                 onClick={() => navigate('/finance/timeline?type=sale')}
               />
             </div>
+          </section>
+
+          <section className="fin-section" aria-label="Explorer">
+            <h2 className="fin-section__title"><i className="bi-compass" aria-hidden="true" /> Explorer</h2>
+            <nav className="fin-quicklinks" aria-label="Accès rapides finance">
+              <Link to="/finance/timeline" className="fin-quicklink" data-testid="fin-timeline-link">
+                <span className="fin-quicklink__icon fin-quicklink__icon--indigo"><i className="bi-list-ul" aria-hidden="true" /></span>
+                <span className="fin-quicklink__body">
+                  <span className="fin-quicklink__value">Timeline financière</span>
+                  <span className="fin-quicklink__label">Tous les mouvements, ordonnés</span>
+                </span>
+                <i className="bi-chevron-right fin-quicklink__chev" aria-hidden="true" />
+              </Link>
+
+              <Link to="/finance/commissions" className="fin-quicklink" data-testid="fin-commissions-link">
+                <span className="fin-quicklink__icon fin-quicklink__icon--violet"><i className="bi-bank" aria-hidden="true" /></span>
+                <span className="fin-quicklink__body">
+                  <span className="fin-quicklink__value">Commissions plateforme</span>
+                  <span className="fin-quicklink__label">Commission du mois, détail, paiement</span>
+                </span>
+                <i className="bi-chevron-right fin-quicklink__chev" aria-hidden="true" />
+              </Link>
+
+              <Link to="/finance/cartes-cadeaux" className="fin-quicklink" data-testid="fin-giftcards-link">
+                <span className="fin-quicklink__icon fin-quicklink__icon--pink"><i className="bi-gift" aria-hidden="true" /></span>
+                <span className="fin-quicklink__body">
+                  <span className="fin-quicklink__value">Cartes cadeaux</span>
+                  <span className="fin-quicklink__label">Solde actif, cycle de vie, transactions</span>
+                </span>
+                <i className="bi-chevron-right fin-quicklink__chev" aria-hidden="true" />
+              </Link>
+            </nav>
           </section>
         </>
       ) : null}

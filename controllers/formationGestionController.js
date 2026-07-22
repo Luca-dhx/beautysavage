@@ -17,6 +17,7 @@ import {
   getFormationPurchasedUserCounts,
   hasFormationBeenPurchased
 } from '../services/formationPurchaseStatsService.js';
+import { sanitizeFaqInput, serializeFaq } from '../services/faq/faqSanitizer.js';
 import {
   createOrRefreshInstituteDecisionFlow,
   FLOW_TYPE_FORMATION_DELETED,
@@ -44,6 +45,8 @@ function buildPayload(doc, options = {}) {
     editorialHtml,
     legacyDescription: doc.description || '',
     formalities: doc.formalities || '',
+    photos: Array.isArray(doc.photos) ? doc.photos.filter(Boolean) : [],
+    faq: serializeFaq(doc.faq),
     durationDays: Number.isFinite(doc.durationDays) ? doc.durationDays : 1,
     refundDays: Number.isFinite(parsedRefundDays) ? Math.max(0, parsedRefundDays) : 7,
     price: doc.price || 0,
@@ -535,10 +538,12 @@ export async function createFormation(req, res) {
       // Legacy fallback only used when editorial content is still empty.
       description: String(req.body?.description || '').trim(),
       formalities: String(req.body?.formalities || '').trim(),
+      faq: sanitizeFaqInput(req.body?.faq),
       durationDays: parseDurationDays(req.body?.durationDays),
       refundDays: parseRefundDays(req.body?.refundDays),
       price: parsePrice(req.body?.price),
       coverImage: String(req.body?.coverImage || '').trim(),
+      photos: Array.isArray(req.body?.photos) ? req.body.photos.map(p => String(p || '').trim()).filter(Boolean) : [],
       trailerVideoTitle: sanitizeMetaTitle(req.body?.trailerVideoTitle),
       trailerVideoUrl: String(req.body?.trailerVideoUrl || '').trim(),
       whatsappGroupTitle: sanitizeMetaTitle(req.body?.whatsappGroupTitle),
@@ -574,6 +579,9 @@ export async function updateFormation(req, res) {
     if (typeof req.body?.formalities === 'string') {
       formation.formalities = req.body.formalities.trim();
     }
+    if (req.body?.faq !== undefined) {
+      formation.faq = sanitizeFaqInput(req.body.faq);
+    }
     if (req.body?.durationDays !== undefined) {
       formation.durationDays = parseDurationDays(req.body.durationDays);
     }
@@ -585,6 +593,9 @@ export async function updateFormation(req, res) {
     }
     if (typeof req.body?.coverImage === 'string') {
       formation.coverImage = req.body.coverImage.trim();
+    }
+    if (Array.isArray(req.body?.photos)) {
+      formation.photos = req.body.photos.map(p => String(p || '').trim()).filter(Boolean);
     }
     if (typeof req.body?.trailerVideoUrl === 'string') {
       formation.trailerVideoUrl = req.body.trailerVideoUrl.trim();

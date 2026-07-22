@@ -13,6 +13,7 @@ export interface PublicReview {
   rating: number;
   comment: string;
   createdAt: string | null;
+  authorName?: string;
 }
 
 export interface PublicReviewsPage {

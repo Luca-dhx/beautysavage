@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import HomePageSettings from '../models/HomePageSettings.js';
 import { sanitizeEditorialHtml } from '../services/editableContentService.js';
+import { sanitizeFaqInput, serializeFaq } from '../services/faq/faqSanitizer.js';
 
 const HOME_SETTINGS_KEY = 'global';
 const HOME_UPLOAD_PUBLIC_PREFIX = '/uploads/home';
@@ -117,6 +118,7 @@ function buildPayload(doc) {
       photo: aboutPhoto,
       editorialHtml: String(doc?.about?.editorialHtml || '')
     },
+    faq: serializeFaq(doc?.faq),
     updatedAt: doc?.updatedAt || null
   };
 }
@@ -432,6 +434,7 @@ export async function updateHomeSettings(req, res) {
   const payload = req.body && typeof req.body === 'object' ? req.body : {};
   const hasSloganInput = Object.prototype.hasOwnProperty.call(payload, 'slogan');
   const hasHookInput = Object.prototype.hasOwnProperty.call(payload, 'hookEditorialHtml');
+  const hasFaqInput = Object.prototype.hasOwnProperty.call(payload, 'faq');
   const hasAboutEditorialInput = Object.prototype.hasOwnProperty.call(
     payload?.about || {},
     'editorialHtml'
@@ -451,6 +454,7 @@ export async function updateHomeSettings(req, res) {
     const aboutEditorialHtml = hasAboutEditorialInput
       ? sanitizeEditorialHtml(payload?.about?.editorialHtml || '')
       : String(current?.about?.editorialHtml || '');
+    const faq = hasFaqInput ? sanitizeFaqInput(payload.faq) : serializeFaq(current?.faq);
     const bannerResult = await resolveNextAsset(current?.banner, payload.banner);
     const aboutPhotoResult = await resolveNextAsset(current?.about?.photo, payload?.about?.photo);
 
@@ -482,6 +486,7 @@ export async function updateHomeSettings(req, res) {
             },
             editorialHtml: aboutEditorialHtml
           },
+          faq,
           updatedBy: req.sessionUserId || null
         },
         $setOnInsert: {

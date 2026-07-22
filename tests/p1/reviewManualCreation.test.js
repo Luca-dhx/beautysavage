@@ -131,4 +131,58 @@ describe('manual review creation', () => {
     expect(publicStats.body.reviewCount).toBe(1);
     expect(publicStats.body.averageRating).toBe(5);
   });
+
+  it('honors a custom (backdated) review date and rejects a future date', async () => {
+    const adminCookie = await login('admin@test.local');
+    const serviceId = String(fx.service._id);
+
+    const backdated = await agent
+      .post('/api/gestion/learning/reviews/manual')
+      .set('Cookie', adminCookie)
+      .send({
+        targetType: 'service',
+        targetId: serviceId,
+        displayName: 'Lea',
+        rating: 5,
+        comment: 'Avis anterieur.',
+        status: 'published',
+        reviewDate: '2020-01-15',
+      });
+    expect(backdated.status).toBe(201);
+    const stored = await Review.findById(backdated.body.review.id).lean();
+    expect(new Date(stored.createdAt).toISOString().slice(0, 10)).toBe('2020-01-15');
+
+    const future = await agent
+      .post('/api/gestion/learning/reviews/manual')
+      .set('Cookie', adminCookie)
+      .send({
+        targetType: 'service',
+        targetId: serviceId,
+        displayName: 'Lea',
+        rating: 5,
+        status: 'published',
+        reviewDate: '2999-01-01',
+      });
+    expect(future.status).toBe(400);
+  });
+
+  it('exposes averageRating and reviewCount on the public services listing', async () => {
+    const adminCookie = await login('admin@test.local');
+    const serviceId = String(fx.service._id);
+
+    for (const rating of [4, 2]) {
+      const created = await agent
+        .post('/api/gestion/learning/reviews/manual')
+        .set('Cookie', adminCookie)
+        .send({ targetType: 'service', targetId: serviceId, displayName: 'Client', rating, status: 'published' });
+      expect(created.status).toBe(201);
+    }
+
+    const listing = await agent.get('/api/vitrine/services');
+    expect(listing.status).toBe(200);
+    const entry = (listing.body.services || []).find(s => s.id === serviceId);
+    expect(entry).toBeTruthy();
+    expect(entry.reviewCount).toBe(2);
+    expect(entry.averageRating).toBe(3);
+  });
 });

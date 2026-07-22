@@ -191,6 +191,8 @@ export interface ManualReviewInput {
   rating: number;
   comment?: string;
   status: 'pending' | 'published';
+  /** Date de l'avis (ISO ou yyyy-mm-dd). Optionnel : par défaut la date du jour côté backend. */
+  reviewDate?: string;
 }
 
 export async function listReviewsForModeration(params?: {

@@ -1,14 +1,15 @@
 // RX3 S4 — Endpoints d'accueil (CMS + merchandising). Tous publics. Tolérants (champs absents → défauts).
 import { apiFetch } from '../apiFetch';
 import { rawArr } from './raw';
-import { mapService } from './mappers';
-import type { PublicService } from './types';
+import { mapService, mapFaq } from './mappers';
+import type { PublicService, FaqItem } from './types';
 
 export interface HomeSettings {
   bannerUrl?: string;
   slogan?: string;
   hookEditorialHtml?: string;
   aboutHtml?: string;
+  faq?: FaqItem[];
 }
 
 export interface SiteIdentity {
@@ -41,6 +42,7 @@ export async function getHomeSettings(signal?: AbortSignal): Promise<HomeSetting
     slogan: str(s.slogan),
     hookEditorialHtml: str(s.hookEditorialHtml),
     aboutHtml: str(about.editorialHtml),
+    faq: mapFaq(s.faq),
   };
 }
 

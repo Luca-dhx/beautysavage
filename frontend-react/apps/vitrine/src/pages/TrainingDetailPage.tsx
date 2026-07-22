@@ -5,6 +5,7 @@ import { usePublicTraining } from '../features/catalog/hooks/usePublicTrainings'
 import { trainingPriceProps } from '../features/catalog/priceProps';
 import { TrainingReviews } from '../features/catalog/components/TrainingReviews';
 import { FormationPurchasePanel } from '../features/trainingDetail/FormationPurchasePanel';
+import { TrainingFaq } from '../features/trainingDetail/TrainingFaq';
 import { SimilarTrainings } from '../features/trainingDetail/SimilarTrainings';
 import '../features/trainingDetail/trainingDetail.css';
 
@@ -25,7 +26,9 @@ export function TrainingDetailPage() {
   return (
     <article className="td">
       <p className="td-breadcrumb">
-        <Link to="/formations">← Formations</Link>
+        <Link to="/formations" className="bs-backlink">
+          <i className="bi bi-arrow-left" aria-hidden="true" /> Retour aux formations
+        </Link>
       </p>
 
       <header className="td-head">
@@ -82,6 +85,7 @@ export function TrainingDetailPage() {
         <FormationPurchasePanel training={data} />
       </div>
 
+      <TrainingFaq training={data} />
       {id ? <TrainingReviews trainingId={id} /> : null}
       {id ? <SimilarTrainings currentId={id} /> : null}
     </article>

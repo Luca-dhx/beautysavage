@@ -49,12 +49,15 @@ export function FinanceTimelinePage() {
 
   return (
     <div className="fin-tl-page" data-testid="finance-timeline">
-      <div className="fin-head">
-        <h1 className="fin-head__title">Timeline financière</h1>
+      <header className="fin-tl-head">
+        <div className="fin-head__titles">
+          <h1 className="fin-head__title">Timeline</h1>
+          <p className="fin-head__subtitle">Ventes, soldes &amp; remboursements</p>
+        </div>
         <Link to="/finance" className="fin-tl-iconbtn" aria-label="Retour au tableau de bord finance">
           <i className="bi-grid-1x2" aria-hidden="true" />
         </Link>
-      </div>
+      </header>
 
       {data ? <FinanceTimelineSummary summary={data.summary} /> : null}
 

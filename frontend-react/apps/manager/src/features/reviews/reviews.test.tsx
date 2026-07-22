@@ -120,19 +120,26 @@ describe('ReviewModerationPage', () => {
 
     await screen.findByText('Camille M.');
 
-    fireEvent.click(screen.getByRole('tab', { name: /Prestations/i }));
+    // Le filtre par type est un dropdown custom : ouvrir puis choisir « Prestations ».
+    fireEvent.click(screen.getByRole('button', { name: 'Filtrer par type' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Prestations' }));
     await waitFor(() => {
       expect(calls.some((c) => c.url.includes('/api/gestion/learning/reviews?type=service'))).toBe(true);
     });
 
-    fireEvent.change(screen.getByPlaceholderText('Ex. Camille M.'), {
+    // La création passe désormais par un CTA qui ouvre le formulaire dans un drawer.
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un avis' }));
+
+    fireEvent.change(await screen.findByPlaceholderText('Ex. Camille M.'), {
       target: { value: 'Institut' },
     });
+    // Le sélecteur de note « pattes de chien » est bien présent dans le formulaire.
+    expect(container.querySelector('.bs-paw-input')).toBeTruthy();
     fireEvent.click(screen.getByRole('radio', { name: '4 sur 5' }));
     fireEvent.change(screen.getByPlaceholderText(/Retour client/i), {
       target: { value: 'Tres bien' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /avis/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Créer/i }));
 
     await waitFor(() => {
       const post = calls.find((c) => c.method === 'POST' && c.url.includes('/reviews/manual'));
@@ -140,8 +147,8 @@ describe('ReviewModerationPage', () => {
       expect(post?.body).toContain('"targetType":"service"');
       expect(post?.body).toContain('"displayName":"Institut"');
       expect(post?.body).toContain('"rating":4');
+      // Statut d'office « published » (plus de sélecteur de statut).
+      expect(post?.body).toContain('"status":"published"');
     });
-
-    expect(container.querySelector('.bs-paw-input')).toBeTruthy();
   });
 });

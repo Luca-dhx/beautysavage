@@ -16,6 +16,7 @@ const SERVICE = {
   isBookable: true,
   photos: ['/uploads/a.jpg', '/uploads/b.jpg'],
   options: [{ id: 'o1', name: 'Masque', description: 'Masque hydratant', price: 10 }],
+  faq: [{ question: 'Faut-il venir démaquillée ?', answer: 'Oui, de préférence.' }],
 };
 
 function stubDetail() {
@@ -109,7 +110,8 @@ describe('ServiceDetailPage premium', () => {
     await waitFor(() =>
       expect(screen.getByRole('heading', { name: 'Avis' })).toBeInTheDocument(),
     );
-    expect(screen.getByText('Super soin')).toBeInTheDocument();
+    // Le commentaire est affiché entre guillemets (« … ») dans le carrousel.
+    expect(screen.getByText(/Super soin/)).toBeInTheDocument();
     expect(screen.getByRole('img', { name: /4\.5 sur 5, 2 avis/i })).toBeInTheDocument();
   });
 });

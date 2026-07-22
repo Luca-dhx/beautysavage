@@ -160,7 +160,6 @@ function CarouselCard({ item }: { item: CarouselItem }): ReactNode {
       <Link to={item.to} className="home-card__media" aria-label={item.title}>
         <MediaImage src={item.media} alt={item.mediaAlt ?? item.title} ratio="1 / 1" />
         {item.badge ? <span className="home-card__badge">{item.badge}</span> : null}
-        <span className="home-card__shine" aria-hidden="true" />
       </Link>
       <div className="home-card__body">
         <h3 className="home-card__title">{item.title}</h3>

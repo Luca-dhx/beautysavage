@@ -628,7 +628,27 @@ a.bs-btn {
 }
 .bs-gallery__main {
   border-radius: var(--bs-radius);
+  position: relative;
+  overflow: hidden;
 }
+.bs-gallery__img { animation: bs-gallery-fade var(--bs-motion-normal) var(--bs-motion-ease-out); }
+@keyframes bs-gallery-fade { from { opacity: 0; transform: scale(1.03); } to { opacity: 1; transform: none; } }
+.bs-gallery__nav {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 42px; height: 42px; border-radius: 999px; border: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 1.1rem;
+  background: color-mix(in srgb, var(--bs-color-surface) 78%, transparent); color: var(--bs-color-text);
+  backdrop-filter: blur(4px); transition: background var(--bs-motion-fast) var(--bs-motion-ease-out);
+}
+.bs-gallery__nav:hover { background: var(--bs-color-surface); }
+.bs-gallery__nav--prev { left: var(--bs-space-2); }
+.bs-gallery__nav--next { right: var(--bs-space-2); }
+.bs-gallery__counter {
+  position: absolute; bottom: var(--bs-space-2); right: var(--bs-space-2);
+  padding: 2px 9px; border-radius: 999px; font-size: 0.74rem; font-weight: 700;
+  background: color-mix(in srgb, var(--bs-color-text) 60%, transparent); color: var(--bs-color-on-primary);
+}
+@media (prefers-reduced-motion: reduce) { .bs-gallery__img, .bs-gallery__nav { animation: none; transition: none; } }
 .bs-gallery__thumbs {
   display: flex;
   gap: var(--bs-space-2);
@@ -655,6 +675,45 @@ a.bs-btn {
 .bs-gallery__thumb--active {
   border-color: var(--bs-color-primary);
 }
+
+/* ----------------------------------------------------------------------------------------------- */
+/* Dropdown custom partagé — animé ouverture ET fermeture, angles discrets.                          */
+.bs-dd { position: relative; display: inline-block; }
+.bs-dd__trigger {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px;
+  border: 1px solid var(--bs-color-border); border-radius: 6px;
+  background: var(--bs-color-surface); color: var(--bs-color-text); font: inherit; font-weight: 600; cursor: pointer;
+  transition: border-color var(--bs-motion-fast) var(--bs-motion-ease-out), box-shadow var(--bs-motion-fast) var(--bs-motion-ease-out);
+}
+.bs-dd__trigger:hover:not(:disabled) { border-color: color-mix(in srgb, var(--bs-color-primary) 40%, var(--bs-color-border)); }
+.bs-dd--open .bs-dd__trigger { border-color: var(--bs-color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bs-color-primary) 16%, transparent); }
+.bs-dd__trigger:disabled { opacity: 0.55; cursor: not-allowed; }
+.bs-dd__ic { color: var(--bs-color-muted); font-size: 0.95rem; }
+.bs-dd__value { font-size: 0.9rem; }
+.bs-dd__value--ph { color: var(--bs-color-muted); font-weight: 500; }
+.bs-dd__chev { color: var(--bs-color-muted); transition: transform var(--bs-motion-normal) var(--bs-motion-ease-in-out); }
+.bs-dd--open .bs-dd__chev { transform: rotate(180deg); color: var(--bs-color-primary); }
+/* Menu : monté en permanence → animation d'entrée ET de sortie (in/out). */
+.bs-dd__menu {
+  position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; min-width: 100%;
+  list-style: none; margin: 0; padding: 5px;
+  border: 1px solid var(--bs-color-border); border-radius: 8px; background: var(--bs-color-surface);
+  box-shadow: 0 16px 38px -18px color-mix(in srgb, var(--bs-color-text) 45%, transparent);
+  opacity: 0; visibility: hidden; transform: translateY(-6px) scale(0.98); transform-origin: top;
+  transition: opacity var(--bs-motion-normal) var(--bs-motion-ease-in-out), transform var(--bs-motion-normal) var(--bs-motion-ease-in-out), visibility var(--bs-motion-normal) var(--bs-motion-ease-in-out);
+  pointer-events: none;
+}
+.bs-dd--open .bs-dd__menu { opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
+.bs-dd__opt {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 40px;
+  padding: 0 10px; border: none; border-radius: 6px; background: transparent; color: var(--bs-color-text);
+  font: inherit; font-weight: 600; cursor: pointer; text-align: left; white-space: nowrap;
+  transition: background var(--bs-motion-fast) var(--bs-motion-ease-out);
+}
+.bs-dd__opt:hover { background: color-mix(in srgb, var(--bs-color-primary) 8%, var(--bs-color-surface)); }
+.bs-dd__opt--active { color: var(--bs-color-primary); background: color-mix(in srgb, var(--bs-color-primary) 10%, var(--bs-color-surface)); }
+.bs-dd__opt i { color: var(--bs-color-primary); }
+@media (prefers-reduced-motion: reduce) { .bs-dd__menu, .bs-dd__chev { transition: none; } }
 
 /* ----------------------------------------------------------------------------------------------- */
 /* RX3 — Accordéon partagé (FAQ, modules, sections repliables).                                      */
@@ -695,17 +754,39 @@ a.bs-btn {
 .bs-acc__chevron {
   flex-shrink: 0;
   color: var(--bs-color-muted);
-  transition: transform var(--bs-motion-fast) var(--bs-motion-ease-out);
+  transition: transform var(--bs-motion-normal, 240ms) var(--bs-motion-ease-in-out), color var(--bs-motion-normal, 240ms) var(--bs-motion-ease-in-out);
 }
+.bs-acc__trigger[aria-expanded='true'] .bs-acc__chevron,
 .bs-acc__chevron--open {
   transform: rotate(180deg);
+  color: var(--bs-color-primary);
+}
+/* Panneau : dropdown animé (ouverture ET fermeture) via grid-template-rows 0fr → 1fr. */
+.bs-acc__panelwrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--bs-motion-normal, 240ms) var(--bs-motion-ease-in-out);
+}
+.bs-acc__panelwrap--open {
+  grid-template-rows: 1fr;
 }
 .bs-acc__panel {
-  padding: 0 var(--bs-space-3) var(--bs-space-3);
+  overflow: hidden;
+  min-height: 0;
   color: var(--bs-color-muted);
 }
+.bs-acc__panelinner {
+  padding: 0 var(--bs-space-3) var(--bs-space-3);
+  opacity: 0;
+  transition: opacity var(--bs-motion-normal, 240ms) var(--bs-motion-ease-in-out);
+}
+.bs-acc__panelwrap--open .bs-acc__panelinner {
+  opacity: 1;
+}
 @media (prefers-reduced-motion: reduce) {
-  .bs-acc__chevron {
+  .bs-acc__chevron,
+  .bs-acc__panelwrap,
+  .bs-acc__panelinner {
     transition: none;
   }
 }

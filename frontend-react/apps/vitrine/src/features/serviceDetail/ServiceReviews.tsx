@@ -1,20 +1,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { PawRating, LoadingState, EmptyState } from '@bs/ui';
+import { PawRating, LoadingState, EmptyState, ReviewCarousel, Dropdown } from '@bs/ui';
 import { getServiceReviewStats, getServiceReviews, type ReviewSort } from '@bs/api-client';
 
-function fmtDate(iso: string | null): string {
-  if (!iso) return '';
-  try {
-    return new Date(iso).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  } catch {
-    return '';
-  }
-}
+const SORT_OPTIONS = [
+  { value: 'recent', label: 'Plus récents' },
+  { value: 'best', label: 'Mieux notés' },
+];
 
 export function ServiceReviews({ serviceId }: { serviceId: string }) {
   const [sort, setSort] = useState<ReviewSort>('recent');
@@ -44,38 +36,19 @@ export function ServiceReviews({ serviceId }: { serviceId: string }) {
         <EmptyState label="Aucun avis pour le moment." />
       ) : (
         <>
-          <div className="bs-reviews__sort" role="tablist" aria-label="Trier les avis">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={sort === 'recent'}
-              className={`bs-reviews__tab${sort === 'recent' ? ' bs-reviews__tab--active' : ''}`}
-              onClick={() => setSort('recent')}
-            >
-              Plus récents
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={sort === 'best'}
-              className={`bs-reviews__tab${sort === 'best' ? ' bs-reviews__tab--active' : ''}`}
-              onClick={() => setSort('best')}
-            >
-              Mieux notés
-            </button>
+          <div className="bs-reviews__sort">
+            <Dropdown
+              ariaLabel="Trier les avis"
+              icon="bi-sort-down"
+              value={sort}
+              options={SORT_OPTIONS}
+              onChange={(v) => setSort(v as ReviewSort)}
+            />
           </div>
           {list.isPending ? (
             <LoadingState label="Chargement…" />
           ) : (
-            <ul className="bs-reviews__list">
-              {(list.data?.reviews ?? []).map((review, index) => (
-                <li key={index} className="bs-review">
-                  <PawRating value={review.rating} compact />
-                  <p className="bs-review__comment">{review.comment || '—'}</p>
-                  <span className="bs-review__date">{fmtDate(review.createdAt)}</span>
-                </li>
-              ))}
-            </ul>
+            <ReviewCarousel reviews={list.data?.reviews ?? []} />
           )}
           {list.data?.hasMore ? (
             <p className="bs-reviews__more">Affichage des avis les plus pertinents.</p>

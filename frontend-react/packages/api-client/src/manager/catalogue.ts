@@ -2,7 +2,7 @@
 // (présentielles/distancielles), sessions, QR de présence, et configuration des cartes cadeaux.
 // Le backend reste l'autorité (prix, slug, validations) ; aucun calcul métier côté client.
 // Réutilise la convention envelope-unwrap (`{ ok, ... }`) + apiGet/apiPost/apiPut/apiDelete.
-import { apiGet, apiPost, apiPut, apiDelete } from '../apiFetch';
+import { apiGet, apiPost, apiPut, apiDelete, apiUpload } from '../apiFetch';
 
 const SERVICES = '/api/gestion/services';
 const FORMATIONS = '/api/gestion/formations';
@@ -37,6 +37,12 @@ export interface CatalogueServicePromotion {
   endDate?: string | null;
 }
 
+/** Entrée FAQ éditable (prestation / formation). */
+export interface CatalogueFaqItem {
+  question: string;
+  answer: string;
+}
+
 export interface CatalogueService {
   id: string;
   name: string;
@@ -60,6 +66,7 @@ export interface CatalogueService {
   bookingLeadDays: number;
   allowClientChoosePractitioner: boolean;
   options: CatalogueServiceOption[];
+  faq: CatalogueFaqItem[];
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -85,6 +92,22 @@ export async function saveService(input: CatalogueServiceInput, id?: string): Pr
     ? await apiPut<{ ok: boolean; service: CatalogueService }>(`${SERVICES}/${encodeURIComponent(id)}`, input)
     : await apiPost<{ ok: boolean; service: CatalogueService }>(SERVICES, input);
   return res.service;
+}
+
+/** Upload d'une photo de prestation (multipart). Renvoie l'URL du fichier. */
+export async function uploadServicePhoto(id: string, file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append('photo', file);
+  const res = await apiUpload<{ ok: boolean; photoUrl: string }>(`${SERVICES}/${encodeURIComponent(id)}/upload-photo`, fd);
+  return res.photoUrl;
+}
+
+/** Upload d'une image de formation (réutilise l'endpoint de couverture, renvoie l'URL). */
+export async function uploadFormationImage(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append('coverImage', file);
+  const res = await apiUpload<{ ok: boolean; coverImage: string }>(`${FORMATIONS}/upload-cover`, fd);
+  return res.coverImage;
 }
 
 /** Archive (soft-delete : isActive=false). */
@@ -122,6 +145,8 @@ export interface CatalogueTraining {
   accessLifetime: boolean;
   isRefundableAfterAccess: boolean;
   status: CatalogueTrainingStatus;
+  photos: string[];
+  faq: CatalogueFaqItem[];
   soldCount: number;
   purchasedUsersCount: number;
   typeLocked: boolean;

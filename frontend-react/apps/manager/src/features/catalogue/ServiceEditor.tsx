@@ -4,28 +4,30 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ErrorState } from '@bs/ui';
 import type { CatalogueService, CatalogueServiceInput } from '@bs/api-client';
+import { uploadServicePhoto } from '@bs/api-client';
 import {
   CatalogueEditorShell,
   CatalogueModuleStepper,
   CatalogueStatusHeader,
   CatalogueValidationDrawer,
-  CatalogueMediaPicker,
   CatalogueVisibilityToggle,
   CataloguePreviewCard,
   CataloguePriceCard,
   CatField,
   type ModuleDescriptor,
 } from './components';
+import { CatalogueGalleryEditor } from './CatalogueGalleryEditor';
 import { validateService } from './validation';
 import { useServiceDetail, useServiceMutations } from './useCatalogue';
 import { CatalogueSkeleton } from './components';
+import { FaqEditor } from '../faq/FaqEditor';
 
 const MODULES: ModuleDescriptor[] = [
   { key: 'identite', label: 'Identité', icon: 'bi-info-circle' },
   { key: 'prix', label: 'Prix & acompte', icon: 'bi-currency-euro' },
   { key: 'options', label: 'Options', icon: 'bi-list-check' },
   { key: 'reservation', label: 'Réservation', icon: 'bi-calendar-check' },
-  { key: 'medias', label: 'Médias', icon: 'bi-images' },
+  { key: 'faq', label: 'FAQ', icon: 'bi-patch-question' },
   { key: 'vitrine', label: 'Vitrine', icon: 'bi-shop' },
 ];
 const MODULE_LABELS = Object.fromEntries(MODULES.map((m) => [m.key, m.label]));
@@ -66,7 +68,8 @@ export function ServiceEditor({ id }: { id?: string }) {
 
   const validation = useMemo(() => validateService(draft), [draft]);
   const doneCount = MODULES.filter((m) => {
-    const s = validation.modules[m.key]?.status;
+    // Un module sans règle de validation (ex. FAQ) est considéré comme optionnel → compté « fait ».
+    const s = validation.modules[m.key]?.status ?? 'optional';
     return s === 'complete' || s === 'optional';
   }).length;
 
@@ -86,6 +89,8 @@ export function ServiceEditor({ id }: { id?: string }) {
       balanceSettlementMode: draft.balanceSettlementMode, cancellationDays: Number(draft.cancellationDays),
       bookingLeadDays: Number(draft.bookingLeadDays), isBookable: draft.isBookable, isActive: draft.isActive,
       allowClientChoosePractitioner: draft.allowClientChoosePractitioner, options: draft.options,
+      photos: draft.photos,
+      faq: draft.faq,
     };
     try {
       const saved = await save.mutateAsync({ input, id });
@@ -153,6 +158,14 @@ export function ServiceEditor({ id }: { id?: string }) {
                 <input className="cat-input" type="number" min={1} value={draft.capacity ?? 1} onChange={(e) => set('capacity', Number(e.target.value))} />
               </CatField>
             </div>
+            <CatField label="Galerie" hint="La 1re image est la couverture. Ajout par URL ou upload, glisser-déposer pour l'ordre.">
+              <CatalogueGalleryEditor
+                images={draft.photos ?? []}
+                onChange={(photos) => set('photos', photos)}
+                onUpload={id ? (file) => uploadServicePhoto(id, file) : undefined}
+                uploadDisabledHint="Enregistrez la prestation pour téléverser (l'ajout par URL reste possible)."
+              />
+            </CatField>
           </div>
         ) : null}
 
@@ -232,13 +245,11 @@ export function ServiceEditor({ id }: { id?: string }) {
           </div>
         ) : null}
 
-        {active === 'medias' ? (
+        {active === 'faq' ? (
           <div className="cat-form">
-            <CatalogueMediaPicker
-              photos={draft.photos ?? []}
-              onChange={(next) => set('photos', next)}
-              emptyHint={isNew ? 'Enregistrez la prestation pour téléverser des photos.' : 'Aucune photo. Téléversez depuis la fiche enregistrée.'}
-            />
+            <CatField label="Questions fréquentes de la prestation" hint="Affichées sur la fiche vitrine. Rien n'est publié tant qu'aucune question n'est renseignée.">
+              <FaqEditor value={draft.faq ?? []} onChange={(faq) => set('faq', faq)} />
+            </CatField>
           </div>
         ) : null}
 

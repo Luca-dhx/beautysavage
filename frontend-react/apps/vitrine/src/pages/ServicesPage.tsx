@@ -5,6 +5,7 @@ import {
   CatalogueCard,
   MediaImage,
   PriceLabel,
+  PawRatingSummary,
   LoadingState,
   ErrorState,
   EmptyState,
@@ -48,11 +49,12 @@ export function ServicesPage() {
                     media={<MediaImage src={resolveMediaUrl(s.photos?.[0])} alt={s.name} />}
                     badge={s.hasPromo ? s.promotionLabel ?? 'Promo' : undefined}
                     title={s.name}
+                    rating={<PawRatingSummary average={s.averageRating ?? 0} count={s.reviewCount ?? 0} />}
                     meta={formatDuration(s.duration) || undefined}
                     description={s.shortDescription}
                     price={<PriceLabel {...servicePriceProps(s)} />}
                     action={
-                      <Link className="bs-btn bs-btn--secondary" to={`/prestations/${s.slug}`}>
+                      <Link className="bs-btn bs-btn--secondary-solid" to={`/prestations/${s.slug}`}>
                         Voir
                       </Link>
                     }

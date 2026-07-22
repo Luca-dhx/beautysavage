@@ -72,9 +72,8 @@
 /* Mini composants de preview (lisent les --bs-* locales injectées) */
 .ts-pv-hero {
   padding: var(--bs-space-4); border-radius: var(--bs-radius);
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--bs-color-primary) 14%, transparent),
-    color-mix(in srgb, var(--bs-color-secondary) 14%, transparent));
+  background: color-mix(in srgb, var(--bs-color-primary) 12%, var(--bs-color-surface));
+  border-left: 3px solid var(--bs-color-primary);
 }
 .ts-pv-hero h3 { margin: 0 0 var(--bs-space-1); }
 .ts-pv-card {

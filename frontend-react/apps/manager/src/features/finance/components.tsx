@@ -41,13 +41,18 @@ export function RangeSwitch({ value, onChange }: { value: FinanceRange; onChange
   );
 }
 
-// ── Héro : le chiffre qui résume tout ─────────────────────────────────────────────
+// ── Héro : le chiffre qui résume tout (carte « solde » façon néobanque) ───────────────
 export function FinanceHero({ label, revenue, salesCount }: { label: string; revenue: number; salesCount: number }) {
   return (
     <div className="fin-hero fin-card" data-testid="fin-hero">
-      <span className="fin-hero__label">{label}</span>
+      <span className="fin-hero__glow" aria-hidden="true" />
+      <div className="fin-hero__top">
+        <span className="fin-hero__label">{label}</span>
+        <span className="fin-hero__chip"><i className="bi-wallet2" aria-hidden="true" /> Revenu net</span>
+      </div>
       <span className="fin-hero__amount">{signedMoney(revenue)}</span>
       <span className="fin-hero__sub">
+        <i className="bi-receipt" aria-hidden="true" />
         {salesCount} {salesCount > 1 ? 'ventes' : 'vente'}
       </span>
     </div>

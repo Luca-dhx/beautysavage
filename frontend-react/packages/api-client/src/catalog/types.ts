@@ -14,6 +14,12 @@ export interface PublicMedia {
   alt?: string;
 }
 
+/** Entrée FAQ (question / réponse) — prestation, formation ou accueil. */
+export interface FaqItem {
+  question: string;
+  answer: string;
+}
+
 /**
  * Catégorie publique. NON peuplée par les endpoints publics actuels (cf. 158) ;
  * définie pour un usage futur (filtrage catalogue).
@@ -41,6 +47,9 @@ export interface PublicService {
   capacity?: number;
   options?: PublicServiceOption[];
   practitioners?: PublicPractitioner[]; // détail seulement
+  averageRating?: number; // note moyenne publiée (listing)
+  reviewCount?: number; // nombre d'avis publiés (listing)
+  faq?: FaqItem[]; // FAQ éditable (détail)
 }
 
 export interface PublicServiceOption {
@@ -70,12 +79,15 @@ export interface PublicTraining {
   status?: string;
   activePromotion?: PublicPromotion | null;
   createdAt?: DateIso;
+  averageRating?: number; // note moyenne publiée (listing)
+  reviewCount?: number; // nombre d'avis publiés (listing)
   // détail
   photos?: string[];
   trailerVideoUrl?: string;
   editorialHtml?: string;
   salesCount?: number;
   options?: PublicServiceOption[];
+  faq?: FaqItem[]; // FAQ éditable (détail)
 }
 
 /** Produit — `GET /api/vitrine/shop` (products[]) + `/products/:id`. Clé = `id`. */

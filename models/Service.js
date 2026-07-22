@@ -20,6 +20,12 @@ const boostSchema = new mongoose.Schema({
   order: { type: Number, default: 0 }
 }, { _id: false });
 
+// FAQ éditable par prestation (gérée depuis le manager, affichée sur la fiche vitrine).
+const faqItemSchema = new mongoose.Schema({
+  question: { type: String, default: '', trim: true },
+  answer: { type: String, default: '', trim: true }
+}, { _id: false });
+
 const serviceSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   slug: { type: String, required: true, trim: true },
@@ -61,6 +67,8 @@ const serviceSchema = new mongoose.Schema({
   allowClientChoosePractitioner: { type: Boolean, default: true },
 
   options: { type: [optionSchema], default: [] },
+
+  faq: { type: [faqItemSchema], default: [] },
 
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

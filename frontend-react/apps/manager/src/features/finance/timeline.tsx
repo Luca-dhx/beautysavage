@@ -64,7 +64,7 @@ export function FinanceTimelineSummary({ summary }: { summary: FinanceTimelineSu
   return (
     <div className="fin-tl-summary" data-testid="fin-tl-summary">
       <div className="fin-tl-summary__net">
-        <span className="fin-tl-summary__net-label">Net</span>
+        <span className="fin-tl-summary__net-label">Solde net</span>
         <span className={`fin-tl-summary__net-value ${netClass}`}>{net > 0 ? '+' : net < 0 ? '−' : ''}{money(Math.abs(net))}</span>
       </div>
       <div className="fin-tl-summary__metrics">
@@ -72,7 +72,7 @@ export function FinanceTimelineSummary({ summary }: { summary: FinanceTimelineSu
         <div className="fin-tl-metric fin-tl-metric--out"><span className="fin-tl-metric__value">−{money(summary.grossOut)}</span><span className="fin-tl-metric__label">Sorties</span></div>
         <div className="fin-tl-metric"><span className="fin-tl-metric__value">{money(summary.balanceDueAmount)}</span><span className="fin-tl-metric__label">À encaisser</span></div>
         <div className="fin-tl-metric"><span className="fin-tl-metric__value">{summary.count}</span><span className="fin-tl-metric__label">Mouvements</span></div>
-        <div className="fin-tl-metric"><span className="fin-tl-metric__value">{summary.refundCount}</span><span className="fin-tl-metric__label">Remboursements</span></div>
+        <div className="fin-tl-metric"><span className="fin-tl-metric__value">{summary.refundCount}</span><span className="fin-tl-metric__label">Remb.</span></div>
       </div>
     </div>
   );

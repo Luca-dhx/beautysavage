@@ -50,7 +50,9 @@ export function ServiceDetailPage() {
   return (
     <article className="sd">
       <p className="sd-breadcrumb">
-        <Link to="/prestations">← Prestations</Link>
+        <Link to="/prestations" className="bs-backlink">
+          <i className="bi bi-arrow-left" aria-hidden="true" /> Retour aux prestations
+        </Link>
       </p>
 
       <header className="sd-head">

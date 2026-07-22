@@ -26,8 +26,8 @@ export function SimilarTrainings({ currentId, max = 6 }: { currentId: string; ma
               meta={t.type ? TYPE_LABEL[t.type] ?? t.type : undefined}
               price={<PriceLabel {...trainingPriceProps(t)} />}
               action={
-                <Link className="bs-btn bs-btn--secondary" to={`/formations/${t.id}`}>
-                  Détail
+                <Link className="bs-btn bs-btn--secondary-solid" to={`/formations/${t.id}`}>
+                  Voir
                 </Link>
               }
             />

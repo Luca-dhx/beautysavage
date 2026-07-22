@@ -51,6 +51,73 @@ describe('C1 — Catalogue Studio (endpoints additifs)', () => {
     expect(upd.body.service.balanceSettlementMode).toBe('pay_on_site');
   });
 
+  it('gère la FAQ prestation (mise à jour manager + exposition sur la fiche vitrine, entrées vides ignorées)', async () => {
+    const cookie = await login('admin@test.local');
+    const upd = await agent.put(`/api/gestion/services/${fx.service._id}`)
+      .set('Cookie', cookie)
+      .send({
+        faq: [
+          { question: 'Faut-il venir démaquillée ?', answer: 'Oui, de préférence.' },
+          { question: '', answer: 'ligne ignorée (question vide)' }
+        ]
+      });
+    expect(upd.status).toBe(200);
+    expect(upd.body.service.faq).toHaveLength(1);
+    expect(upd.body.service.faq[0]).toMatchObject({ question: 'Faut-il venir démaquillée ?', answer: 'Oui, de préférence.' });
+
+    const publicDetail = await agent.get(`/api/vitrine/services/${fx.service.slug}`);
+    expect(publicDetail.status).toBe(200);
+    expect(publicDetail.body.service.faq).toHaveLength(1);
+    expect(publicDetail.body.service.faq[0].question).toBe('Faut-il venir démaquillée ?');
+  });
+
+  it('persiste la galerie prestation (photos via Save) et l’expose sur la fiche vitrine', async () => {
+    const cookie = await login('admin@test.local');
+    const id = String(fx.service._id);
+    const upd = await agent.put(`/api/gestion/services/${id}`)
+      .set('Cookie', cookie)
+      .send({ photos: ['/uploads/services/cover.jpg', 'https://cdn.test/2.jpg'] });
+    expect(upd.status).toBe(200);
+    expect(upd.body.service.photos).toEqual(['/uploads/services/cover.jpg', 'https://cdn.test/2.jpg']);
+
+    const pub = await agent.get(`/api/vitrine/services/${fx.service.slug}`);
+    expect(pub.status).toBe(200);
+    expect(pub.body.service.photos).toEqual(['/uploads/services/cover.jpg', 'https://cdn.test/2.jpg']);
+  });
+
+  it('gère la galerie formation (coverImage + photos) et l’expose sur la fiche vitrine', async () => {
+    const cookie = await login('admin@test.local');
+    const id = String(fx.formationDistanciel._id);
+    const upd = await agent.put(`/api/gestion/formations/${id}`)
+      .set('Cookie', cookie)
+      .send({ coverImage: '/uploads/formations/cover.jpg', photos: ['/uploads/formations/a.jpg', '/uploads/formations/b.jpg'] });
+    expect(upd.status).toBe(200);
+    expect(upd.body.formation.photos).toEqual(['/uploads/formations/a.jpg', '/uploads/formations/b.jpg']);
+
+    const pub = await agent.get(`/api/vitrine/formations/${id}`);
+    expect(pub.status).toBe(200);
+    // La fiche publique fusionne couverture + galerie (couverture en 1re position).
+    expect(pub.body.formation.photos).toEqual([
+      '/uploads/formations/cover.jpg',
+      '/uploads/formations/a.jpg',
+      '/uploads/formations/b.jpg'
+    ]);
+  });
+
+  it('gère la FAQ générale de l’accueil (PUT partiel préserve, exposée en public)', async () => {
+    const cookie = await login('admin@test.local');
+    const upd = await agent.put('/api/gestion/home-settings')
+      .set('Cookie', cookie)
+      .send({ faq: [{ question: 'Où êtes-vous situés ?', answer: 'Au centre-ville.' }] });
+    expect(upd.status).toBe(200);
+    expect(upd.body.settings.faq).toHaveLength(1);
+
+    const pub = await agent.get('/api/vitrine/home-settings');
+    expect(pub.status).toBe(200);
+    expect(pub.body.settings.faq).toHaveLength(1);
+    expect(pub.body.settings.faq[0].answer).toBe('Au centre-ville.');
+  });
+
   // ── Formation : single-get + duplicate ────────────────────────────────────
   it('lit une formation unique et renvoie 404 si absente', async () => {
     const cookie = await login('admin@test.local');

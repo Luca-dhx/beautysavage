@@ -21,10 +21,15 @@ export interface DrawerProps {
 /** Drawer responsive : bottom-sheet (mobile) / side-panel (desktop). */
 export function Drawer({ open, title, onClose, children, footer, side = 'right', closeLabel = 'Fermer' }: DrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  // `onClose` est souvent une arrow inline (identité nouvelle à chaque rendu). On la lit via une ref
+  // pour que l'effet ne dépende QUE de `open` : sinon il se relance à chaque frappe et `panelRef.focus()`
+  // vole le focus de l'input en cours de saisie (déselection à chaque lettre).
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
     window.addEventListener('keydown', onKey);
     // Verrouille le scroll du fond pendant que le drawer est ouvert.
@@ -35,7 +40,7 @@ export function Drawer({ open, title, onClose, children, footer, side = 'right',
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   return (

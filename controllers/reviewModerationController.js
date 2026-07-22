@@ -4,6 +4,29 @@ import Review, { REVIEW_STATUSES } from '../models/Review.js';
 import Formation from '../models/Formation.js';
 import Service from '../models/Service.js';
 import User from '../models/user.js';
+import { triggerNotification } from '../services/notificationService.js';
+
+// LOT2 §11 — Variables SAFE pour les notifications d'avis (admin). Best-effort, jamais throw.
+async function buildReviewNotifVars(doc) {
+  let formationName = '';
+  try {
+    if (doc.formationId) {
+      const f = await Formation.findById(doc.formationId).select('name').lean();
+      formationName = f?.name || '';
+    } else if (doc.serviceId) {
+      const s = await Service.findById(doc.serviceId).select('name').lean();
+      formationName = s?.name || '';
+    }
+  } catch { /* best-effort */ }
+  let clientName = doc.displayName || '';
+  if (!clientName && doc.userId) {
+    try {
+      const u = await User.findById(doc.userId).select('firstName lastName').lean();
+      clientName = u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : '';
+    } catch { /* best-effort */ }
+  }
+  return { clientName: clientName || '—', formationName: formationName || '—', rating: String(doc.rating || '') };
+}
 import {
   combineReviewFilters,
   buildModerationStatusFilter,
@@ -181,6 +204,14 @@ export async function moderateReview(req, res) {
     doc.moderatedByAdminId = req.sessionUser?._id || null;
     await doc.save();
 
+    // LOT2 §11 — notification admin (best-effort).
+    if (status === 'published' || status === 'rejected') {
+      try {
+        const vars = await buildReviewNotifVars(doc);
+        void triggerNotification(status === 'published' ? 'review_published' : 'review_rejected', vars);
+      } catch { /* best-effort */ }
+    }
+
     return res.json({ ok: true, review: { id: String(doc._id), status: doc.status } });
   } catch (error) {
     console.error('[reviewModeration] moderate', error);
@@ -213,12 +244,25 @@ export async function createManualReview(req, res) {
       return res.status(400).json({ ok: false, error: 'Statut manuel invalide.' });
     }
 
+    const now = new Date();
+    // Date de l'avis réglable côté institut (backdate possible ; jamais dans le futur).
+    let createdAt = now;
+    if (req.body?.reviewDate !== undefined && req.body?.reviewDate !== null && String(req.body.reviewDate).trim() !== '') {
+      const parsed = new Date(req.body.reviewDate);
+      if (Number.isNaN(parsed.getTime())) {
+        return res.status(400).json({ ok: false, error: 'Date de l’avis invalide.' });
+      }
+      if (parsed.getTime() > now.getTime()) {
+        return res.status(400).json({ ok: false, error: 'La date de l’avis ne peut pas être dans le futur.' });
+      }
+      createdAt = parsed;
+    }
+
     const target = await resolveTarget(targetType, targetId);
     if (!target) {
       return res.status(404).json({ ok: false, error: 'Élément concerné introuvable.' });
     }
 
-    const now = new Date();
     const review = await Review.create({
       targetType,
       sourceType: 'manual_institute',
@@ -230,7 +274,14 @@ export async function createManualReview(req, res) {
       moderatedByAdminId: requestedStatus === 'published' ? req.sessionUser?._id || null : null,
       formationId: targetType === 'formation' ? target._id : null,
       serviceId: targetType === 'service' ? target._id : null,
-      createdAt: now
+      createdAt
+    });
+
+    // LOT2 §11 — notification admin (best-effort).
+    void triggerNotification('review_manual', {
+      clientName: displayName || '—',
+      formationName: target?.name || '—',
+      rating: String(rating)
     });
 
     const maps = {

@@ -775,6 +775,12 @@ export async function postFormationReview(req, res) {
       createdAt: new Date()
     });
     await review.save();
+    // LOT2 §11 — notification admin « nouvel avis reçu » (best-effort).
+    void triggerNotification('review_received', {
+      clientName: `${req.sessionUser?.firstName || ''} ${req.sessionUser?.lastName || ''}`.trim() || '—',
+      formationName: formation?.name || '—',
+      rating: String(rating)
+    });
     return res.status(201).json({ ok: true });
   } catch (error) {
     if (error?.code === 11000) {

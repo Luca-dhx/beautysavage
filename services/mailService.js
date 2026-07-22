@@ -10,6 +10,11 @@ export { loadTemplate, saveTemplate } from './mail/mailTemplateRuntime.js';
 export { postToBrevo } from './mail/mailBrevoGateway.js';
 export {
   sendSaleEmail,
+  sendPaymentFailedEmail,
+  sendRefundRefusedEmail,
+  sendRefundFailedEmail,
+  sendCertificateAvailableEmail,
+  sendFormationSessionReminderEmail,
   sendCommissionAvailableEmail,
   sendCommissionReminderEmail,
   sendCommissionLastDayEmail,

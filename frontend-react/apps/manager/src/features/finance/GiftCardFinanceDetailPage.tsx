@@ -8,6 +8,7 @@ import {
   GiftCardFinanceActions, GiftCardStatusBadge, GiftCardSkeleton,
 } from './giftCards';
 import { FinanceError } from './components';
+import { GiftCardResendControl } from './GiftCardResendControl';
 import './giftCards.css';
 
 export function GiftCardFinanceDetailPage() {
@@ -41,6 +42,7 @@ export function GiftCardFinanceDetailPage() {
           <GiftCardRefundSplitCard refunds={data.refunds} />
           <GiftCardTransactionTimeline transactions={data.transactions} />
           <GiftCardFinanceActions actions={data.actions} />
+          {giftCardId ? <GiftCardResendControl giftCardId={giftCardId} status={data.giftCard.status} /> : null}
         </>
       ) : null}
     </div>

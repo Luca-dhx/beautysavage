@@ -13,6 +13,7 @@ export { IdentityManager } from './IdentityManager';
 export { IdentityForm } from './IdentityForm';
 export { VerificationPanel } from './VerificationPanel';
 export { MailDeliveriesView, SendLogsView } from './views';
+export { CommunicationTriggersPage } from './CommunicationTriggersPage';
 export { MailFilterBar, MobileFilterDrawer } from './MailFilters';
 export {
   StatusBadge,

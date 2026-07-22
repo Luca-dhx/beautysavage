@@ -190,6 +190,52 @@ const DEFAULT_EVENTS = [
     messageTemplate: '{{clientName}} a annulé sa participation à "{{formationName}}" (session du {{sessionDate}})',
     availableVariables: ['clientName', 'formationName', 'sessionDate', 'saleId']
   },
+  // LOT2 §11 — Notifications AVIS (audience admin). Le registre reste code-first ; ces événements
+  // internes signalent la vie des avis (soumission client, modération, création manuelle).
+  {
+    eventType: 'review_received',
+    label: 'Nouvel avis reçu',
+    isActive: true,
+    category: 'formations',
+    targetType: 'role',
+    targetRole: 'admin',
+    titleTemplate: 'Nouvel avis — {{formationName}}',
+    messageTemplate: '{{clientName}} a laissé un avis {{rating}}/5 sur "{{formationName}}"',
+    availableVariables: ['clientName', 'formationName', 'rating']
+  },
+  {
+    eventType: 'review_published',
+    label: 'Avis publié',
+    isActive: true,
+    category: 'formations',
+    targetType: 'role',
+    targetRole: 'admin',
+    titleTemplate: 'Avis publié — {{formationName}}',
+    messageTemplate: 'L\'avis de {{clientName}} sur "{{formationName}}" a été publié',
+    availableVariables: ['clientName', 'formationName', 'rating']
+  },
+  {
+    eventType: 'review_rejected',
+    label: 'Avis rejeté / masqué',
+    isActive: true,
+    category: 'formations',
+    targetType: 'role',
+    targetRole: 'admin',
+    titleTemplate: 'Avis rejeté — {{formationName}}',
+    messageTemplate: 'L\'avis de {{clientName}} sur "{{formationName}}" a été rejeté',
+    availableVariables: ['clientName', 'formationName', 'rating']
+  },
+  {
+    eventType: 'review_manual',
+    label: 'Avis créé manuellement',
+    isActive: true,
+    category: 'formations',
+    targetType: 'role',
+    targetRole: 'admin',
+    titleTemplate: 'Avis manuel — {{formationName}}',
+    messageTemplate: 'Un avis {{rating}}/5 a été créé manuellement pour "{{formationName}}"',
+    availableVariables: ['clientName', 'formationName', 'rating']
+  },
   // P1-6 — Alertes techniques (audience DEV). Jusqu'ici ces types n'avaient aucune config →
   // triggerNotification ne créait rien. Ils alimentent désormais l'espace Dev sur les pannes.
   {

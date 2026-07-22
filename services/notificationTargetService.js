@@ -39,7 +39,11 @@ const ADMIN_NOTIFICATION_TYPES = new Set([
   'formation_session_cancelled',       // session de formation annulée
   'formation_distancielle_purchased',  // achat formation distancielle
   'formation_presentielle_purchased',  // achat formation présentielle
-  'formation_participation_cancelled'  // annulation participation formation
+  'formation_participation_cancelled', // annulation participation formation
+  'review_received',                   // avis client soumis
+  'review_published',                  // avis publié (modération)
+  'review_rejected',                   // avis rejeté / masqué (modération)
+  'review_manual'                      // avis créé manuellement par l'institut
 ]);
 
 // DEV : événements techniques / plateforme / logs.

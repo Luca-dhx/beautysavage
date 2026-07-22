@@ -113,6 +113,12 @@ const formationSessionSchema = new mongoose.Schema(
     qrGeneratedAt: {
       type: Date,
       default: null
+    },
+    // LOT2 — clés de rappels déjà envoyés pour cette session (ex. "24h"), anti-doublon du
+    // scheduler formationSessionRemindersJob (mirroir de ServiceBooking.remindersSent).
+    remindersSent: {
+      type: [String],
+      default: []
     }
   },
   {

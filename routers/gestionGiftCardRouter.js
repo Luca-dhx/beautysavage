@@ -14,7 +14,8 @@ import {
   generateMissingGiftCardPasswords,
   createManualGiftCard,
   lookupGiftCardByQr,
-  manualDebitGiftCardById
+  manualDebitGiftCardById,
+  resetGiftCardPinAndResend
 } from '../controllers/giftCardController.js';
 import {
   listLibraryHandler,
@@ -45,6 +46,7 @@ router.post('/lookup-qr', lookupGiftCardByQr);
 router.post('/verify-password', verifyGiftCardPasswordForGestion);
 router.post('/manual-debit', manualDebitGiftCardForGestion); // legacy (par code + mot de passe)
 router.post('/:id/manual-debit', manualDebitGiftCardById); // M13 (par id + motif)
+router.post('/:id/reset-pin', resetGiftCardPinAndResend); // LOT2 §4 — reset PIN + renvoi
 router.get('/', listGiftCards);
 router.get('/:id', getGiftCardDetailForGestion);
 

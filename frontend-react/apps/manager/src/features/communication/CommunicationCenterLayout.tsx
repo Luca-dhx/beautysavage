@@ -33,6 +33,7 @@ const DEV_TABS: TabItem[] = [
   { to: '/dev/communication/identite-support', label: 'Identité support' },
   { to: '/dev/communication/mail-deliveries', label: 'Livraisons mail' },
   { to: '/dev/communication/send-logs', label: 'Send logs' },
+  { to: '/dev/communication/triggers', label: 'Déclencheurs' },
 ];
 
 export function AdminCommunicationLayout() {

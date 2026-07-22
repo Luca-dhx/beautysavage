@@ -90,7 +90,18 @@ Légende : ✅ envoyé · ❌ absent · ⚠️ partiel / à corriger.
 | Erreur rendu/envoi carte cadeau | ❌ | ✅ | **`system_error` (P1-6)** |
 | Erreur Brevo / Stripe / PDF facture / config manquante | ❌ | ❌ | différé (P1-12) |
 
-## Événements corrigés dans ce lot
+## Mises à jour LOT 2 (2026-07-22)
+
+Désormais **couverts** (envois directs best-effort, cf. `COMMUNICATION_CENTER_LOT2_REPORT.md`) :
+- **Paiement échoué** → e-mail `payment_failed` (client).
+- **Remboursement refusé** (admin failed/canceled) → `refund_refused` (client).
+- **Remboursement échoué (Stripe)** → `refund_failed` (client).
+- **Certificat disponible** → e-mail dédié `training_certificate_available` (à la complétion).
+- **Rappel session formation** → scheduler dédié `formationSessionRemindersJob`.
+- **Avis** : `review_received` / `review_published` / `review_rejected` / `review_manual` → ✅N (admin).
+- **Carte cadeau** : reset PIN + renvoi → `gift_card.pin_reset_and_resent` (nouveau code, ancien invalidé).
+
+## Événements corrigés dans le lot 1
 - **P1-8** : notif de remboursement réussi utilisait `refund_requested` (« a demandé ») → **`refund_completed`**.
 - **P1-9** : 7 codes hors catalogue ajoutés à `eventCatalog` (`booking.balance_paid_on_site`,
   `booking.rescheduled`, `commission.adjusted/reversal_required/cancelled`,

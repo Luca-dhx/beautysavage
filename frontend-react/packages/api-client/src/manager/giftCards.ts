@@ -96,6 +96,15 @@ export async function createManualGiftCard(input: CreateManualGiftCardInput): Pr
   return res.giftCard;
 }
 
+/**
+ * LOT2 §4 — POST /api/gestion/gift-cards/:id/reset-pin — génère un NOUVEAU code (l'ancien est
+ * invalidé), régénère le PDF et renvoie la carte au bénéficiaire. Le PIN n'est jamais renvoyé par l'API.
+ */
+export async function resetGiftCardPin(id: string): Promise<{ pinVersion: number; mail: unknown }> {
+  const res = await apiPost<{ ok: boolean; pinVersion: number; mail: unknown }>(`${BASE}/${encodeURIComponent(id)}/reset-pin`);
+  return { pinVersion: res.pinVersion, mail: res.mail };
+}
+
 /** GET /api/gestion/gift-cards/lookup?code= — recherche par code (404 si introuvable). */
 export async function lookupGiftCardByCode(code: string): Promise<GiftCardSummary> {
   const res = await apiGet<{ ok: boolean; card: GiftCardSummary }>(`${BASE}/lookup`, { code });

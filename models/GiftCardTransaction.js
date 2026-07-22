@@ -29,7 +29,7 @@ const giftCardTransactionSchema = new mongoose.Schema(
     transactionType: {
       type: String,
       // M13 — `manual_issued` = émission initiale d'une carte créée à la main par l'institut.
-      enum: ['redeem', 'manual_debit', 'credit', 'manual_issued'],
+      enum: ['redeem', 'manual_debit', 'credit', 'manual_issued', 'pin_reset'],
       default: 'redeem'
     },
     // M13 — provenance de l'opération (le client en ligne vs l'institut au comptoir vs système).

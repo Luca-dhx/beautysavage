@@ -15,7 +15,9 @@ import {
   ensureRefundCommissionProvision,
   ensureRefundCommissionReversal
 } from '../services/refundService.js';
-import { triggerRefundExecution } from '../services/refundExecutionService.js';
+import { triggerRefundExecution, resolveRefundRecipientContext } from '../services/refundExecutionService.js';
+import { sendRefundRefusedEmail } from '../services/mailService.js';
+import { resolvePublicBaseUrl } from '../services/system/domainResolver.js';
 import { requireSecret } from '../utils/secretEnv.js';
 import { getCredential } from '../services/integratedApiCredentialService.js';
 import { getSessionUserId } from '../utils/session.js';
@@ -589,6 +591,21 @@ export async function updateRefundStatus(req, res) {
     }
     if (nextStatus === 'failed' || nextStatus === 'canceled') {
       await ensureRefundCommissionReversal(refund);
+      // LOT2 P1-12 — e-mail client « demande de remboursement non retenue » (best-effort).
+      try {
+        const ctx = await resolveRefundRecipientContext(refund);
+        if (ctx.toEmail) {
+          await sendRefundRefusedEmail({
+            toEmail: ctx.toEmail,
+            firstName: ctx.firstName,
+            itemDetail: ctx.itemDetail,
+            refundReason: adminReason || 'Demande non éligible',
+            actionUrl: ctx.trackingUrl || resolvePublicBaseUrl()
+          });
+        }
+      } catch (mailErr) {
+        console.error('[updateRefundStatus] Erreur envoi email refund_refused', mailErr?.message || mailErr);
+      }
     }
 
     await emitAdminRefundAudit(refund, nextStatus);

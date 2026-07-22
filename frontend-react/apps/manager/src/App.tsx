@@ -29,6 +29,7 @@ const devPanel = () => import('./features/devPanel');
 
 const AdminCommunicationLayout = l(comm, 'AdminCommunicationLayout');
 const DevCommunicationLayout = l(comm, 'DevCommunicationLayout');
+const CommunicationTriggersPage = l(comm, 'CommunicationTriggersPage');
 const AdminCommunicationDashboard = l(comm, 'AdminCommunicationDashboard');
 const CommercialeIdentityPage = l(comm, 'CommercialeIdentityPage');
 const AdminMailsPage = l(comm, 'AdminMailsPage');
@@ -77,6 +78,7 @@ const ProductsUnavailablePage = l(catalogue, 'ProductsUnavailablePage');
 
 const SessionPresencePage = l(() => import('./features/learning'), 'SessionPresencePage');
 const ReviewModerationPage = l(() => import('./features/reviews'), 'ReviewModerationPage');
+const GeneralFaqPage = l(() => import('./features/faq'), 'GeneralFaqPage');
 
 const FinanceDashboardPage = l(finance, 'FinanceDashboardPage');
 const FinanceTimelinePage = l(finance, 'FinanceTimelinePage');
@@ -153,6 +155,7 @@ export function App() {
 
               <Route path="cartes-cadeaux/templates" element={<GiftCardLibraryPage />} />
               <Route path="avis" element={<ReviewModerationPage />} />
+              <Route path="faq" element={<GeneralFaqPage />} />
 
               <Route element={<RequireRole allow={['dev']} loginPath="/login" deniedPath="/" />}>
                 <Route path="users" element={<ManagerUsersPage />} />
@@ -210,6 +213,7 @@ export function App() {
                     <Route path="identite-support" element={<SupportIdentityPage />} />
                     <Route path="mail-deliveries" element={<DevMailDeliveriesPage />} />
                     <Route path="send-logs" element={<DevSendLogsPage />} />
+                    <Route path="triggers" element={<CommunicationTriggersPage />} />
                   </Route>
 
                   <Route path="theme-studio" element={<ThemeStudioLayout />}>

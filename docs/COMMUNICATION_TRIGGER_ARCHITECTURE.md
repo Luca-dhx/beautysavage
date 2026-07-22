@@ -108,6 +108,31 @@ source, flag `raw`) exposée via `GET /api/gestion/mails/variables`. Remplace à
 `KNOWN_TEMPLATE_VARIABLES`. Fournit aussi `validateTemplateContent` (variables inconnues / accolades
 mal fermées) branché en avertissement non bloquant sur la sauvegarde.
 
+## Aperçu = production (LOT 2)
+
+`POST /api/gestion/mails/templates/:functionName/preview` rend avec **le même** renderer que l'envoi
+(`replaceTemplateVariables` + `withMailThemeVars` + `buildSampleTemplateData`). Le front
+(`previewMailTemplate`) délègue au backend : plus de double moteur de rendu.
+
+## Matrice des déclencheurs (LOT 2)
+
+`GET /api/gestion/mails/triggers` (dev-only) reflète `mailDispatchRules` (événement → catégorie →
+template → expéditeur → destinataire → actif → direct → moteur → dernier envoi → statut). Lecture
+seule ; page `/dev/communication/triggers`.
+
+## Reset PIN carte cadeau (LOT 2)
+
+`POST /api/gestion/gift-cards/:id/reset-pin` : le PIN étant **hashé (irrécupérable)**, un renvoi
+génère un **nouveau** code (ancien invalidé via écrasement du hash), régénère le PDF et renvoie
+l'e-mail (event `gift_card.pin_reset_and_resent`). Le PIN n'est jamais renvoyé par l'API.
+
+## Retry / « voir le HTML envoyé » — pourquoi c'est différé
+
+`SendLog` ne stocke qu'un `recipientHash` (SHA-256 irréversible) et **aucun** corps HTML / variables.
+Un retry générique ou un « voir le HTML » sont donc **infaisables** sans persister le rendu (compromis
+PII refusé par le modèle) ou re-dériver par contexte au cas par cas. Seul le renvoi **carte cadeau**
+(reset PIN) est fourni. Voir `COMMUNICATION_CENTER_LOT2_REPORT.md` §2.
+
 ## Convergence recommandée (dette)
 
 Deux moteurs concurrents (A/B directs vs C/D moteur) coexistent. Cible : **un chemin unique**. Deux

@@ -17,8 +17,23 @@ import {
   buildSampleTemplateData,
   validateTemplateContent
 } from '../services/mail/mailTemplateVariableCatalog.js';
+import { MAIL_DISPATCH_RULES, isMailRoleResolverEnabled } from '../constants/mailDispatchRules.js';
+import SendLog from '../models/SendLog.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// LOT2 §3 — Catégorie d'un événement pour la matrice de déclencheurs (filtres UI).
+function categoryForTriggerEvent(eventName) {
+  const e = String(eventName || '');
+  if (e.startsWith('booking.')) return 'réservation';
+  if (e.startsWith('refund.')) return 'remboursement';
+  if (e.startsWith('gift_card.')) return 'carte cadeau';
+  if (e.startsWith('formation.') || e.startsWith('lesson.') || e.startsWith('presence.')) return 'formation';
+  if (e.startsWith('commission.')) return 'système';
+  if (e.startsWith('review.')) return 'avis';
+  if (e.startsWith('sale.') || e.startsWith('payment')) return 'paiement';
+  return 'système';
+}
 
 const ALLOWED_FUNCTIONS = new Set(mailFunctions.map(value => value.toLowerCase()));
 
@@ -113,6 +128,96 @@ export async function getVariableCatalog(_req, res) {
   } catch (error) {
     console.error('Erreur lecture catalogue variables', error);
     return res.status(500).json({ ok: false, error: 'Impossible de lire le catalogue de variables.' });
+  }
+}
+
+// LOT2 §2 — Aperçu = PRODUCTION. Rend le template avec EXACTEMENT le renderer de production
+// (`replaceTemplateVariables` + `withMailThemeVars`), avec les données d'exemple du catalogue (plus
+// d'override optionnel `variables`). L'aperçu HTML est donc identique à ce qui part chez Brevo.
+// Accepte un brouillon (subject/html/text) pour l'aperçu live avant sauvegarde.
+function extractUsedVariables(...contents) {
+  const seen = new Set();
+  const re = /\{\{\s*([a-zA-Z0-9]+)\s*\}\}/g;
+  for (const c of contents) {
+    let m;
+    while ((m = re.exec(String(c || ''))) !== null) seen.add(m[1].toLowerCase());
+  }
+  return Array.from(seen);
+}
+
+export async function previewTemplate(req, res) {
+  try {
+    const functionName = validateFunction(req.params.functionName);
+    if (!functionName) {
+      return res.status(400).json({ ok: false, error: 'Fonction de template invalide.' });
+    }
+
+    let subject = req.body?.subject;
+    let html = req.body?.html;
+    let text = req.body?.text;
+    if (subject === undefined || html === undefined || text === undefined) {
+      const tpl = await loadTemplate(functionName);
+      if (!tpl) return res.status(404).json({ ok: false, error: 'Template introuvable.' });
+      subject = subject ?? tpl.subject ?? '';
+      html = html ?? tpl.fullHtml ?? tpl.bodyHtml ?? '';
+      text = text ?? tpl.bodyHtml ?? '';
+    }
+
+    // Override optionnel des variables (sinon exemples du catalogue). Fusion avec le thème réel.
+    const overrides = {};
+    if (req.body?.variables && typeof req.body.variables === 'object') {
+      for (const [k, v] of Object.entries(req.body.variables)) overrides[String(k).toLowerCase()] = String(v);
+    }
+    const data = await withMailThemeVars({ ...buildSampleTemplateData(), ...overrides });
+
+    const used = extractUsedVariables(subject, html, text);
+    const validation = validateTemplateContent(`${subject}\n${html}\n${text}`);
+
+    return res.json({
+      ok: true,
+      subject: replaceTemplateVariables(subject, data) || subject,
+      html: html ? (replaceTemplateVariables(html, data, { html: true }) || html) : '',
+      text: text ? (replaceTemplateVariables(text, data) || text) : '',
+      usedVariables: used.map((name) => ({ name, known: !validation.unknownVariables.map((u) => u.toLowerCase()).includes(name) })),
+      unknownVariables: validation.unknownVariables,
+      malformed: validation.malformed,
+    });
+  } catch (error) {
+    console.error('Erreur aperçu template', error);
+    return res.status(500).json({ ok: false, error: "Impossible de générer l'aperçu." });
+  }
+}
+
+// LOT2 §3 — Matrice des déclencheurs (LECTURE SEULE). Le registre code-first `mailDispatchRules`
+// reste la source d'autorité : cette vue le rend lisible (événement → template → expéditeur →
+// destinataire → actif → envoi direct → moteur → dernier envoi → statut).
+export async function getTriggerMatrix(_req, res) {
+  try {
+    const engineOn = isMailRoleResolverEnabled();
+    const rows = await Promise.all(MAIL_DISPATCH_RULES.map(async (rule) => {
+      const templateKey = rule.templateKey;
+      const [tpl, lastLog] = await Promise.all([
+        EmailTemplate.findOne({ functionName: templateKey, status: 'published' }).select('_id').lean().catch(() => null),
+        SendLog.findOne({ templateKey }).sort({ queuedAt: -1 }).select('status sentAt queuedAt').lean().catch(() => null)
+      ]);
+      return {
+        event: rule.eventName,
+        category: categoryForTriggerEvent(rule.eventName),
+        templateKey,
+        templatePublished: Boolean(tpl),
+        fromRole: rule.fromRole,
+        toRole: rule.toRole,
+        active: Boolean(rule.enabled),
+        directSender: Boolean(rule.directSenderExists),
+        engine: engineOn && !rule.directSenderExists,
+        lastSentAt: lastLog?.sentAt || lastLog?.queuedAt || null,
+        lastStatus: lastLog?.status || null
+      };
+    }));
+    return res.json({ ok: true, engineEnabled: engineOn, rows });
+  } catch (error) {
+    console.error('Erreur matrice déclencheurs', error);
+    return res.status(500).json({ ok: false, error: 'Impossible de charger la matrice.' });
   }
 }
 

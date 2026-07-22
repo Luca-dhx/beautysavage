@@ -902,6 +902,161 @@ const TEMPLATE_FUNCTIONS = {
       tone: 'warning'
     },
     signature: '{{siteName}}'
+  }),
+
+  // ── LOT2 — Communications manquantes (P1-12) + templates système ────────────
+  payment_failed: createMailTemplateDefinition({
+    subject: 'Votre paiement n\'a pas abouti',
+    siteName: '{{siteName}}',
+    eyebrow: 'Paiement',
+    title: 'Le paiement n\'a pas pu être finalisé',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: [
+      'Le paiement de <strong>{{itemDetail}}</strong> d\'un montant de <strong>{{amount}} EUR</strong> n\'a pas abouti.',
+      'Aucun montant n\'a été débité. Vous pouvez réessayer votre commande depuis notre site.'
+    ],
+    detailItems: [
+      { label: 'Article', value: '{{itemDetail}}' },
+      { label: 'Montant', value: '{{amount}} EUR' }
+    ],
+    cta: { label: 'Reprendre le paiement', url: '{{actionUrl}}' },
+    signature: '{{siteName}}'
+  }),
+  refund_refused: createMailTemplateDefinition({
+    subject: 'Votre demande de remboursement',
+    siteName: '{{siteName}}',
+    eyebrow: 'Remboursement',
+    title: 'Demande de remboursement non retenue',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: [
+      'Après étude, votre demande de remboursement pour <strong>{{itemDetail}}</strong> n\'a pas pu être acceptée.',
+      'Motif : {{refundReason}}',
+      'Pour toute question, notre équipe reste à votre disposition.'
+    ],
+    detailItems: [
+      { label: 'Article', value: '{{itemDetail}}' }
+    ],
+    cta: { label: 'Contacter le support', url: '{{actionUrl}}' },
+    signature: '{{siteName}}'
+  }),
+  refund_failed: createMailTemplateDefinition({
+    subject: 'Remboursement en cours de traitement',
+    siteName: '{{siteName}}',
+    eyebrow: 'Remboursement',
+    title: 'Un incident technique est survenu',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: [
+      'Votre remboursement de <strong>{{amount}} EUR</strong> pour <strong>{{itemDetail}}</strong> a rencontré un incident technique lors de son traitement.',
+      'Pas d\'inquiétude : notre équipe a été alertée et procède à la régularisation. Vous serez tenu(e) informé(e).'
+    ],
+    detailItems: [
+      { label: 'Article', value: '{{itemDetail}}' },
+      { label: 'Montant', value: '{{amount}} EUR' }
+    ],
+    cta: { label: 'Contacter le support', url: '{{actionUrl}}' },
+    signature: '{{siteName}}'
+  }),
+  training_certificate_available: createMailTemplateDefinition({
+    subject: 'Votre attestation est disponible — {{formationTitle}}',
+    siteName: '{{siteName}}',
+    eyebrow: 'Attestation',
+    title: 'Félicitations {{firstName}} !',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: [
+      'Votre attestation pour la formation <strong>{{formationTitle}}</strong> est désormais disponible.',
+      'Retrouvez-la et téléchargez-la depuis votre espace, rubrique « Mes formations ».'
+    ],
+    detailItems: [
+      { label: 'Formation', value: '{{formationTitle}}' }
+    ],
+    cta: { label: 'Télécharger mon attestation', url: '{{actionUrl}}' },
+    signature: '{{siteName}}'
+  }),
+  formation_session_reminder: createMailTemplateDefinition({
+    subject: 'Rappel — votre session {{formationTitle}}',
+    siteName: '{{siteName}}',
+    eyebrow: 'Rappel',
+    title: 'À bientôt {{firstName}} !',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: [
+      'Petit rappel : votre session de <strong>{{formationTitle}}</strong> approche.',
+      'Rendez-vous le <strong>{{sessionDate}}</strong> à <strong>{{sessionTime}}</strong>{{location}}.'
+    ],
+    detailItems: [
+      { label: 'Formation', value: '{{formationTitle}}' },
+      { label: 'Date', value: '{{sessionDate}}' },
+      { label: 'Heure', value: '{{sessionTime}}' }
+    ],
+    cta: { label: 'Voir dans mon espace', url: '{{actionUrl}}' },
+    signature: '{{siteName}}'
+  }),
+  gift_card_pin_reset: createMailTemplateDefinition({
+    subject: 'Votre carte cadeau — nouveau code',
+    siteName: '{{siteName}}',
+    eyebrow: 'Carte cadeau',
+    title: 'Un nouveau code pour votre carte',
+    intro: 'Bonjour {{recipientName}},',
+    paragraphs: [
+      'Un nouveau code a été généré pour votre carte cadeau. L\'ancien code n\'est plus valable.',
+      'Vous trouverez votre carte cadeau mise à jour en pièce jointe.'
+    ],
+    detailItems: [
+      { label: 'Code carte', value: '{{code}}' },
+      { label: 'Nouveau mot de passe', value: '{{pin}}' },
+      { label: 'Solde', value: '{{balance}}' }
+    ],
+    signature: '{{instituteName}}'
+  }),
+  welcome: createMailTemplateDefinition({
+    subject: 'Bienvenue chez {{siteName}}',
+    siteName: '{{siteName}}',
+    eyebrow: 'Bienvenue',
+    title: 'Bienvenue {{firstName}} !',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: [
+      'Votre compte a bien été créé. Nous sommes ravis de vous compter parmi nous.',
+      'Découvrez nos prestations et formations depuis votre espace.'
+    ],
+    cta: { label: 'Accéder à mon espace', url: '{{actionUrl}}' },
+    signature: '{{siteName}}'
+  }),
+  email_verified: createMailTemplateDefinition({
+    subject: 'Votre adresse e-mail est confirmée',
+    siteName: '{{siteName}}',
+    eyebrow: 'Compte',
+    title: 'Adresse confirmée',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: [
+      'Votre adresse e-mail a bien été vérifiée. Votre compte est désormais pleinement actif.'
+    ],
+    signature: '{{siteName}}'
+  }),
+  password_changed: createMailTemplateDefinition({
+    subject: 'Votre mot de passe a été modifié',
+    siteName: '{{siteName}}',
+    eyebrow: 'Sécurité',
+    title: 'Mot de passe mis à jour',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: [
+      'Votre mot de passe vient d\'être modifié. Si vous n\'êtes pas à l\'origine de ce changement, contactez-nous immédiatement.'
+    ],
+    cta: { label: 'Contacter le support', url: '{{actionUrl}}' },
+    signature: '{{siteName}}'
+  }),
+  review_request: createMailTemplateDefinition({
+    subject: 'Votre avis sur {{formationTitle}}',
+    siteName: '{{siteName}}',
+    eyebrow: 'Votre avis',
+    title: 'Partagez votre expérience',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: [
+      'Vous avez récemment suivi <strong>{{formationTitle}}</strong>. Votre avis nous aide à nous améliorer et guide les futurs participants.'
+    ],
+    detailItems: [
+      { label: 'Formation', value: '{{formationTitle}}' }
+    ],
+    cta: { label: 'Laisser un avis', url: '{{actionUrl}}' },
+    signature: '{{siteName}}'
   })
 };
 

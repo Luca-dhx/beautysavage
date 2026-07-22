@@ -328,7 +328,20 @@ const VARIABLE_KEYS = new Set([
   'oldbookingtime',
   'newbookingdate',
   'newbookingtime',
-  'clientname'
+  'clientname',
+  // LOT2 — variables jusqu'ici absentes de l'allowlist (rendues littérales dans les corps mail
+  // carte cadeau / leçon) + variables des nouvelles communications.
+  'recipientname',
+  'purchasername',
+  'pin',
+  'message',
+  'balance',
+  'paymentlabel',
+  'transactionreason',
+  'cardlink',
+  'lessonname',
+  'location',
+  'linklabel'
 ]);
 
 const ALLOWED_MODES = new Set(['text', 'html']);
@@ -354,7 +367,8 @@ const RAW_HTML_VARIABLE_KEYS = new Set([
   'themebackground',
   'themesurface',
   'themetext',
-  'refundsection'
+  'refundsection',
+  'cardlink'
 ]);
 
 function escapeHtml(value) {

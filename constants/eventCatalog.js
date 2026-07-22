@@ -47,6 +47,8 @@ export const EVENT_CATALOG = Object.freeze({
   // P1-9 — recovery job (recrédit carte cadeau après remboursement).
   'gift_card.recredit_failed': { domain: 'gift_card', version: 1, description: 'A gift card re-credit failed (recovery)', payload: ['saleId', 'amountEur', 'cardCount'] },
   'gift_card.recredit_recovered': { domain: 'gift_card', version: 1, description: 'A failed gift card re-credit was recovered', payload: ['saleId', 'amountEur', 'cardCount'] },
+  // LOT2 — reset PIN + renvoi (nouveau code généré, ancien invalidé).
+  'gift_card.pin_reset_and_resent': { domain: 'gift_card', version: 1, description: 'A gift card PIN was reset and the card re-sent', payload: ['giftCardId', 'pinVersion'] },
 
   // --- commission ---
   'commission.available': { domain: 'commission', version: 1, description: 'A commission became payable', payload: ['commissionPaymentId', 'month', 'year'] },
@@ -60,6 +62,8 @@ export const EVENT_CATALOG = Object.freeze({
   // --- formation (sessions) ---
   'formation.session_cancelled': { domain: 'formation', version: 1, description: 'A formation session was cancelled', payload: ['sessionId', 'formationId'] },
   'formation.session_updated': { domain: 'formation', version: 1, description: 'A formation session was updated/rescheduled', payload: ['sessionId', 'formationId'] },
+  'formation.session_reminded': { domain: 'formation', version: 1, description: 'A formation session reminder was sent', payload: ['sessionId', 'formationId'] },
+  'formation.certificate_available': { domain: 'formation', version: 1, description: 'A formation certificate became available', payload: ['formationId', 'clientId'] },
   // C2 — Learning events.
   'formation.started': { domain: 'formation', version: 1, description: 'A client started a distanciel formation', payload: ['formationId', 'clientId'] },
   'lesson.completed': { domain: 'formation', version: 1, description: 'A client completed a lesson', payload: ['formationId', 'lessonId', 'clientId'] },

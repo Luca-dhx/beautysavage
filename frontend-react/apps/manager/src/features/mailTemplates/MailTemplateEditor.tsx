@@ -18,7 +18,6 @@ import {
 } from '@bs/api-client';
 import { TemplateSubjectEditor, TemplateHtmlEditor, TemplateTextEditor, TemplatePublishPanel, TemplateRollbackPanel } from './editors';
 import { TemplateRoleBindingCard, TemplateVariablesPanel, TemplatePreviewPane, MobileTemplateToolbar } from './components';
-import { MOCK_PREVIEW_VARS } from './mock';
 
 function messageFromError(err: unknown): string {
   if (err instanceof ApiError) return err.status === 403 ? 'Accès réservé.' : err.message || 'Erreur.';
@@ -51,12 +50,16 @@ export function MailTemplateEditor({ functionName }: { functionName: string }) {
     }
   }, [tplQuery.status, tplQuery.data, functionName, loadedKey]);
 
-  // Preview live (front, sans envoi) : re-render à chaque modif.
+  // LOT2 §2 — Aperçu = PRODUCTION : le rendu est délégué au backend (même moteur que l'envoi réel).
+  // Debounce 400 ms pour ne pas appeler le backend à chaque frappe.
   useEffect(() => {
     let cancelled = false;
-    void previewMailTemplate(functionName, { subject: draft.subject, html: draft.html, text: draft.text, variables: MOCK_PREVIEW_VARS })
-      .then((p) => { if (!cancelled) setPreview(p); });
-    return () => { cancelled = true; };
+    const t = setTimeout(() => {
+      void previewMailTemplate(functionName, { subject: draft.subject, html: draft.html, text: draft.text })
+        .then((p) => { if (!cancelled) setPreview(p); })
+        .catch(() => { /* aperçu best-effort */ });
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
   }, [functionName, draft]);
 
   const binding = useMemo(() => getTemplateRoleBinding(functionName), [functionName]);

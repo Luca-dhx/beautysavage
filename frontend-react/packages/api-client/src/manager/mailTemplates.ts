@@ -188,6 +188,26 @@ export async function getMailVariableCatalog(): Promise<MailVariableCatalogEntry
   return res.variables ?? [];
 }
 
+// LOT2 §3 — Matrice des déclencheurs (lecture seule). Reflète le registre code-first mailDispatchRules.
+export interface CommunicationTriggerRow {
+  event: string;
+  category: string;
+  templateKey: string;
+  templatePublished: boolean;
+  fromRole: MailRole;
+  toRole: MailRole;
+  active: boolean;
+  directSender: boolean;
+  engine: boolean;
+  lastSentAt: string | null;
+  lastStatus: string | null;
+}
+
+export async function getCommunicationTriggers(): Promise<{ engineEnabled: boolean; rows: CommunicationTriggerRow[] }> {
+  const res = await apiGet<{ ok: boolean; engineEnabled: boolean; rows: CommunicationTriggerRow[] }>(`${BASE}/triggers`);
+  return { engineEnabled: Boolean(res.engineEnabled), rows: res.rows ?? [] };
+}
+
 // P1-2 — envoi d'un e-mail de TEST. Le backend rend le template avec des données d'exemple,
 // préfixe l'objet par [TEST], journalise comme test, et ne déclenche AUCUN événement métier ni
 // token réel. `toEmail` doit être une adresse autorisée choisie par l'utilisateur.
@@ -201,33 +221,31 @@ export async function testSendMailTemplate(
   );
 }
 
+// LOT2 §2 — Aperçu = PRODUCTION. Le rendu est délégué au BACKEND (même moteur que l'envoi réel :
+// `replaceTemplateVariables` + `withMailThemeVars` + données d'exemple du catalogue). Le HTML affiché
+// est donc identique à celui envoyé à Brevo. `variables` permet un override optionnel.
 export async function previewMailTemplate(
   functionName: string,
   input: { subject?: string; html?: string; text?: string; variables?: Record<string, string> } = {},
 ): Promise<MailTemplatePreview> {
-  let subject = input.subject;
-  let html = input.html;
-  let text = input.text;
-  if (subject === undefined || html === undefined || text === undefined) {
-    const tpl = await getMailTemplate(functionName);
-    subject = subject ?? tpl?.subject ?? '';
-    html = html ?? tpl?.fullHtml ?? tpl?.bodyHtml ?? '';
-    text = text ?? tpl?.bodyHtml ?? '';
-  }
-  const vars = input.variables ?? {};
-  const used = extractTemplateVariables(subject || '', html || '', text || '');
-  const unknownVariables = used.filter((v) => !KNOWN_TEMPLATE_VARIABLES.includes(v));
-  const render = (s: string) =>
-    String(s || '').replace(VAR_RE, (match, key: string) => {
-      const k = key.toLowerCase();
-      if (vars[k] !== undefined) return vars[k];
-      return KNOWN_TEMPLATE_VARIABLES.includes(k) ? `[${k}]` : match;
-    });
+  const res = await apiPost<{
+    ok: boolean;
+    subject: string;
+    html: string;
+    text: string;
+    usedVariables: { name: string; known: boolean }[];
+    unknownVariables: string[];
+  }>(`${BASE}/templates/${encodeURIComponent(functionName)}/preview`, {
+    subject: input.subject,
+    html: input.html,
+    text: input.text,
+    variables: input.variables,
+  });
   return {
-    subject: render(subject || ''),
-    html: render(html || ''),
-    text: render(text || ''),
-    usedVariables: used.map((name) => ({ name, known: KNOWN_TEMPLATE_VARIABLES.includes(name) })),
-    unknownVariables,
+    subject: res.subject ?? '',
+    html: res.html ?? '',
+    text: res.text ?? '',
+    usedVariables: res.usedVariables ?? [],
+    unknownVariables: res.unknownVariables ?? [],
   };
 }

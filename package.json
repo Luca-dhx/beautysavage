@@ -19,6 +19,7 @@
         "test:watch": "vitest",
         "test:p0": "vitest run tests/p0",
         "test:p1": "vitest run tests/p1",
+        "test:communication": "vitest run communicationCenterHardening communicationTemplateTooling communicationPreviewParity communicationTriggerMatrix communicationNewComms communicationSchedulerReminder giftCardPinResetResend reviewNotifications",
         "test:integration": "vitest run tests/integration",
         "audit:business-scenarios": "vitest run --config vitest.audit.config.js tests/audit/businessScenarioMatrix.test.js",
         "audit:commissions": "vitest run --config vitest.audit.config.js tests/audit/commissionScenarioMatrix.test.js",

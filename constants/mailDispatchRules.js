@@ -90,6 +90,16 @@ export const MAIL_DISPATCH_RULES = [
     enabled: true,
     directSenderExists: false
   },
+  // LOT2 §4 — reset PIN + renvoi carte cadeau (nouveau code, ancien invalidé). commerciale → client.
+  {
+    eventName: 'gift_card.pin_reset_and_resent',
+    templateKey: 'gift_card_pin_reset',
+    fromRole: 'commerciale',
+    toRole: 'client',
+    contextType: 'gift_card',
+    enabled: true,
+    directSenderExists: false
+  },
   // C2 — Learning : mails commerciale → client (aucun envoi direct legacy → moteur seul sender).
   {
     eventName: 'formation.started',

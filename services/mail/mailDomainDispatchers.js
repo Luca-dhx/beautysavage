@@ -2097,8 +2097,77 @@ async function simulateSaleEmail() {
 
 
 
+// ── LOT2 — Communications manquantes (P1-12). Envois directs commerciale → client, thin wrappers
+// sur sendSingleTemplateMail (rendu + échappement + validation actionUrl inclus). Best-effort.
+async function sendPaymentFailedEmail({ toEmail, firstName = '', itemDetail = '', amount = '', actionUrl = '' } = {}) {
+  if (!toEmail) return false;
+  return sendSingleTemplateMail({
+    templateKey: 'payment_failed',
+    toEmail,
+    templateVars: { firstname: firstName, itemdetail: itemDetail, amount: String(amount), actionurl: actionUrl },
+    tag: 'payment_failed',
+    context: { contextType: 'payment' }
+  });
+}
+
+async function sendRefundRefusedEmail({ toEmail, firstName = '', itemDetail = '', refundReason = '', actionUrl = '' } = {}) {
+  if (!toEmail) return false;
+  return sendSingleTemplateMail({
+    templateKey: 'refund_refused',
+    toEmail,
+    templateVars: { firstname: firstName, itemdetail: itemDetail, refundreason: refundReason, actionurl: actionUrl },
+    tag: 'refund_refused',
+    context: { contextType: 'refund_request' }
+  });
+}
+
+async function sendRefundFailedEmail({ toEmail, firstName = '', itemDetail = '', amount = '', actionUrl = '' } = {}) {
+  if (!toEmail) return false;
+  return sendSingleTemplateMail({
+    templateKey: 'refund_failed',
+    toEmail,
+    templateVars: { firstname: firstName, itemdetail: itemDetail, amount: String(amount), actionurl: actionUrl },
+    tag: 'refund_failed',
+    context: { contextType: 'refund_request' }
+  });
+}
+
+async function sendCertificateAvailableEmail({ toEmail, firstName = '', formationTitle = '', actionUrl = '' } = {}) {
+  if (!toEmail) return false;
+  return sendSingleTemplateMail({
+    templateKey: 'training_certificate_available',
+    toEmail,
+    templateVars: { firstname: firstName, formationtitle: formationTitle, actionurl: actionUrl },
+    tag: 'training_certificate_available',
+    context: { contextType: 'formation' }
+  });
+}
+
+async function sendFormationSessionReminderEmail({ toEmail, firstName = '', formationTitle = '', sessionDate = '', sessionTime = '', location = '', actionUrl = '' } = {}) {
+  if (!toEmail) return false;
+  return sendSingleTemplateMail({
+    templateKey: 'formation_session_reminder',
+    toEmail,
+    templateVars: {
+      firstname: firstName,
+      formationtitle: formationTitle,
+      sessiondate: sessionDate,
+      sessiontime: sessionTime,
+      location: location ? ` — ${location}` : '',
+      actionurl: actionUrl
+    },
+    tag: 'formation_session_reminder',
+    context: { contextType: 'formation_session' }
+  });
+}
+
 export {
   buildSender,
+  sendPaymentFailedEmail,
+  sendRefundRefusedEmail,
+  sendRefundFailedEmail,
+  sendCertificateAvailableEmail,
+  sendFormationSessionReminderEmail,
   buildPasswordResetLink,
   buildInvoiceDownloadUrl,
   pickRandomSale,

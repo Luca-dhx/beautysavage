@@ -1554,6 +1554,94 @@ export async function manualDebitGiftCardById(req, res) {
   }
 }
 
+/**
+ * LOT2 §4 — Reset PIN + renvoi carte cadeau.
+ * L'ancien PIN (hashé + chiffré) est écrasé → invalidé. Un nouveau PIN est généré, le QR est
+ * pivoté, `pinVersion` incrémenté, le PDF régénéré, l'e-mail renvoyé (event
+ * `gift_card.pin_reset_and_resent`), la transaction `pin_reset` journalisée.
+ * SÉCURITÉ : le nouveau PIN n'est JAMAIS renvoyé par l'API (uniquement dans l'e-mail/PDF), jamais loggué.
+ * POST /api/gestion/gift-cards/:id/reset-pin
+ */
+export async function resetGiftCardPinAndResend(req, res) {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(400).json({ ok: false, error: 'Identifiant invalide.' });
+  }
+  try {
+    const card = await GiftCard.findById(id).populate('userId', 'email firstName lastName role');
+    if (!card) return res.status(404).json({ ok: false, error: 'Carte introuvable.' });
+    if (card.status !== 'active') return res.status(409).json({ ok: false, error: 'Carte inactive.' });
+
+    const owner = card.userId && typeof card.userId === 'object' ? card.userId : null;
+    if (!owner?.email) return res.status(409).json({ ok: false, error: "Aucune adresse e-mail bénéficiaire." });
+
+    // Nouveau PIN → l'ancien hash/chiffré est écrasé (invalidé). QR pivoté (ancien invalidé).
+    const newPin = await assignGiftCardPassword(card, { save: false });
+    const { payload: qrPayload } = rotateGiftCardQrToken(card);
+    card.pinVersion = Number(card.pinVersion || 0) + 1;
+    card.pinResetAt = new Date();
+    await card.save();
+
+    // Régénération du PDF avec le nouveau code (best-effort).
+    let assets = null;
+    try {
+      const template = await getActiveGiftCardTemplateOrSeed();
+      assets = await generateGiftCardAssets(card, { code: card.code, pin: newPin, qrPayload, template });
+      card.cardVisualUrl = assets.cardVisualUrl;
+      card.generatedPdfUrl = assets.generatedPdfUrl;
+      if (assets.templateId) card.activeTemplateId = assets.templateId;
+      await card.save();
+    } catch (renderErr) {
+      console.error('Erreur régénération carte cadeau (reset PIN)', renderErr?.message || renderErr);
+      notifyDevAlert('system_error', { scope: 'gift_card.render.pin_reset', errorMessage: renderErr?.message || 'render' });
+    }
+
+    // Journalisation (jamais le PIN en clair).
+    const actorId = req.sessionUser?._id || null;
+    await GiftCardTransaction.create({
+      giftCardId: card._id,
+      transactionType: 'pin_reset',
+      source: 'manual_institute',
+      userId: owner?._id || card.userId,
+      actorUserId: actorId,
+      actorRole: resolveActorRole(req),
+      amount: 0,
+      balanceBefore: card.balance,
+      balanceAfter: card.balance,
+      saleId: '',
+      note: `PIN réinitialisé (v${card.pinVersion})`,
+      items: []
+    });
+
+    // Renvoi (best-effort) — le couple from/to vient de la règle centrale.
+    const mailResult = await sendGiftCardEventMail({
+      eventName: 'gift_card.pin_reset_and_resent',
+      giftCard: card,
+      client: buildClientForMail(owner),
+      variables: {
+        recipientName: card.recipientName || buildOwnerName(owner),
+        code: card.code,
+        pin: newPin,
+        balance: formatGiftCardAmount(card.balance),
+        message: card.message || ''
+      },
+      attachment: assets?.pdfBase64 ? { name: assets.pdfFileName, content: assets.pdfBase64 } : null,
+      eventPayload: { pinVersion: card.pinVersion },
+      actorId
+    });
+
+    return res.json({
+      ok: true,
+      card: buildGiftCardGestionPayload(card),
+      pinVersion: card.pinVersion,
+      mail: mailResult
+    });
+  } catch (error) {
+    console.error('Erreur reset PIN carte cadeau', error);
+    return res.status(500).json({ ok: false, error: "Impossible de réinitialiser le code." });
+  }
+}
+
 export async function generateMissingGiftCardPasswords(req, res) {
   try {
     const missingFilter = buildMissingPasswordFilter();

@@ -93,6 +93,13 @@ charte, injectées par `withMailThemeVars`. Toujours `raw`.
 et envoi de test). Les exemples n'utilisent **jamais** de vraie donnée client ni de vrai token
 (placeholders `EX_TOKEN`).
 
+## Ajouts LOT 2
+
+Variables ajoutées à l'allowlist (`VARIABLE_KEYS`) + catalogue — auparavant **absentes**, donc
+rendues littérales dans les corps mail carte cadeau / leçon : `recipientName`, `purchaserName`,
+`pin`, `message`, `balance`, `paymentLabel`, `transactionReason`, `cardLink` (raw/URL), `lessonName`,
+`location`, `linkLabel`. Correctif de rendu, pas seulement d'outillage.
+
 ## Validation
 
 `validateTemplateContent(content)` retourne `{ unknownVariables, malformed }` — variables inconnues

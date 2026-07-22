@@ -281,3 +281,21 @@
   color: var(--bs-color-text);
   background: var(--bs-color-surface);
 }
+
+/* LOT2 §3 — Matrice des déclencheurs */
+.cc-triggers { display: flex; flex-direction: column; gap: var(--bs-space-3, 1rem); }
+.cc-triggers__head { display: flex; flex-wrap: wrap; gap: var(--bs-space-2, .5rem); justify-content: space-between; align-items: flex-end; }
+.cc-triggers__title { margin: 0; }
+.cc-triggers__hint { margin: .25rem 0 0; font-size: .85rem; color: var(--bs-color-muted, #6b7280); }
+.cc-triggers__filter { display: flex; flex-direction: column; gap: .25rem; font-size: .8rem; }
+.cc-triggers__filter select { min-height: 40px; border-radius: var(--bs-radius, 8px); border: 1px solid var(--bs-color-border, #e5e7eb); padding: 0 .5rem; }
+.cc-triggers__scroll { overflow-x: auto; }
+.cc-triggers__table { width: 100%; border-collapse: collapse; font-size: .85rem; min-width: 820px; }
+.cc-triggers__table th, .cc-triggers__table td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--bs-color-border, #e5e7eb); white-space: nowrap; }
+.cc-triggers__table th { font-weight: 600; color: var(--bs-color-muted, #6b7280); }
+.cc-triggers__mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.cc-triggers__muted { color: var(--bs-color-muted, #9ca3af); }
+.cc-triggers__warn { color: var(--bs-color-warning, #d97706); }
+.cc-triggers__status { display: inline-block; padding: .1rem .5rem; border-radius: 999px; font-size: .75rem; background: var(--bs-color-surface-2, #f3f4f6); }
+.cc-triggers__status--ok { background: #dcfce7; color: #166534; }
+.cc-triggers__status--ko { background: #fee2e2; color: #991b1b; }

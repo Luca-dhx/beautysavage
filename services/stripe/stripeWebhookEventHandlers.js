@@ -11,6 +11,9 @@
 
 import Sale from '../../models/Sale.js';
 import StripeCheckoutIntent from '../../models/StripeCheckoutIntent.js';
+import User from '../../models/user.js';
+import { sendPaymentFailedEmail } from '../mailService.js';
+import { resolvePublicBaseUrl } from '../system/domainResolver.js';
 import { processCheckoutStatePurchase } from '../checkout/checkoutFacade.js';
 import { recordWebhookFailure } from '../webhookFailureService.js';
 import { releaseGiftCardReservationsForPaymentIntent } from '../giftCardReservationService.js';
@@ -73,6 +76,37 @@ export async function handlePaymentFailedEvent(event) {
       matchedCards: releaseResult.matchedCards,
       modifiedCards: releaseResult.modifiedCards
     });
+    // LOT2 P1-12 — e-mail client « paiement non abouti » (best-effort, ne bloque jamais le webhook).
+    try {
+      let toEmail = String(failedPaymentIntent?.receipt_email || '').trim();
+      let firstName = '';
+      let itemDetail = '';
+      const amountEur = Number(failedPaymentIntent?.amount || 0) / 100;
+      const intent = await StripeCheckoutIntent
+        .findOne({ $or: [{ stripeSessionId: failedPaymentIntentId }, { stripePaymentIntentId: failedPaymentIntentId }, { paymentIntentId: failedPaymentIntentId }] })
+        .lean()
+        .catch(() => null);
+      const item = intent?.checkoutState?.item || null;
+      if (item?.name) itemDetail = String(item.name);
+      if (intent?.userId) {
+        const u = await User.findById(intent.userId).select('firstName lastName email').lean().catch(() => null);
+        if (u) {
+          if (!toEmail) toEmail = String(u.email || '').trim();
+          firstName = String(u.firstName || '').trim();
+        }
+      }
+      if (toEmail) {
+        await sendPaymentFailedEmail({
+          toEmail,
+          firstName,
+          itemDetail: itemDetail || 'votre commande',
+          amount: amountEur ? amountEur.toFixed(2) : '',
+          actionUrl: resolvePublicBaseUrl()
+        });
+      }
+    } catch (mailErr) {
+      console.error('[Stripe Webhook] Erreur envoi email payment_failed', mailErr?.message || mailErr);
+    }
     return { status: 200, json: { received: true } };
   } catch (error) {
     console.error('[Stripe Webhook] Erreur liberation reservation carte cadeau (payment_failed)', {

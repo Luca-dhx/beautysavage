@@ -135,6 +135,15 @@ const giftCardSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    // LOT2 — version du PIN : incrémentée à chaque reset (invalidation de l'ancien code).
+    pinVersion: {
+      type: Number,
+      default: 0
+    },
+    pinResetAt: {
+      type: Date,
+      default: null
+    },
     // Émission manuelle : admin émetteur + détail du paiement sur place.
     createdByAdminId: {
       type: mongoose.Schema.Types.ObjectId,

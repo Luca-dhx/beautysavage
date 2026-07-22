@@ -99,3 +99,9 @@
 .fin-gc-empty i { font-size: 1.6rem; }
 @keyframes fin-gc-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.6; } }
 @media (prefers-reduced-motion: reduce) { .fin-gc-skeleton > div { animation: none; } .fin-gc-card { transition: none; } }
+
+/* LOT2 §4 — Renvoi carte cadeau (reset PIN) */
+.fin-gc-resend__confirm p { margin: 0 0 .5rem; }
+.fin-gc-resend__actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.fin-gc-resend__ok { color: var(--bs-color-success, #166534); margin: .25rem 0 0; }
+.fin-gc-resend__error { color: var(--bs-color-danger, #991b1b); margin: .25rem 0 0; }

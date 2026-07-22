@@ -47,6 +47,7 @@ import giftCardTemplateStudioRouter from './routers/giftCardTemplateStudioRouter
 import { runNotificationCategoryMigration } from './automatisme/notificationCategoryMigration.js';
 import { startCommissionReminderJob } from './automatisme/commissionReminderJob.js';
 import { runBookingRemindersJob } from './automatisme/bookingRemindersJob.js';
+import { runFormationSessionRemindersJob } from './automatisme/formationSessionRemindersJob.js';
 import { runEmailTemplateCategoryMigration } from './automatisme/emailTemplateCategoryMigration.js';
 import { runServicePagesMigration } from './automatisme/servicePagesMigration.js';
 import { migrateRefundRequestedTemplate } from './automatisme/refundRequestedTemplateMigration.js';
@@ -625,6 +626,9 @@ startCommissionReminderJob();
 // Booking reminders — check every hour
 setInterval(() => { void runBookingRemindersJob(); }, 3600000);
 void runBookingRemindersJob();
+// LOT2 §5 — Formation session reminders (scheduler dédié) — check every hour
+setInterval(() => { void runFormationSessionRemindersJob(); }, 3600000);
+void runFormationSessionRemindersJob();
 startRefundRecoveryScheduler('startup');
 startStripeFeesRecoveryScheduler('startup');
 startGiftCardReservationCleanupScheduler('startup');

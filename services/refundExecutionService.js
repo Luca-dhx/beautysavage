@@ -55,6 +55,36 @@ async function resolveSiteNameForEmail() {
   }
 }
 
+// LOT2 — Résout le destinataire + le libellé d'article d'un remboursement (réutilisé par les
+// e-mails refund_refused / refund_failed). Best-effort : renvoie des champs vides si introuvable.
+export async function resolveRefundRecipientContext(refundRequest) {
+  const out = { toEmail: '', firstName: '', lastName: '', itemDetail: '', trackingUrl: '' };
+  try {
+    const user = refundRequest?.userId ? await User.findById(refundRequest.userId).lean() : null;
+    out.toEmail = String(user?.email || '').trim();
+    out.firstName = String(user?.firstName || '').trim();
+    out.lastName = String(user?.lastName || '').trim();
+    out.trackingUrl = refundRequest?.trackingToken
+      ? resolveFrontendUrl('refund-tracking', { token: refundRequest.trackingToken })
+      : '';
+    if (refundRequest?.itemType === 'service') {
+      const booking = await ServiceBooking.findOne({ saleId: String(refundRequest.saleId || '') })
+        .populate('serviceId')
+        .lean()
+        .catch(() => null);
+      const serviceName = booking?.serviceId?.name || '';
+      const startAt = booking?.startAt ? new Date(booking.startAt) : null;
+      const dateStr = startAt ? startAt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+      out.itemDetail = serviceName ? `${serviceName}${dateStr ? ' — ' + dateStr : ''}` : '';
+    } else {
+      out.itemDetail = String(refundRequest?.meta?.formationTitle || '').trim();
+    }
+  } catch (err) {
+    console.error('[resolveRefundRecipientContext] error', err?.message || err);
+  }
+  return out;
+}
+
 export async function sendRefundConfirmedEmailInternal(refundRequest) {
   // M3C — Event TOUJOURS émis (audit + moteur événementiel). Le subscriber mail (si
   // MAIL_ROLE_RESOLVER_ENABLED=true) envoie l'e-mail refund_confirmed via le moteur par rôles

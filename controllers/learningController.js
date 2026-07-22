@@ -15,6 +15,8 @@ import Purchase from '../models/Purchase.js';
 import User from '../models/user.js';
 import { computeProgress, markLessonComplete, refreshCompletion, getOrCreateProgress } from '../services/learning/progressionService.js';
 import { getOrCreateAttestationForProgress } from '../services/learning/attestationRenderService.js';
+import { sendCertificateAvailableEmail } from '../services/mailService.js';
+import { resolvePublicBaseUrl } from '../services/system/domainResolver.js';
 import {
   onFormationStarted,
   onLessonCompleted,
@@ -364,6 +366,15 @@ export async function completeLesson(req, res) {
         console.error('[learning] génération attestation', e?.message || e);
       }
       void onFormationCompleted(user, formation, { attestationReady: Boolean(progressDoc.attestation?.certificateId) });
+      // LOT2 P1-12 — e-mail dédié « attestation disponible » (best-effort ; lien espace client).
+      if (progressDoc.attestation?.certificateId && user?.email) {
+        void sendCertificateAvailableEmail({
+          toEmail: String(user.email).trim(),
+          firstName: String(user.firstName || '').trim(),
+          formationTitle: String(formation?.name || '').trim(),
+          actionUrl: resolvePublicBaseUrl()
+        }).catch((e) => console.error('[learning] email attestation', e?.message || e));
+      }
     }
 
     return res.json({

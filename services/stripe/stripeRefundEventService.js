@@ -9,7 +9,9 @@ import RefundRequest from '../../models/RefundRequest.js';
 import Sale from '../../models/Sale.js';
 import Invoice from '../../models/Invoice.js';
 import User from '../../models/user.js';
-import { sendRefundConfirmedEmailInternal } from '../refundExecutionService.js';
+import { sendRefundConfirmedEmailInternal, resolveRefundRecipientContext } from '../refundExecutionService.js';
+import { sendRefundFailedEmail } from '../mailService.js';
+import { resolvePublicBaseUrl } from '../system/domainResolver.js';
 import { ensureRefundCommissionReversal } from '../refundService.js';
 import { triggerNotification } from '../notificationService.js';
 import { recreditGiftCardPortion } from '../refundGiftCardService.js';
@@ -220,6 +222,21 @@ export async function handleRefundUpdatedEvent(event) {
       refundId: refundDoc.refundId,
       failureReason: stripeFailureReason || 'unknown'
     });
+    // LOT2 P1-12 — e-mail client « remboursement en cours de traitement » (best-effort).
+    try {
+      const ctx = await resolveRefundRecipientContext(refundDoc);
+      if (ctx.toEmail) {
+        await sendRefundFailedEmail({
+          toEmail: ctx.toEmail,
+          firstName: ctx.firstName,
+          itemDetail: ctx.itemDetail,
+          amount: Number(refundDoc.amount || 0),
+          actionUrl: ctx.trackingUrl || resolvePublicBaseUrl()
+        });
+      }
+    } catch (mailErr) {
+      console.error('[Stripe Webhook] Erreur envoi email refund_failed', mailErr?.message || mailErr);
+    }
     return;
   }
 

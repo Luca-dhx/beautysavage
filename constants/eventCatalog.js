@@ -70,6 +70,12 @@ export const EVENT_CATALOG = Object.freeze({
   'formation.completed': { domain: 'formation', version: 1, description: 'A client completed a formation', payload: ['formationId', 'clientId'] },
   'formation.attendance_validated': { domain: 'formation', version: 1, description: 'Presence validated for a session participant', payload: ['sessionId', 'formationId', 'clientId'] },
   'presence.confirmed': { domain: 'formation', version: 1, description: 'Presence confirmed (mail/notif)', payload: ['sessionId', 'formationId', 'clientId'] },
+  // FORMATION-EVALUATION — cycle d'évaluation + certification.
+  'training.evaluation.submitted': { domain: 'formation', version: 1, description: 'A client submitted an evaluation attempt', payload: ['formationId', 'clientId', 'attemptId'] },
+  'training.evaluation.accepted': { domain: 'formation', version: 1, description: 'An evaluation attempt was accepted by the institute', payload: ['formationId', 'clientId', 'attemptId'] },
+  'training.evaluation.refused': { domain: 'formation', version: 1, description: 'An evaluation attempt was refused by the institute', payload: ['formationId', 'clientId', 'attemptId'] },
+  'training.certificate.generated': { domain: 'formation', version: 1, description: 'A training certificate (diploma) was generated', payload: ['formationId', 'clientId', 'certificateNumber'] },
+  'training.certificate.sent': { domain: 'formation', version: 1, description: 'A training certificate was emailed to the client', payload: ['formationId', 'clientId', 'certificateNumber'] },
 
   // --- email (driven by SendLog) ---
   'email.queued': { domain: 'email', version: 1, description: 'An email was queued', payload: ['sendLogId', 'provider', 'templateKey', 'status'] },

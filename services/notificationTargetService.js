@@ -43,7 +43,10 @@ const ADMIN_NOTIFICATION_TYPES = new Set([
   'review_received',                   // avis client soumis
   'review_published',                  // avis publié (modération)
   'review_rejected',                   // avis rejeté / masqué (modération)
-  'review_manual'                      // avis créé manuellement par l'institut
+  'review_manual',                     // avis créé manuellement par l'institut
+  'evaluation_submitted',              // évaluation formation soumise
+  'evaluation_accepted',               // évaluation validée (diplôme)
+  'evaluation_refused'                 // évaluation refusée (recommencer)
 ]);
 
 // DEV : événements techniques / plateforme / logs.

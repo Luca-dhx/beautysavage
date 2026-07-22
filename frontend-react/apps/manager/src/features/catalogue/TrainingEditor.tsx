@@ -19,6 +19,7 @@ import { validateTraining } from './validation';
 import { useTrainingDetail, useTrainingMutations, useSessionsList } from './useCatalogue';
 import { TrainingSessionEditor } from './TrainingSessionEditor';
 import { ChapterEditor } from './learning/ChapterEditor';
+import { EvaluationEditor } from './learning/EvaluationEditor';
 
 type Draft = Partial<CatalogueTraining>;
 
@@ -40,6 +41,8 @@ function modulesFor(type: Draft['type']): ModuleDescriptor[] {
     base.push({ key: 'contenu', label: 'Contenu', icon: 'bi-collection-play' });
   }
   base.push({ key: 'medias', label: 'Médias', icon: 'bi-images' });
+  base.push({ key: 'questionnaire', label: 'Questionnaire', icon: 'bi-ui-checks' });
+  base.push({ key: 'rendus', label: 'Rendus', icon: 'bi-camera' });
   base.push({ key: 'vitrine', label: 'Vitrine', icon: 'bi-shop' });
   return base;
 }
@@ -217,6 +220,16 @@ export function TrainingEditor({ id }: { id?: string }) {
               <input className="cat-input" value={draft.trailerVideoUrl ?? ''} onChange={(e) => set('trailerVideoUrl', e.target.value)} />
             </CatField>
           </div>
+        ) : null}
+
+        {active === 'questionnaire' ? (
+          isNew ? <p className="cat-note">Enregistrez la formation pour configurer le questionnaire.</p>
+            : <EvaluationEditor formationId={id as string} part="questionnaire" />
+        ) : null}
+
+        {active === 'rendus' ? (
+          isNew ? <p className="cat-note">Enregistrez la formation pour configurer les rendus.</p>
+            : <EvaluationEditor formationId={id as string} part="deliverables" />
         ) : null}
 
         {active === 'vitrine' ? (

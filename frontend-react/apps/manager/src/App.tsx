@@ -24,6 +24,7 @@ const notificationTemplates = () => import('./features/notificationTemplates');
 const customer360 = () => import('./features/customer360');
 const giftCardTemplates = () => import('./features/giftCardTemplates');
 const catalogue = () => import('./features/catalogue');
+const results = () => import('./features/results');
 const finance = () => import('./features/finance');
 const devPanel = () => import('./features/devPanel');
 
@@ -75,6 +76,8 @@ const TrainingsListPage = l(catalogue, 'TrainingsListPage');
 const TrainingEditorPage = l(catalogue, 'TrainingEditorPage');
 const GiftCardCataloguePage = l(catalogue, 'GiftCardCataloguePage');
 const ProductsUnavailablePage = l(catalogue, 'ProductsUnavailablePage');
+const ResultsListPage = l(results, 'ResultsListPage');
+const ResultDetailPage = l(results, 'ResultDetailPage');
 
 const SessionPresencePage = l(() => import('./features/learning'), 'SessionPresencePage');
 const ReviewModerationPage = l(() => import('./features/reviews'), 'ReviewModerationPage');
@@ -156,6 +159,8 @@ export function App() {
               <Route path="cartes-cadeaux/templates" element={<GiftCardLibraryPage />} />
               <Route path="avis" element={<ReviewModerationPage />} />
               <Route path="faq" element={<GeneralFaqPage />} />
+              <Route path="resultats" element={<ResultsListPage />} />
+              <Route path="resultats/:attemptId" element={<ResultDetailPage />} />
 
               <Route element={<RequireRole allow={['dev']} loginPath="/login" deniedPath="/" />}>
                 <Route path="users" element={<ManagerUsersPage />} />

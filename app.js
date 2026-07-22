@@ -70,6 +70,8 @@ import contractRouter from './routers/contractRouter.js';
 import serviceRouter from './routers/serviceRouter.js';
 import learningManagerRouter from './routers/learningManagerRouter.js';
 import learningClientRouter from './routers/learningClientRouter.js';
+import evaluationManagerRouter from './routers/evaluationManagerRouter.js';
+import evaluationClientRouter from './routers/evaluationClientRouter.js';
 import practitionerRouter from './routers/practitionerRouter.js';
 import availabilityRouter from './routers/availabilityRouter.js';
 import gestionBookingRouter from './routers/gestionBookingRouter.js';
@@ -485,6 +487,7 @@ app.use('/api/gestion/vitrine', vitrineGestionRouter);
 app.use('/api/gestion/business', businessGestionRouter);
 // C2 — Expérience apprenant montée AVANT clientRouter (préfixe spécifique /api/client/learning).
 app.use('/api/client/learning', learningClientRouter);
+app.use('/api/client/evaluation', evaluationClientRouter);
 app.use('/api/client', clientRouter);
 app.use('/api/dev', devRouter);
 app.use('/api/gestion/users', gestionUsersRouter);
@@ -499,6 +502,7 @@ app.use('/api/gestion/availability', availabilityRouter);
 app.use('/api/gestion/service-settings', serviceSettingsRouter);
 // C2 — Learning Studio + présence (admin/dev) monté AVANT les broad-mounts dev-only (même raison C1).
 app.use('/api/gestion/learning', learningManagerRouter);
+app.use('/api/gestion/evaluation', evaluationManagerRouter);
 app.use('/api/gestion', formationModuleRouter);
 app.use('/api/gestion', formationSessionRouter);
 app.use('/api/gestion', planningRouter);

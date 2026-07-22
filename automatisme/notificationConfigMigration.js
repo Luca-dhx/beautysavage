@@ -236,6 +236,40 @@ const DEFAULT_EVENTS = [
     messageTemplate: 'Un avis {{rating}}/5 a été créé manuellement pour "{{formationName}}"',
     availableVariables: ['clientName', 'formationName', 'rating']
   },
+  // FORMATION-EVALUATION — notifications institut (audience admin) sur le cycle d'évaluation.
+  {
+    eventType: 'evaluation_submitted',
+    label: 'Évaluation soumise',
+    isActive: true,
+    category: 'formations',
+    targetType: 'role',
+    targetRole: 'admin',
+    titleTemplate: 'Évaluation à corriger — {{formationName}}',
+    messageTemplate: '{{clientName}} a soumis son évaluation (tentative {{attemptNumber}})',
+    availableVariables: ['clientName', 'formationName', 'attemptNumber']
+  },
+  {
+    eventType: 'evaluation_accepted',
+    label: 'Évaluation validée',
+    isActive: true,
+    category: 'formations',
+    targetType: 'role',
+    targetRole: 'admin',
+    titleTemplate: 'Évaluation validée — {{formationName}}',
+    messageTemplate: 'Diplôme délivré à {{clientName}} pour "{{formationName}}"',
+    availableVariables: ['clientName', 'formationName']
+  },
+  {
+    eventType: 'evaluation_refused',
+    label: 'Évaluation refusée',
+    isActive: true,
+    category: 'formations',
+    targetType: 'role',
+    targetRole: 'admin',
+    titleTemplate: 'Évaluation refusée — {{formationName}}',
+    messageTemplate: '{{clientName}} doit recommencer son évaluation ("{{formationName}}")',
+    availableVariables: ['clientName', 'formationName']
+  },
   // P1-6 — Alertes techniques (audience DEV). Jusqu'ici ces types n'avaient aucune config →
   // triggerNotification ne créait rien. Ils alimentent désormais l'espace Dev sur les pannes.
   {

@@ -12,3 +12,4 @@ export * from './learning';
 export * from './invoicePublic';
 export * from './site';
 export * from './theme';
+export * from './evaluation';

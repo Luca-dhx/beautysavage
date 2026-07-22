@@ -1057,6 +1057,40 @@ const TEMPLATE_FUNCTIONS = {
     ],
     cta: { label: 'Laisser un avis', url: '{{actionUrl}}' },
     signature: '{{siteName}}'
+  }),
+
+  // ── FORMATION-EVALUATION — décisions d'évaluation (institut → client) ────────
+  evaluation_accepted: createMailTemplateDefinition({
+    subject: 'Félicitations — diplôme obtenu ({{formationTitle}})',
+    siteName: '{{siteName}}',
+    eyebrow: 'Diplôme',
+    title: 'Bravo {{firstName}}, vous êtes diplômé(e) !',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: [
+      'Votre travail pour la formation <strong>{{formationTitle}}</strong> a été validé par votre formatrice.',
+      'Votre diplôme est joint à cet e-mail et disponible dans votre espace.'
+    ],
+    detailItems: [
+      { label: 'Formation', value: '{{formationTitle}}' }
+    ],
+    cta: { label: 'Voir mon diplôme', url: '{{actionUrl}}' },
+    signature: '{{siteName}}'
+  }),
+  evaluation_refused: createMailTemplateDefinition({
+    subject: 'Votre évaluation — {{formationTitle}}',
+    siteName: '{{siteName}}',
+    eyebrow: 'Évaluation',
+    title: 'Votre formatrice vous demande de recommencer',
+    intro: 'Bonjour {{firstName}},',
+    paragraphs: [
+      'Après analyse de votre travail pour <strong>{{formationTitle}}</strong>, votre formatrice vous invite à recommencer votre évaluation.',
+      'Motif : {{reason}}'
+    ],
+    detailItems: [
+      { label: 'Formation', value: '{{formationTitle}}' }
+    ],
+    cta: { label: 'Recommencer', url: '{{actionUrl}}' },
+    signature: '{{siteName}}'
   })
 };
 

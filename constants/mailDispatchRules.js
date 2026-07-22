@@ -136,6 +136,26 @@ export const MAIL_DISPATCH_RULES = [
     contextType: 'formation',
     enabled: true,
     directSenderExists: false
+  },
+  // FORMATION-EVALUATION — décisions d'évaluation (institut → client). Appelées impérativement par
+  // evaluationMailService.dispatchTemplateByRoles (chemin D), indépendant du flag subscriber.
+  {
+    eventName: 'training.evaluation.accepted',
+    templateKey: 'evaluation_accepted',
+    fromRole: 'commerciale',
+    toRole: 'client',
+    contextType: 'formation',
+    enabled: true,
+    directSenderExists: false
+  },
+  {
+    eventName: 'training.evaluation.refused',
+    templateKey: 'evaluation_refused',
+    fromRole: 'commerciale',
+    toRole: 'client',
+    contextType: 'formation',
+    enabled: true,
+    directSenderExists: false
   }
 ];
 

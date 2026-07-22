@@ -23,3 +23,4 @@ export * from './systemConfiguration';
 export * from './mode';
 export * from './managerUsers';
 export * from './devDiagnostics';
+export * from './evaluations';

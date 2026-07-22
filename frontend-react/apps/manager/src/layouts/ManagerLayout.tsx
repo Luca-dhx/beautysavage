@@ -12,6 +12,7 @@ const MANAGER_NAV = [
   { to: '/clients', label: 'Clients' },
   { to: '/planning', label: 'Planning' },
   { to: '/catalogue', label: 'Catalogue' },
+  { to: '/resultats', label: 'Résultats' },
   { to: '/avis', label: 'Avis' },
   { to: '/cartes-cadeaux/templates', label: 'Modèles carte cadeau' },
   { to: '/communication', label: 'Communication' },

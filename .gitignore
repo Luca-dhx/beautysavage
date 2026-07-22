@@ -38,3 +38,4 @@ test.txt
 storage/invoices/
 storage/giftcards/
 storage/attestations/
+storage/certificates/

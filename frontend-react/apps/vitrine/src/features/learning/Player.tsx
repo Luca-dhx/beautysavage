@@ -8,6 +8,7 @@ import type { LearnerLesson } from '@bs/api-client';
 import { attestationDownloadUrl } from '@bs/api-client';
 import { useMyLearningFormation, useCompleteLesson } from './hooks';
 import { Confetti } from './Confetti';
+import { EvaluationFlow } from '../evaluation/EvaluationFlow';
 import './learning.css';
 
 const RESOURCE_ICON: Record<string, string> = { pdf: 'bi-file-earmark-pdf', link: 'bi-link-45deg', document: 'bi-file-earmark-text' };
@@ -147,6 +148,7 @@ export function FormationPlayer({ formationId }: { formationId: string }) {
         </div>
         <aside className="bs-lrn__aside">{nav}</aside>
       </div>
+      {isComplete ? <EvaluationFlow formationId={formation.id} /> : null}
     </article>
   );
 }

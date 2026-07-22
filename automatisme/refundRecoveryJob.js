@@ -9,12 +9,9 @@ async function runRecoveryCycle(trigger = 'interval') {
   if (recoveryRunning) return;
   recoveryRunning = true;
   try {
-    const summary = await runRefundRecovery({ limit: 100 });
-    if (summary.inspectedCount > 0) {
-      console.log(
-        `[RefundRecovery] (${trigger}) inspected=${summary.inspectedCount} recovered=${summary.recoveredCount} skipped=${summary.skippedCount} failed=${summary.failedCount}`
-      );
-    }
+    // LOT2 — runRefundRecovery loggue lui-même UN résumé exploitable (inspected/recovered/
+    // deferred/finalFailed/configurationBlocked) au lieu de N stacks. On lui passe le déclencheur.
+    await runRefundRecovery({ limit: 100, trigger });
   } finally {
     recoveryRunning = false;
   }

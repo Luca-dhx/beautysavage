@@ -137,6 +137,15 @@ const refundRequestSchema = new mongoose.Schema(
     // Pré-React C1 — nombre de tentatives de reprise du recrédit carte cadeau
     // (moteur giftCardRecreditRecoveryService). Limite raisonnable avant abandon manuel.
     giftCardRecreditAttempts: { type: Number, default: 0 },
+    // LOT2 — Cycle de reprise du remboursement STRIPE (empêche les réessais infinis d'erreurs
+    // terminales — credential manquant, transaction introuvable — qui polluaient les logs à chaque
+    // démarrage). Additif : les documents existants prennent les défauts (retryable, 0 tentative).
+    stripeRefundAttempts: { type: Number, default: 0 },
+    lastRefundAttemptAt: { type: Date, default: null },
+    nextRefundRetryAt: { type: Date, default: null }, // le job ignore un remboursement pas encore dû
+    lastRefundErrorCode: { type: String, default: null }, // MISSING_CREDENTIAL|TRANSACTION_NOT_FOUND|…
+    refundRetryable: { type: Boolean, default: true },
+    refundFailedFinalAt: { type: Date, default: null }, // posé → plus jamais retenté par le job
     creditNoteId: { type: String, default: null },
     creditNotePdfUrl: { type: String, default: null }
   },

@@ -407,52 +407,43 @@ export function CustomerDrawer({ open, title, onClose, children }: {
   );
 }
 
-// ── Carte recherche client (premium) ─────────────────────────────────────────
-/** Palier de fidélité déduit du cumul dépensé — badge visuel sur la carte. */
-export function spendTier(total: number): { label: string; icon: string; cls: string } {
-  if (total >= 500) return { label: 'VIP', icon: 'bi-gem', cls: 'cm-tier--vip' };
-  if (total >= 150) return { label: 'Fidèle', icon: 'bi-heart-fill', cls: 'cm-tier--loyal' };
-  if (total > 0) return { label: 'Client', icon: 'bi-bag-check-fill', cls: 'cm-tier--client' };
-  return { label: 'Nouveau', icon: 'bi-stars', cls: 'cm-tier--new' };
-}
-
-export function ClientSearchCard({ card, onOpen, variant = 'grid', index = 0 }: {
+// ── Carte recherche client (minimaliste) ─────────────────────────────────────
+// Refonte : plus de palier VIP/Fidèle, pas d'emoji, pas d'animation d'entrée, pas de dégradé.
+// La carte reste le CTA principal (ouvre la fiche 360) ; libellé « Ouvrir » explicite.
+export function ClientSearchCard({ card, onOpen, variant = 'grid' }: {
   card: CustomerSearchCard; onOpen: (id: string) => void; variant?: 'grid' | 'list'; index?: number;
 }) {
-  const tier = spendTier(card.totalSpent);
   return (
     <button
       type="button"
       className={`c3-card cm-card cm-card--${variant}`}
-      style={{ animationDelay: `${Math.min(index * 28, 320)}ms` }}
       onClick={() => onOpen(card.id)}
       data-testid="c3-clientcard"
     >
       <span className="cm-card__avatar" aria-hidden="true">
-        {initials(card.firstName, card.lastName, '🙂')}
+        {initials(card.firstName, card.lastName)}
         {card.bookingSuspended ? <span className="cm-card__avatar-dot cm-card__avatar-dot--suspended" /> : null}
       </span>
 
       <span className="cm-card__main">
         <span className="cm-card__head">
           <span className="cm-card__name">{card.displayName}</span>
-          <span className={`cm-tier ${tier.cls}`}><i className={tier.icon} aria-hidden="true" /> {tier.label}</span>
           {card.bookingSuspended ? <span className="c3-badge c3-badge--suspended">Suspendu</span> : null}
         </span>
-        {card.email ? <span className="cm-card__email"><i className="bi-envelope" aria-hidden="true" /> {card.email}</span> : null}
+        {card.email ? <span className="cm-card__email">{card.email}</span> : null}
 
         <span className="cm-card__stats">
-          <span className="cm-stat-pill"><i className="bi-bag-check" aria-hidden="true" /> {card.salesCount} achat{card.salesCount > 1 ? 's' : ''}</span>
-          <span className="cm-stat-pill cm-stat-pill--money"><i className="bi-cash-coin" aria-hidden="true" /> {money(card.totalSpent)}</span>
+          <span className="cm-stat-pill">{card.salesCount} achat{card.salesCount > 1 ? 's' : ''}</span>
+          <span className="cm-stat-pill cm-stat-pill--money">{money(card.totalSpent)}</span>
         </span>
 
         <span className="cm-card__foot">
-          <span className="cm-card__foot-item"><i className="bi-clock-history" aria-hidden="true" /> Vu {fmtDate(card.lastVisitAt)}</span>
-          {card.nextBookingAt ? <span className="cm-card__foot-item cm-card__foot-item--next"><i className="bi-calendar-check" aria-hidden="true" /> {fmtDateTime(card.nextBookingAt)}</span> : null}
+          <span className="cm-card__foot-item">Vu {fmtDate(card.lastVisitAt)}</span>
+          {card.nextBookingAt ? <span className="cm-card__foot-item cm-card__foot-item--next">Prochain RDV {fmtDateTime(card.nextBookingAt)}</span> : null}
         </span>
       </span>
 
-      <i className="bi-chevron-right cm-card__chev" aria-hidden="true" />
+      <span className="cm-card__cta">Ouvrir <i className="bi-chevron-right" aria-hidden="true" /></span>
     </button>
   );
 }

@@ -145,7 +145,7 @@
   background: color-mix(in srgb, var(--bs-color-on-primary) 20%, transparent);
 }
 
-/* Sidebar desktop : panneau primaire arrondi, sticky */
+/* Sidebar desktop : panneau primaire, sticky */
 .bs-sidebar--primary {
   background: var(--bs-color-primary);
   color: var(--bs-color-on-primary);
@@ -153,6 +153,27 @@
   padding: var(--bs-space-3) var(--bs-space-2);
   position: sticky;
   top: var(--bs-space-3);
+}
+
+/* Grand écran : la sidebar est PLEINE (toute la hauteur de l'écran) et FIXÉE aux bords
+   (bord gauche + haut + bas), sans marge ni arrondi côté écran. Le contenu conserve sa
+   respiration via le padding de la colonne principale. */
+@media (min-width: 721px) {
+  .bs-shell__main { padding: 0; }
+  .bs-sidebar-layout { gap: 0; align-items: stretch; }
+  .bs-sidebar--primary {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    border-radius: 0;
+    padding: var(--bs-space-4) var(--bs-space-3);
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .bs-sidebar-layout__main {
+    padding: var(--bs-space-4);
+    min-width: 0;
+  }
 }
 
 /* Drawer mobile : même habillage primaire */

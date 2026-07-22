@@ -4,7 +4,7 @@
 // tokens --bs-* uniquement (aucun hex). Lecture seule : le backend agrège et fait autorité.
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ErrorState } from '@bs/ui';
+import { ErrorState, Dropdown } from '@bs/ui';
 import type { CustomerSearchCard } from '@bs/api-client';
 import { useCustomerSearch } from './useCustomer360';
 import { ClientSearchCard, CustomerEmptyState, money } from './components';
@@ -156,20 +156,13 @@ export function ClientsListPage() {
         </div>
 
         <div className="cm-toolbar__right">
-          <div className="cm-seg" role="group" aria-label="Trier">
-            {SORTS.map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                className={`cm-seg__btn${sort === s.key ? ' cm-seg__btn--active' : ''}`}
-                aria-pressed={sort === s.key}
-                onClick={() => setSort(s.key)}
-                title={`Trier par ${s.label.toLowerCase()}`}
-              >
-                <i className={s.icon} aria-hidden="true" /> <span className="cm-seg__label">{s.label}</span>
-              </button>
-            ))}
-          </div>
+          <Dropdown
+            ariaLabel="Trier les clients"
+            value={sort}
+            options={SORTS.map((s) => ({ value: s.key, label: s.label }))}
+            onChange={(v) => setSort(v as SortKey)}
+            icon="bi-sort-down"
+          />
 
           <div className="cm-view" role="group" aria-label="Affichage">
             <button type="button" className={`cm-view__btn${view === 'grid' ? ' cm-view__btn--active' : ''}`} aria-pressed={view === 'grid'} aria-label="Vue grille" onClick={() => setView('grid')}>

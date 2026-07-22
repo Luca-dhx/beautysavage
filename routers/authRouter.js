@@ -316,24 +316,43 @@ router.post('/signup', SIGNUP_RATE_LIMIT, async (req, res) => {
       emailVerificationLastSentAt: null
     });
 
-    void triggerNotification('new_client', {
-      clientName: normalizedEmail,
-      clientEmail: normalizedEmail,
-      link: '/gestion.html?page=clients',
-      linkLabel: 'Voir les clients'
-    });
-
+    // LOT2 — Cohérence d'inscription : la notification institut « Nouveau client inscrit » n'est
+    // PLUS créée avant l'e-mail. Le compte est créé (pending, emailVerified=false) ; on tente
+    // l'envoi du code ; SEULEMENT en cas de succès on émet la notification et on répond succès.
     let verification;
     try {
       verification = await issueAndSendVerificationCode(user, { enforceCooldown: false });
     } catch (verificationError) {
-      console.error('[auth/signup] erreur envoi code verification', verificationError);
+      if (verificationError?.code === 'VERIFICATION_EMAIL_SEND_FAILED') {
+        // Compte créé mais code non envoyé (ex. identité expéditrice/clé Brevo non configurée) :
+        // réponse COHÉRENTE et resumable — surtout PAS un 500 générique, et AUCUNE notification
+        // institut créée. Le client peut « Renvoyer le code ». Le compte reste en attente.
+        console.warn('[auth/signup] compte cree mais envoi du code impossible (pending):', verificationError.code);
+        return res.status(202).json({
+          ok: false,
+          code: 'ACCOUNT_PENDING_VERIFICATION',
+          error: 'Votre compte a ete cree, mais nous n avons pas pu envoyer le code de verification. Vous pouvez reessayer.',
+          email: normalizedEmail,
+          emailSent: false,
+          canResend: true,
+          resendAfterSeconds: Math.ceil(EMAIL_VERIFICATION_RESEND_COOLDOWN_MS / 1000)
+        });
+      }
+      console.error('[auth/signup] erreur inattendue verification', verificationError);
       return res.status(500).json({
         ok: false,
         code: verificationError?.code || 'VERIFICATION_EMAIL_SEND_FAILED',
         error: 'Impossible d envoyer le code de verification pour le moment.'
       });
     }
+
+    // Envoi réussi → notification institut (fire-and-forget, jamais bloquante) + succès.
+    void triggerNotification('new_client', {
+      clientName: normalizedEmail,
+      clientEmail: normalizedEmail,
+      link: '/gestion.html?page=clients',
+      linkLabel: 'Voir les clients'
+    });
 
     return res.json({
       ok: true,

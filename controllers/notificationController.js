@@ -35,6 +35,19 @@ function buildAccessFilter(userId, audience) {
   };
 }
 
+// Correspondance d'identifiant robuste : le paramètre d'URL peut être soit le `_id` Mongo
+// (ce qu'envoie le frontend React : `notification.id` = `_id.toString()`), soit le
+// `notificationId` métier (`NOTIF-XXXX`, utilisé par certains appels/tests). On matche les DEUX
+// → corrige le 404 causé par le mismatch _id/notificationId, sans casser les appelants existants.
+function buildIdClause(idParam) {
+  const raw = String(idParam || '');
+  const clauses = [{ notificationId: raw }];
+  if (mongoose.Types.ObjectId.isValid(raw)) {
+    clauses.push({ _id: new mongoose.Types.ObjectId(raw) });
+  }
+  return { $or: clauses };
+}
+
 // ─── Coeurs paramétrés par audience (admin | dev) ─────────────────────────────
 
 async function listNotificationsCore(req, res, audience) {
@@ -107,10 +120,8 @@ async function markAsReadCore(req, res, audience) {
 
   try {
     const { notificationId } = req.params;
-    const filter = {
-      notificationId,
-      ...buildAccessFilter(userId, audience)
-    };
+    const filter = buildAccessFilter(userId, audience);
+    filter.$and.push(buildIdClause(notificationId));
 
     const notif = await Notification.findOne(filter);
     if (!notif) return res.status(404).json({ ok: false, error: 'Notification introuvable.' });
@@ -153,16 +164,14 @@ async function deleteNotificationCore(req, res, audience) {
 
   try {
     const { notificationId } = req.params;
-    const result = await Notification.deleteOne({
-      notificationId,
-      ...buildAccessFilter(userId, audience)
-    });
+    const filter = buildAccessFilter(userId, audience);
+    filter.$and.push(buildIdClause(notificationId));
+    const result = await Notification.deleteOne(filter);
 
-    if (!result.deletedCount) {
-      return res.status(404).json({ ok: false, error: 'Notification introuvable.' });
-    }
-
-    return res.json({ ok: true });
+    // Idempotent : une suppression déjà effectuée (0 supprimé) renvoie tout de même un succès,
+    // pour que le frontend re-synchronise sa liste (invalidation onSuccess) au lieu de rester
+    // bloqué sur un 404 répété. `deleted` indique si un document a réellement été retiré.
+    return res.json({ ok: true, deleted: result.deletedCount > 0 });
   } catch (err) {
     console.error('[notificationController] deleteNotification error:', err.message);
     return res.status(500).json({ ok: false, error: 'Erreur serveur.' });

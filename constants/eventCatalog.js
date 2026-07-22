@@ -24,6 +24,9 @@ export const EVENT_CATALOG = Object.freeze({
   'booking.no_show_marked': { domain: 'booking', version: 1, description: 'A booking was explicitly marked no-show by staff', payload: ['bookingId'] },
   'booking.client_suspended': { domain: 'booking', version: 1, description: 'A client was suspended after repeated no-shows', payload: ['userId'] },
   'booking.pending_payment_expired': { domain: 'booking', version: 1, description: 'A pending-payment booking expired (legacy/unused — bookings are created confirmed)', payload: ['bookingId'] },
+  // P1-9 — codes émis en production mais jusqu'ici absents du catalogue (warning UNKNOWN).
+  'booking.balance_paid_on_site': { domain: 'booking', version: 1, description: 'A booking on-site balance was collected', payload: ['bookingId', 'serviceId', 'status'] },
+  'booking.rescheduled': { domain: 'booking', version: 1, description: 'A booking was rescheduled in place', payload: ['bookingId', 'serviceId', 'status'] },
 
   // --- refund ---
   'refund.requested': { domain: 'refund', version: 1, description: 'A refund was requested', payload: ['refundId', 'saleId', 'itemType', 'status'] },
@@ -41,11 +44,18 @@ export const EVENT_CATALOG = Object.freeze({
   'gift_card.online_created': { domain: 'gift_card', version: 1, description: 'A gift card was created via the online checkout', payload: ['giftCardId'] },
   'gift_card.manual_created': { domain: 'gift_card', version: 1, description: 'A gift card was created manually by the institute (paid on site)', payload: ['giftCardId', 'creationMode', 'paymentMode'] },
   'gift_card.manual_debited': { domain: 'gift_card', version: 1, description: 'A gift card was debited manually by the institute', payload: ['giftCardId', 'amountEur'] },
+  // P1-9 — recovery job (recrédit carte cadeau après remboursement).
+  'gift_card.recredit_failed': { domain: 'gift_card', version: 1, description: 'A gift card re-credit failed (recovery)', payload: ['saleId', 'amountEur', 'cardCount'] },
+  'gift_card.recredit_recovered': { domain: 'gift_card', version: 1, description: 'A failed gift card re-credit was recovered', payload: ['saleId', 'amountEur', 'cardCount'] },
 
   // --- commission ---
   'commission.available': { domain: 'commission', version: 1, description: 'A commission became payable', payload: ['commissionPaymentId', 'month', 'year'] },
   'commission.reminder_sent': { domain: 'commission', version: 1, description: 'A commission reminder was sent', payload: ['commissionPaymentId', 'daysLeft'] },
   'commission.paid': { domain: 'commission', version: 1, description: 'A commission was paid', payload: ['commissionPaymentId'] },
+  // P1-9 — ajustements/annulations de commission émis lors d'un remboursement (refundService).
+  'commission.adjusted': { domain: 'commission', version: 1, description: 'A commission was adjusted after a refund', payload: ['commissionPaymentId', 'status'] },
+  'commission.reversal_required': { domain: 'commission', version: 1, description: 'A commission reversal is required after a refund', payload: ['commissionPaymentId', 'status'] },
+  'commission.cancelled': { domain: 'commission', version: 1, description: 'A commission was cancelled', payload: ['commissionPaymentId', 'status'] },
 
   // --- formation (sessions) ---
   'formation.session_cancelled': { domain: 'formation', version: 1, description: 'A formation session was cancelled', payload: ['sessionId', 'formationId'] },

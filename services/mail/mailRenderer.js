@@ -333,6 +333,48 @@ const VARIABLE_KEYS = new Set([
 
 const ALLOWED_MODES = new Set(['text', 'html']);
 
+// P0-1 — Variables dont la valeur est intentionnellement du HTML/CSS/URL et NE DOIT PAS être
+// échappée en mode HTML : URLs (href/src), valeurs de couleur/thème (attributs style), et fragments
+// HTML pré-construits côté serveur (ex. refundsection). Toutes les autres valeurs (noms clients,
+// e-mails, libellés, montants…) sont échappées à l'interpolation HTML pour neutraliser l'injection.
+const RAW_HTML_VARIABLE_KEYS = new Set([
+  'link',
+  'invoicedownloadurl',
+  'invoicepageurl',
+  'actionurl',
+  'trackingurl',
+  'platformurl',
+  'themesurfaceheader',
+  'themeaccent',
+  'themeaccentstrong',
+  'colortext',
+  'colorsurface',
+  'themeprimary',
+  'themesecondary',
+  'themebackground',
+  'themesurface',
+  'themetext',
+  'refundsection'
+]);
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// P0-2 — Masque une adresse e-mail pour les logs serveur (jamais l'adresse complète en clair).
+// `jean.dupont@gmail.com` → `j***@gmail.com`. Accepte une string ou un destinataire Brevo {email}.
+function maskEmail(value) {
+  const str = String((value && value.email) || value || '').trim();
+  const at = str.indexOf('@');
+  if (at <= 0) return str ? '[masqué]' : '';
+  return `${str.slice(0, 1)}***@${str.slice(at + 1)}`;
+}
+
 
 
 function normalizeFunctionName(value) {
@@ -678,9 +720,14 @@ function stripHtml(value = '') {
 
 
 
-function replaceTemplateVariables(content = '', replacements = {}) {
+// P0-1 — `options.html === true` active l'échappement HTML des valeurs interpolées (sauf les clés
+// listées dans RAW_HTML_VARIABLE_KEYS). Défaut = false : rendu identique à l'existant pour les
+// contextes texte (sujet, corps texte), 100 % rétro-compatible.
+function replaceTemplateVariables(content = '', replacements = {}, options = {}) {
 
   if (!content) return '';
+
+  const escapeValues = Boolean(options && options.html);
 
   return String(content).replace(/{{\s*([a-zA-Z0-9]+)\s*}}/g, (match, key) => {
 
@@ -700,7 +747,15 @@ function replaceTemplateVariables(content = '', replacements = {}) {
 
     }
 
-    return String(lowerKey === 'amount' ? formatAmount(raw) : raw);
+    const value = String(lowerKey === 'amount' ? formatAmount(raw) : raw);
+
+    if (escapeValues && !RAW_HTML_VARIABLE_KEYS.has(lowerKey)) {
+
+      return escapeHtml(value);
+
+    }
+
+    return value;
 
   });
 
@@ -736,5 +791,7 @@ export {
   withMailThemeVars,
   sanitizeFullHtml,
   stripHtml,
+  escapeHtml,
+  maskEmail,
   replaceTemplateVariables
 };

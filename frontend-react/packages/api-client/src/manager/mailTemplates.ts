@@ -172,6 +172,35 @@ export async function rollbackMailTemplate(functionName: string, version: number
  * n'est pas fourni, puis interpole `{{var}}` avec des valeurs mock safe. Renvoie subject/html/text
  * + les variables utilisées (connues/inconnues).
  */
+// P1-3 — catalogue canonique des variables (source d'autorité BACKEND, remplace à terme le miroir
+// hardcodé KNOWN_TEMPLATE_VARIABLES). Chaque entrée décrit la variable + un exemple + sa source.
+export interface MailVariableCatalogEntry {
+  key: string;
+  description: string;
+  example: string;
+  source: string;
+  raw: boolean;
+  known: boolean;
+}
+
+export async function getMailVariableCatalog(): Promise<MailVariableCatalogEntry[]> {
+  const res = await apiGet<{ ok: boolean; variables: MailVariableCatalogEntry[] }>(`${BASE}/variables`);
+  return res.variables ?? [];
+}
+
+// P1-2 — envoi d'un e-mail de TEST. Le backend rend le template avec des données d'exemple,
+// préfixe l'objet par [TEST], journalise comme test, et ne déclenche AUCUN événement métier ni
+// token réel. `toEmail` doit être une adresse autorisée choisie par l'utilisateur.
+export async function testSendMailTemplate(
+  functionName: string,
+  toEmail: string,
+): Promise<{ ok: boolean; sentTo: string }> {
+  return apiPost<{ ok: boolean; sentTo: string }>(
+    `${BASE}/templates/${encodeURIComponent(functionName)}/test-send`,
+    { toEmail },
+  );
+}
+
 export async function previewMailTemplate(
   functionName: string,
   input: { subject?: string; html?: string; text?: string; variables?: Record<string, string> } = {},

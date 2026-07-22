@@ -7,6 +7,7 @@
 // doit pas être enregistré ici (l'appelant filtre ce cas).
 
 import WebhookFailureLog from '../models/WebhookFailureLog.js';
+import { notifyDevAlert } from './devAlertService.js';
 
 const MAX_SAFE_MESSAGE = 300;
 
@@ -64,6 +65,16 @@ export async function recordWebhookFailure({
       status: 'failed',
       retryable: Boolean(retryable)
     });
+    // P1-6 — alerte Dev uniquement sur panne DÉFINITIVE (retryable=false) pour ne pas spammer
+    // à chaque nouvelle tentative Stripe. Best-effort, ne throw jamais.
+    if (!retryable) {
+      notifyDevAlert('webhook_failure', {
+        provider: String(provider || 'stripe'),
+        eventType: eventType || '—',
+        failureStage: failureStage || '—',
+        errorMessage: errorMessageSafe || errorCode || 'Panne webhook'
+      });
+    }
     return doc.toObject();
   } catch (err) {
     // L'observabilité ne doit jamais casser le webhook.

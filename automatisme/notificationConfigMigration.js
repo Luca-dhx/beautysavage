@@ -123,6 +123,19 @@ const DEFAULT_EVENTS = [
     availableVariables: ['clientName', 'amount']
   },
   {
+    // P1-8 — la notification de remboursement CONFIRMÉ utilisait à tort la clé `refund_requested`
+    // (« a demandé un remboursement »). Clé + libellé dédiés pour le succès.
+    eventType: 'refund_completed',
+    label: 'Remboursement effectué',
+    isActive: true,
+    category: 'remboursements',
+    targetType: 'role',
+    targetRole: 'admin',
+    titleTemplate: 'Remboursement effectué — {{amount}} €',
+    messageTemplate: '{{clientName}} — remboursement de {{amount}} € effectué',
+    availableVariables: ['clientName', 'amount']
+  },
+  {
     eventType: 'new_client',
     label: 'Nouveau client inscrit',
     isActive: true,
@@ -176,6 +189,30 @@ const DEFAULT_EVENTS = [
     titleTemplate: 'Annulation formation — {{formationName}}',
     messageTemplate: '{{clientName}} a annulé sa participation à "{{formationName}}" (session du {{sessionDate}})',
     availableVariables: ['clientName', 'formationName', 'sessionDate', 'saleId']
+  },
+  // P1-6 — Alertes techniques (audience DEV). Jusqu'ici ces types n'avaient aucune config →
+  // triggerNotification ne créait rien. Ils alimentent désormais l'espace Dev sur les pannes.
+  {
+    eventType: 'webhook_failure',
+    label: 'Échec webhook',
+    isActive: true,
+    category: 'système',
+    targetType: 'role',
+    targetRole: 'dev',
+    titleTemplate: 'Webhook en échec — {{provider}}',
+    messageTemplate: '{{provider}} · {{eventType}} · {{failureStage}} — {{errorMessage}}',
+    availableVariables: ['provider', 'eventType', 'failureStage', 'errorMessage']
+  },
+  {
+    eventType: 'system_error',
+    label: 'Erreur système',
+    isActive: true,
+    category: 'système',
+    targetType: 'role',
+    targetRole: 'dev',
+    titleTemplate: 'Erreur système — {{scope}}',
+    messageTemplate: '{{scope}} — {{errorMessage}}',
+    availableVariables: ['scope', 'errorMessage']
   }
 ];
 

@@ -181,7 +181,8 @@ export async function handleRefundUpdatedEvent(event) {
         : null;
       const clientName = [refundUser?.firstName, refundUser?.lastName].filter(Boolean).join(' ')
         || refundUser?.email || '—';
-      void triggerNotification('refund_requested', {
+      // P1-8 — clé dédiée au SUCCÈS (auparavant `refund_requested`, au libellé trompeur).
+      void triggerNotification('refund_completed', {
         clientName,
         amount: typeof refundDoc.amount === 'number' ? refundDoc.amount.toFixed(2) : '—',
         link: '/gestion.html?page=ventes',

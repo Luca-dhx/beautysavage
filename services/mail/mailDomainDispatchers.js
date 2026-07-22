@@ -7,11 +7,11 @@ import Sale from '../../models/Sale.js';
 import crypto from 'node:crypto';
 import { resolvePublicBaseUrl } from '../system/domainResolver.js';
 import { resolveFrontendUrl } from '../system/frontendUrl.js';
-import { formatAmount, withMailThemeVars, stripHtml, replaceTemplateVariables } from './mailRenderer.js';
+import { formatAmount, withMailThemeVars, stripHtml, replaceTemplateVariables, maskEmail } from './mailRenderer.js';
 import { loadTemplate } from './mailTemplateRuntime.js';
 import { postToBrevo } from './mailBrevoGateway.js';
 // S1B — Expéditeur résolu via CommunicationIdentity (module dédié, testable).
-import { buildSender } from './mailSenderResolver.js';
+import { buildSender, buildSenderForRole } from './mailSenderResolver.js';
 
 
 
@@ -144,7 +144,7 @@ async function sendSaleEmail(sale) {
 
     const htmlTemplate = template.fullHtml || template.bodyHtml || '';
 
-    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, payloadData) || htmlTemplate : '';
+    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, payloadData, { html: true }) || htmlTemplate : '';
 
     let textTemplate = template.bodyHtml || '';
 
@@ -180,20 +180,20 @@ async function sendSaleEmail(sale) {
 
     }
 
+    // P0-2 — Ne jamais logguer le destinataire complet ni les variables (PII). Adresse masquée + booléens.
     console.log('[MailService] payload sent to Brevo:', {
-      to: payload.to,
+      to: Array.isArray(payload.to) ? payload.to.map(maskEmail) : maskEmail(payload.to),
       subject: payload.subject,
       tags: payload.tags,
       htmlContent: Boolean(payload.htmlContent),
-      textContent: Boolean(payload.textContent),
-      templateVars: payloadData
+      textContent: Boolean(payload.textContent)
     });
 
     const success = await postToBrevo(payload, { contextType: 'sale', contextId: String(sale?.saleId || sale?._id || '') });
 
     if (success) {
 
-      console.log('[mailService] Mail VENTE envoyÃ© pour', sale.saleId, 'Ã ', recipient);
+      console.log('[mailService] Mail VENTE envoyÃ© pour', sale.saleId, 'Ã ', maskEmail(recipient));
 
     }
 
@@ -239,6 +239,7 @@ async function sendCommissionAvailableEmail({ toEmails, period, amount, daysTota
     if (!recipients.length) return false;
     return await sendStatusMail({
       templateKey: 'commission_available',
+      fromRole: 'support',
       toEmails: recipients,
       templateVars: {
         period: String(period || ''),
@@ -264,6 +265,7 @@ async function sendCommissionReminderEmail({ toEmails, period, amount, daysLeft,
     if (!recipients.length) return false;
     return await sendStatusMail({
       templateKey: 'commission_reminder',
+      fromRole: 'support',
       toEmails: recipients,
       templateVars: {
         period: String(period || ''),
@@ -289,6 +291,7 @@ async function sendCommissionLastDayEmail({ toEmails, period, amount, platformUr
     if (!recipients.length) return false;
     return await sendStatusMail({
       templateKey: 'commission_last_day',
+      fromRole: 'support',
       toEmails: recipients,
       templateVars: {
         period: String(period || ''),
@@ -400,7 +403,7 @@ async function sendCommissionInvoiceEmail(invoice, invoiceDownloadUrl) {
 
     const htmlContent = htmlTemplate
 
-      ? replaceTemplateVariables(htmlTemplate, payloadData) || htmlTemplate
+      ? replaceTemplateVariables(htmlTemplate, payloadData, { html: true }) || htmlTemplate
 
       : '';
 
@@ -520,7 +523,7 @@ async function sendPasswordResetEmail(user, token) {
 
     const htmlContent = htmlTemplate
 
-      ? replaceTemplateVariables(htmlTemplate, payloadData) || htmlTemplate
+      ? replaceTemplateVariables(htmlTemplate, payloadData, { html: true }) || htmlTemplate
 
       : '';
 
@@ -566,7 +569,7 @@ async function sendPasswordResetEmail(user, token) {
 
     if (success) {
 
-      console.log('[mailService] Mail PASSWORD_RESET envoyÃ© pour', user._id, 'Ã ', recipient);
+      console.log('[mailService] Mail PASSWORD_RESET envoyÃ© pour', user._id, 'Ã ', maskEmail(recipient));
 
     }
 
@@ -619,7 +622,7 @@ async function sendEmailConfirmationCodeEmail({
     const subject = replaceTemplateVariables(template.subject, payloadData) || template.subject;
     const htmlTemplate = template.fullHtml || template.bodyHtml || '';
     const htmlContent = htmlTemplate
-      ? replaceTemplateVariables(htmlTemplate, payloadData) || htmlTemplate
+      ? replaceTemplateVariables(htmlTemplate, payloadData, { html: true }) || htmlTemplate
       : '';
     let textTemplate = template.bodyHtml || '';
     if (!textTemplate && template.fullHtml) {
@@ -640,7 +643,7 @@ async function sendEmailConfirmationCodeEmail({
 
     const success = await postToBrevo(payload);
     if (success) {
-      console.log('[mailService] Mail EMAIL_CONFIRMATION_CODE envoye a', recipient);
+      console.log('[mailService] Mail EMAIL_CONFIRMATION_CODE envoye a', maskEmail(recipient));
     }
     return success;
   } catch (error) {
@@ -676,7 +679,9 @@ function normalizeRecipientEmails(toEmails = []) {
 
 
 
-async function sendStatusMail({ templateKey, toEmails, templateVars, tag, context }) {
+// P1-1 — `fromRole` par défaut 'commerciale' (institut → client). Les appelants plateforme/technique
+// (commission, incident de site) passent `fromRole: 'support'` pour honorer la conformité expéditeur.
+async function sendStatusMail({ templateKey, toEmails, templateVars, tag, context, fromRole = 'commerciale' }) {
 
   const recipients = normalizeRecipientEmails(toEmails);
 
@@ -698,7 +703,7 @@ async function sendStatusMail({ templateKey, toEmails, templateVars, tag, contex
 
   }
 
-  const sender = await buildSender();
+  const sender = await buildSenderForRole(fromRole);
 
   if (!sender) {
 
@@ -716,7 +721,7 @@ async function sendStatusMail({ templateKey, toEmails, templateVars, tag, contex
 
   const htmlContent = htmlTemplate
 
-    ? replaceTemplateVariables(htmlTemplate, themedTemplateVars) || htmlTemplate
+    ? replaceTemplateVariables(htmlTemplate, themedTemplateVars, { html: true }) || htmlTemplate
 
     : '';
 
@@ -763,6 +768,7 @@ async function sendSiteSuspendedEmail({ toEmails = [], reason = '', date = '' } 
     return await sendStatusMail({
 
       templateKey: 'site_suspended',
+      fromRole: 'support',
 
       toEmails,
 
@@ -791,6 +797,7 @@ async function sendSiteReactivatedEmail({ toEmails = [], date = '' } = {}) {
     return await sendStatusMail({
 
       templateKey: 'site_reactivated',
+      fromRole: 'support',
 
       toEmails,
 
@@ -823,6 +830,7 @@ async function sendSiteMaintenanceStartEmail({
     return await sendStatusMail({
 
       templateKey: 'site_maintenance_start',
+      fromRole: 'support',
 
       toEmails,
 
@@ -855,6 +863,7 @@ async function sendSiteMaintenanceEndEmail({
     return await sendStatusMail({
 
       templateKey: 'site_maintenance_end',
+      fromRole: 'support',
 
       toEmails,
 
@@ -967,7 +976,7 @@ async function sendSingleTemplateMail({
   if (!recipient) return false;
   const actionUrl = String(templateVars?.actionurl || '').trim();
   if (actionUrl && !isValidActionUrl(actionUrl)) {
-    console.warn('[mailService] actionUrl invalide', { templateKey, recipient, actionUrl });
+    console.warn('[mailService] actionUrl invalide', { templateKey, recipient: maskEmail(recipient), actionUrl });
     return false;
   }
   try {
@@ -1479,7 +1488,7 @@ async function sendBookingConfirmedEmail({ booking } = {}) {
 
     const subject = replaceTemplateVariables(template.subject, variables) || template.subject;
     const htmlTemplate = template.fullHtml || template.bodyHtml || '';
-    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, variables) || htmlTemplate : '';
+    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, variables, { html: true }) || htmlTemplate : '';
     let textTemplate = template.bodyHtml || '';
     if (!textTemplate && template.fullHtml) {
       textTemplate = stripHtml(template.fullHtml);
@@ -1646,7 +1655,7 @@ async function sendBookingCancelledEmail({
 
     const subject = replaceTemplateVariables(template.subject, variables) || template.subject;
     const htmlTemplate = template.fullHtml || template.bodyHtml || '';
-    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, variables) || htmlTemplate : '';
+    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, variables, { html: true }) || htmlTemplate : '';
     let textTemplate = template.bodyHtml || '';
     if (!textTemplate && template.fullHtml) {
       textTemplate = stripHtml(template.fullHtml);
@@ -1747,7 +1756,7 @@ async function sendBookingCancelledNotifyAdminEmail({
 
     const subject = replaceTemplateVariables(template.subject, variables) || template.subject;
     const htmlTemplate = template.fullHtml || template.bodyHtml || '';
-    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, variables) || htmlTemplate : '';
+    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, variables, { html: true }) || htmlTemplate : '';
     let textTemplate = template.bodyHtml || '';
     if (!textTemplate && template.fullHtml) {
       textTemplate = stripHtml(template.fullHtml);
@@ -1828,7 +1837,7 @@ async function sendBookingCancelledByAdminEmail({
 
     const subject = replaceTemplateVariables(template.subject, variables) || template.subject;
     const htmlTemplate = template.fullHtml || template.bodyHtml || '';
-    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, variables) || htmlTemplate : '';
+    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, variables, { html: true }) || htmlTemplate : '';
     let textTemplate = template.bodyHtml || '';
     if (!textTemplate && template.fullHtml) {
       textTemplate = stripHtml(template.fullHtml);
@@ -1892,7 +1901,7 @@ async function sendNoShowEmail({ booking } = {}) {
 
     const subject = replaceTemplateVariables(template.subject, variables) || template.subject;
     const htmlTemplate = template.fullHtml || template.bodyHtml || '';
-    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, variables) || htmlTemplate : '';
+    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, variables, { html: true }) || htmlTemplate : '';
     let textTemplate = template.bodyHtml || '';
     if (!textTemplate && template.fullHtml) {
       textTemplate = stripHtml(template.fullHtml);
@@ -1950,7 +1959,7 @@ async function sendBookingSuspendedEmail({
 
     const subject = replaceTemplateVariables(template.subject, variables) || template.subject;
     const htmlTemplate = template.fullHtml || template.bodyHtml || '';
-    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, variables) || htmlTemplate : '';
+    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, variables, { html: true }) || htmlTemplate : '';
     let textTemplate = template.bodyHtml || '';
     if (!textTemplate && template.fullHtml) {
       textTemplate = stripHtml(template.fullHtml);
@@ -2040,7 +2049,7 @@ async function sendBookingReminderEmail({ booking, hoursAhead = 24 } = {}) {
 
     const subject = replaceTemplateVariables(template.subject, variables) || template.subject;
     const htmlTemplate = template.fullHtml || template.bodyHtml || '';
-    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, variables) || htmlTemplate : '';
+    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, variables, { html: true }) || htmlTemplate : '';
     let textTemplate = template.bodyHtml || '';
     if (!textTemplate && template.fullHtml) {
       textTemplate = stripHtml(template.fullHtml);

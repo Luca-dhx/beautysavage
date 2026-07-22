@@ -5,9 +5,15 @@ import { resolveSender } from '../communicationRoleResolver.js';
 // MAIL_FROM/MAIL_FROM_NAME ne sont qu'un fallback STRICTEMENT dev/local (jamais en prod).
 //
 // Extrait de mailDomainDispatchers.js (module dédié → testable isolément).
-export async function buildSender() {
+//
+// P1-1 — `buildSenderForRole(role)` honore le rôle d'expéditeur déclaré par les règles de dispatch
+// (`mailDispatchRules.fromRole`) : les communications plateforme/technique (commission, incident de
+// site) partent de `support`, les communications institut→client de `commerciale`. Avant ce correctif,
+// TOUS les envois directs utilisaient `commerciale`, ignorant le `fromRole:'support'` des règles.
+export async function buildSenderForRole(role = 'commerciale') {
+  const normalizedRole = role === 'support' ? 'support' : 'commerciale';
   try {
-    const sender = await resolveSender('commerciale');
+    const sender = await resolveSender(normalizedRole);
     const email = String(sender?.email || '').trim();
     if (email) {
       const name = String(sender?.name || '').trim();
@@ -27,4 +33,9 @@ export async function buildSender() {
   }
 
   return null;
+}
+
+// Rétro-compat : l'expéditeur commerciale (institut → client) reste le défaut historique.
+export async function buildSender() {
+  return buildSenderForRole('commerciale');
 }

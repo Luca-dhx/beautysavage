@@ -11,6 +11,7 @@ import {
   publishMailTemplateDraft,
   rollbackMailTemplate,
   previewMailTemplate,
+  testSendMailTemplate,
   getTemplateRoleBinding,
   KNOWN_TEMPLATE_VARIABLES,
   type MailTemplatePreview,
@@ -35,6 +36,8 @@ export function MailTemplateEditor({ functionName }: { functionName: string }) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState(0);
+  const [testEmail, setTestEmail] = useState('');
+  const [testResult, setTestResult] = useState<string | null>(null);
 
   const tplQuery = useQuery({ queryKey: ['mail-template', functionName], queryFn: () => getMailTemplate(functionName), retry: false });
   const versionsQuery = useQuery({ queryKey: ['mail-template-versions', functionName], queryFn: () => listMailTemplateVersions(functionName), retry: false });
@@ -92,6 +95,14 @@ export function MailTemplateEditor({ functionName }: { functionName: string }) {
     onError: (e) => setActionError(messageFromError(e)),
   });
 
+  // P1-2 — envoi de test : le backend rend avec des données d'exemple ([TEST], aucun event métier).
+  const testEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(testEmail.trim());
+  const testSendMut = useMutation({
+    mutationFn: () => testSendMailTemplate(functionName, testEmail.trim()),
+    onSuccess: (r) => { setActionError(null); setTestResult(`E-mail de test envoyé à ${r.sentTo}.`); },
+    onError: (e) => { setTestResult(null); setActionError(messageFromError(e)); },
+  });
+
   if (tplQuery.status === 'pending') return <LoadingState label="Chargement du template…" />;
   if (tplQuery.status === 'error') {
     const denied = tplQuery.error instanceof ApiError && tplQuery.error.status === 403;
@@ -124,6 +135,32 @@ export function MailTemplateEditor({ functionName }: { functionName: string }) {
             catalog={KNOWN_TEMPLATE_VARIABLES}
           />
           <TemplatePublishPanel hasDraft={Boolean(draftId)} publishing={publishMut.isPending} onPublish={() => publishMut.mutate()} lastPublishedVersion={lastPublishedVersion} />
+
+          <div className="mt-testsend">
+            <label className="mt-testsend__label" htmlFor="mt-testsend-email">Envoyer un e-mail de test</label>
+            <p className="mt-testsend__hint">Rendu avec des données d'exemple. L'objet est préfixé [TEST]. Aucun événement métier n'est déclenché.</p>
+            <div className="mt-testsend__row">
+              <input
+                id="mt-testsend-email"
+                type="email"
+                className="mt-input"
+                placeholder="adresse@exemple.fr"
+                value={testEmail}
+                onChange={(e) => { setTestEmail(e.target.value); setTestResult(null); }}
+                autoComplete="off"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!testEmailValid || testSendMut.isPending}
+                onClick={() => testSendMut.mutate()}
+              >
+                {testSendMut.isPending ? 'Envoi…' : 'Envoyer un test'}
+              </Button>
+            </div>
+            {testResult ? <p className="mt-success">{testResult}</p> : null}
+          </div>
+
           <TemplateRollbackPanel versions={versionsQuery.data ?? []} busy={rollbackMut.isPending} onRollback={(v) => rollbackMut.mutate(v)} />
         </div>
 

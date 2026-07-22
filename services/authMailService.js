@@ -45,7 +45,7 @@ async function sendAuthMail({ user, fromRole, templateKey, link, extraVars = {},
     });
     const subject = replaceTemplateVariables(template.subject, payloadData) || template.subject;
     const htmlTemplate = template.fullHtml || template.bodyHtml || '';
-    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, payloadData) || htmlTemplate : '';
+    const htmlContent = htmlTemplate ? replaceTemplateVariables(htmlTemplate, payloadData, { html: true }) || htmlTemplate : '';
     let textTemplate = template.bodyHtml || '';
     if (!textTemplate && template.fullHtml) textTemplate = stripHtml(template.fullHtml);
     const textContent = textTemplate ? replaceTemplateVariables(textTemplate, payloadData) || textTemplate : '';

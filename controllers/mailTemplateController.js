@@ -9,6 +9,16 @@ import {
   archiveTemplate,
   rollbackToVersion
 } from '../services/emailTemplateVersioningService.js';
+import { withMailThemeVars, replaceTemplateVariables, stripHtml } from '../services/mail/mailRenderer.js';
+import { buildSender } from '../services/mail/mailSenderResolver.js';
+import { postToBrevo } from '../services/mail/mailBrevoGateway.js';
+import {
+  getMailVariableCatalog,
+  buildSampleTemplateData,
+  validateTemplateContent
+} from '../services/mail/mailTemplateVariableCatalog.js';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const ALLOWED_FUNCTIONS = new Set(mailFunctions.map(value => value.toLowerCase()));
 
@@ -62,6 +72,13 @@ export async function saveTemplateController(req, res) {
     const bodyHtml = String(req.body?.bodyHtml || '');
     const fullHtml = String(req.body?.fullHtml || '');
     const mode = String(req.body?.mode || 'text').trim().toLowerCase();
+
+    // P1-3 — validation NON bloquante : on prévient des variables inconnues / accolades mal
+    // fermées sans refuser la sauvegarde (les variables inconnues sont laissées littérales au
+    // rendu, jamais exécutées). Le front peut afficher ces avertissements.
+    const combined = `${subject}\n${bodyHtml}\n${fullHtml}`;
+    const validation = validateTemplateContent(combined);
+
     const template = await saveTemplate(functionName, subject, bodyHtml, fullHtml, mode);
     // If there was an isMetadataOnly doc, mark it as no longer metadata-only
     await EmailTemplate.updateOne(
@@ -70,6 +87,10 @@ export async function saveTemplateController(req, res) {
     );
     return res.json({
       ok: true,
+      warnings: {
+        unknownVariables: validation.unknownVariables,
+        malformed: validation.malformed
+      },
       template: {
         functionName: template.functionName,
         subject: template.subject,
@@ -82,6 +103,68 @@ export async function saveTemplateController(req, res) {
   } catch (error) {
     console.error('Erreur sauvegarde template mail', error);
     return res.status(500).json({ ok: false, error: 'Impossible de sauvegarder le template.' });
+  }
+}
+
+// P1-3 — Catalogue canonique des variables (source d'autorité backend).
+export async function getVariableCatalog(_req, res) {
+  try {
+    return res.json({ ok: true, variables: getMailVariableCatalog() });
+  } catch (error) {
+    console.error('Erreur lecture catalogue variables', error);
+    return res.status(500).json({ ok: false, error: 'Impossible de lire le catalogue de variables.' });
+  }
+}
+
+// P1-2 — Envoi de TEST : rend le template avec des données d'EXEMPLE (jamais de vraie donnée
+// client ni de vrai token), préfixe l'objet par [TEST], journalise comme test (contextType='test',
+// tag 'test'), NE déclenche AUCUN événement métier et NE crée AUCUNE transaction.
+export async function testSendTemplate(req, res) {
+  try {
+    const functionName = validateFunction(req.params.functionName);
+    if (!functionName) {
+      return res.status(400).json({ ok: false, error: 'Fonction de template invalide.' });
+    }
+    const toEmail = String(req.body?.toEmail || '').trim().toLowerCase();
+    if (!EMAIL_RE.test(toEmail)) {
+      return res.status(400).json({ ok: false, error: 'Adresse e-mail de test invalide.' });
+    }
+
+    const template = await loadTemplate(functionName);
+    if (!template) {
+      return res.status(404).json({ ok: false, error: 'Template introuvable.' });
+    }
+
+    const sender = await buildSender();
+    if (!sender) {
+      return res.status(409).json({ ok: false, error: "Aucune identité d'expédition configurée." });
+    }
+
+    const data = await withMailThemeVars(buildSampleTemplateData());
+    const baseSubject = replaceTemplateVariables(template.subject, data) || template.subject || functionName;
+    const subject = `[TEST] ${baseSubject}`;
+    const htmlTemplate = template.fullHtml || template.bodyHtml || '';
+    const htmlContent = htmlTemplate ? (replaceTemplateVariables(htmlTemplate, data, { html: true }) || htmlTemplate) : '';
+    const textTemplate = template.bodyHtml || stripHtml(template.fullHtml || '');
+    const textContent = textTemplate ? (replaceTemplateVariables(textTemplate, data) || textTemplate) : '';
+
+    const payload = {
+      sender,
+      to: [{ email: toEmail }],
+      subject,
+      tags: ['test', 'communication_test'],
+      ...(htmlContent ? { htmlContent } : {}),
+      ...(textContent ? { textContent } : {})
+    };
+
+    const success = await postToBrevo(payload, { contextType: 'test', contextId: functionName });
+    if (!success) {
+      return res.status(502).json({ ok: false, error: "Échec de l'envoi de test (fournisseur)." });
+    }
+    return res.json({ ok: true, functionName, sentTo: toEmail });
+  } catch (error) {
+    console.error('Erreur envoi de test template', error);
+    return res.status(500).json({ ok: false, error: "Impossible d'envoyer l'e-mail de test." });
   }
 }
 

@@ -39,6 +39,7 @@ import {
 import { generateGiftCardAssets, formatGiftCardAmount } from '../services/giftCard/giftCardRenderService.js';
 import { getPublishedTemplateBySlug } from '../services/giftCard/giftCardTemplateService.js';
 import { getActiveGiftCardTemplateOrSeed } from '../services/giftCard/giftCardTemplateResolver.js';
+import { notifyDevAlert } from '../services/devAlertService.js';
 import GiftCardTemplate from '../models/GiftCardTemplate.js';
 import { sendGiftCardEventMail } from '../services/giftCard/giftCardMailService.js';
 
@@ -256,6 +257,11 @@ async function deliverOnlineGiftCardEmail({ giftCard, owner, code, password, qrP
     await giftCard.save();
   } catch (renderError) {
     console.error('Erreur rendu carte cadeau online (non bloquant)', renderError?.message || renderError);
+    // P1-6 — la panne de rendu (PDF) était silencieuse : alerte Dev.
+    notifyDevAlert('system_error', {
+      scope: 'gift_card.render.online',
+      errorMessage: renderError?.message || 'Erreur de rendu carte cadeau'
+    });
   }
 
   if (!owner?.email) return { event: false, mail: 'client_missing' };
@@ -283,6 +289,11 @@ async function deliverOnlineGiftCardEmail({ giftCard, owner, code, password, qrP
     });
   } catch (mailError) {
     console.error('Erreur mail carte cadeau online (non bloquant)', mailError?.message || mailError);
+    // P1-6 — l'échec d'envoi était silencieux : alerte Dev.
+    notifyDevAlert('system_error', {
+      scope: 'gift_card.mail.online',
+      errorMessage: mailError?.message || 'Erreur envoi carte cadeau'
+    });
     return { event: false, mail: 'failed' };
   }
 }
@@ -1212,6 +1223,25 @@ export async function manualDebitGiftCardForGestion(req, res) {
     });
     await transaction.save();
 
+    // P1-10 — parité avec manualDebitGiftCardById : envoyer l'e-mail gift_card.manual_debited
+    // (auparavant cette route code+mot de passe débitait sans jamais notifier le client).
+    const owner = card.userId && typeof card.userId === 'object' ? card.userId : null;
+    const mailResult = await sendGiftCardEventMail({
+      eventName: 'gift_card.manual_debited',
+      giftCard: card,
+      client: buildClientForMail(owner),
+      variables: {
+        recipientName: card.recipientName || buildOwnerName(owner),
+        amount: formatGiftCardAmount(amount),
+        balance: formatGiftCardAmount(balanceAfter),
+        code: card.code,
+        transactionReason: note,
+        paymentLabel: card.paymentLabel || ''
+      },
+      eventPayload: { amountEur: amount },
+      actorId: actorId
+    });
+
     const hydratedTransaction = await GiftCardTransaction.findById(transaction._id)
       .populate('actorUserId', 'email firstName lastName role')
       .populate('userId', 'email firstName lastName role')
@@ -1220,7 +1250,8 @@ export async function manualDebitGiftCardForGestion(req, res) {
     return res.json({
       ok: true,
       card: buildGiftCardGestionPayload(card),
-      transaction: buildGiftCardTransactionPayload(hydratedTransaction, { forGestion: true })
+      transaction: buildGiftCardTransactionPayload(hydratedTransaction, { forGestion: true }),
+      mail: mailResult
     });
   } catch (error) {
     console.error('Erreur debit manuel carte cadeau', error);

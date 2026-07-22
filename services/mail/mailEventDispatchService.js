@@ -43,7 +43,7 @@ export async function dispatchTemplateByRoles({ templateKey, fromRole, toRole, c
   const data = await withMailThemeVars(variables || {});
   const subject = replaceTemplateVariables(template.subject, data) || template.subject;
   const html =
-    replaceTemplateVariables(template.fullHtml || template.bodyHtml || '', data) ||
+    replaceTemplateVariables(template.fullHtml || template.bodyHtml || '', data, { html: true }) ||
     template.fullHtml ||
     template.bodyHtml ||
     '';

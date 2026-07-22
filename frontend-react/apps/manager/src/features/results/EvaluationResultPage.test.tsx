@@ -4,7 +4,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
-const accept = vi.fn(async () => ({ certificate: { id: 'c1', certificateNumber: 'BS-DIP-X' } }));
+const accept = vi.fn(async (_id: string, _comment: string) => ({ certificate: { id: 'c1', certificateNumber: 'BS-DIP-X' } }));
 vi.mock('@bs/api-client', async (orig) => ({
   ...(await (orig() as Promise<Record<string, unknown>>)),
   getEvaluationResult: vi.fn(async () => ({

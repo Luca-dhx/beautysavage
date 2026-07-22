@@ -79,16 +79,31 @@ describe('mailTemplates api-client (M6)', () => {
   });
 
   it('previewMailTemplate (front) interpole les variables et détecte les inconnues — aucun envoi', async () => {
-    // Contenu fourni → aucun fetch.
+    // LOT2 §2 — l'aperçu est désormais délégué au BACKEND (POST /preview) : le front n'interpole
+    // plus localement. On mocke la réponse du moteur backend (rendu identique à l'envoi réel).
+    mockFetch({
+      ok: true,
+      subject: 'Bonjour Marie',
+      html: '<p>Soin — {{unknownvar}}</p>',
+      text: '',
+      usedVariables: [
+        { name: 'firstname', known: true },
+        { name: 'servicename', known: true },
+        { name: 'unknownvar', known: false },
+      ],
+      unknownVariables: ['unknownvar'],
+    });
     const p = await previewMailTemplate('vente', {
       subject: 'Bonjour {{firstname}}',
       html: '<p>{{servicename}} — {{unknownvar}}</p>',
       text: '',
       variables: { firstname: 'Marie', servicename: 'Soin' },
     });
+    expect(lastUrl).toContain('/templates/vente/preview');
+    expect(lastInit?.method).toBe('POST');
     expect(p.subject).toBe('Bonjour Marie');
     expect(p.html).toContain('Soin');
-    expect(p.html).toContain('{{unknownvar}}'); // inconnue → laissée telle quelle
+    expect(p.html).toContain('{{unknownvar}}'); // inconnue → laissée telle quelle par le backend
     expect(p.unknownVariables).toContain('unknownvar');
     expect(p.usedVariables.find((v) => v.name === 'firstname')?.known).toBe(true);
   });

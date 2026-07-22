@@ -32,6 +32,9 @@
         "react:dev:manager": "npm --prefix frontend-react run dev:manager",
         "react:build": "npm --prefix frontend-react run build",
         "react:test": "npm --prefix frontend-react run test",
+        "react:test:ci": "npm --prefix frontend-react run test:ci",
+        "react:test:slow": "npm --prefix frontend-react run test:slow",
+        "react:typecheck": "npm --prefix frontend-react run typecheck",
         "react:lint": "npm --prefix frontend-react run lint"
     },
     "dependencies": {

@@ -4507,3 +4507,35 @@ QuestionnaireEditor, EvaluationFlow).
 ### Limites V1
 Évaluation manuelle · un seul évaluateur (pas de jury) · QR de vérification = évolution future ·
 vidéos ≤ 60 Mo · pas d'analyse IA.
+
+---
+
+## IntegratedAPI — Gestion des credentials, communications & parcours (portage)
+
+Coffre à secrets `IntegratedApi` (AES-256-GCM, `CREDENTIAL_VAULT_KEY`) : 1 doc/fournisseur
+(`stripe-institut`=customer_payments, `stripe-dev`=platform_billing, `brevo`=messaging),
+`credentials[]` chiffrés, `mode` actif (test/prod) pour les dual_environment. Source de vérité
+des champs : `utils/integratedApiCatalog.js`.
+
+**Surface de gestion DEV** (`/dev/integrated-api`, `requireStrictDev`) — routes
+`/api/gestion/dev/integrated-api` (list/detail/update/delete/test/mode) + page React
+(cartes fournisseurs, blocs TEST/PROD, Configurer/Tester/Activer/Supprimer). Sérialisation
+**masquée** (`configured`+`maskedValue`, jamais `encryptedValue`). État `verified` par runtime
+avec empreinte sha256 (`services/integratedApiCredentialService.js`) : un changement de clé
+invalide le vérifié. Test de connexion lecture-seule (`services/integratedApiConnectionTest.service.js` :
+Stripe `GET /v1/account`, Brevo `GET /v3/account`). Activation PROD gardée (configuré + vérifié
++ phrase de confirmation exacte). Accès Stripe institut consolidé sur `getStripeClient()`.
+
+**Expéditeur e-mail** : `CommunicationIdentity` (commerciale/support, OTP Brevo) est la source
+unique — le vestige `MAIL_FROM` est supprimé de `mailSenderResolver`. Envois critiques :
+`resolveSenderStrict` → `SENDER_NOT_CONFIGURED` ; clé Brevo absente → `API_KEY_MISSING`.
+Dev : `seedDevCommunicationIdentity` seede une identité `commerciale` vérifiée (no-op en prod).
+
+**Parcours corrigés** : signup cohérent (compte pending → envoi → notif institut + 200 si OK,
+sinon 202 `ACCOUNT_PENDING_VERIFICATION` resumable, aucune fausse notif) ; suppression/lecture
+notification par `_id` **ou** `notificationId` (fin du 404), suppression idempotente ;
+RefundRecovery borné (classification `classifyRefundError`, backoff, `refundFailedFinalAt`,
+résumé d'une ligne au boot au lieu de N stacks).
+
+Docs : `docs/INTEGRATED_API_BEAUTYSAVAGE_GAP_AUDIT.md`, `docs/INTEGRATED_API_PORT_REPORT.md`,
+`docs/INTEGRATED_API_AND_COMMUNICATION_QA.md`.

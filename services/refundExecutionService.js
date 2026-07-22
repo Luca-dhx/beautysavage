@@ -1,5 +1,3 @@
-import Stripe from 'stripe';
-
 import Sale from '../models/Sale.js';
 import GiftCardTransaction from '../models/GiftCardTransaction.js';
 import SiteIdentity from '../models/SiteIdentity.js';
@@ -12,14 +10,13 @@ import {
   applyRefundExecutionCap,
   claimGiftCardRecredit
 } from './refundRequestService.js';
-import { getCredential } from './integratedApiCredentialService.js';
+import { getStripeClient } from './stripe/stripeConfigService.js';
 import { emitRefundEvent } from './businessEventService.js';
 import { isMailRoleResolverEnabled } from '../constants/mailDispatchRules.js';
 
-async function getStripe() {
-  const secretKey = await getCredential('stripe-institut', { role: 'secret_key' });
-  return new Stripe(secretKey);
-}
+// LOT1 — accès Stripe institut consolidé sur l'accesseur canonique `getStripeClient`
+// (source unique du client + de la résolution de credential). Fin des `getStripe()` ad-hoc.
+const getStripe = getStripeClient;
 
 function roundToCents(value) {
   const candidate = Number.isFinite(Number(value)) ? Number(value) : 0;

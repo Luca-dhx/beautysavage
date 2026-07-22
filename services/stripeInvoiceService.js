@@ -1,16 +1,12 @@
-import Stripe from 'stripe';
-
 import Invoice from '../models/Invoice.js';
 import ServiceBooking from '../models/ServiceBooking.js';
 import User from '../models/user.js';
 import { getVendorConfig } from '../config/invoiceVendorConfig.js';
-import { getCredential } from './integratedApiCredentialService.js';
+import { getStripeClient } from './stripe/stripeConfigService.js';
 import { VAT_LEGAL_LABEL } from '../constants/tax.js';
 
-async function getStripe() {
-  const secretKey = await getCredential('stripe-institut', { role: 'secret_key' });
-  return new Stripe(secretKey);
-}
+// LOT1 — accès Stripe institut consolidé sur l'accesseur canonique `getStripeClient`.
+const getStripe = getStripeClient;
 
 function toCents(value) {
   const amount = Number.isFinite(Number(value)) ? Number(value) : 0;

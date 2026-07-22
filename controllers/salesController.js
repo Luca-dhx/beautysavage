@@ -1,7 +1,6 @@
 import Sale from '../models/Sale.js';
 import GiftCard from '../models/GiftCard.js';
 import CartSnapshot from '../models/CartSnapshot.js';
-import Stripe from 'stripe';
 import User from '../models/user.js';
 import CommissionTransaction from '../models/CommissionTransaction.js';
 import Invoice from '../models/Invoice.js';
@@ -19,7 +18,7 @@ import { triggerRefundExecution, resolveRefundRecipientContext } from '../servic
 import { sendRefundRefusedEmail } from '../services/mailService.js';
 import { resolvePublicBaseUrl } from '../services/system/domainResolver.js';
 import { requireSecret } from '../utils/secretEnv.js';
-import { getCredential } from '../services/integratedApiCredentialService.js';
+import { getStripeClient } from '../services/stripe/stripeConfigService.js';
 import { getSessionUserId } from '../utils/session.js';
 import { emitRefundEvent } from '../services/businessEventService.js';
 
@@ -29,10 +28,8 @@ const GIFT_CARD_PASSWORD_KEY = crypto
   .update(String(GIFT_CARD_PASSWORD_SECRET))
   .digest();
 
-async function getStripe() {
-  const secretKey = await getCredential('stripe-institut', { role: 'secret_key' });
-  return new Stripe(secretKey);
-}
+// LOT1 — accès Stripe institut consolidé sur l'accesseur canonique `getStripeClient`.
+const getStripe = getStripeClient;
 
 function roundToCents(value) {
   const candidate = Number.isFinite(Number(value)) ? Number(value) : 0;

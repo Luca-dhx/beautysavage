@@ -20,6 +20,8 @@ const MODES = ['test', 'prod'];
 //   messaging         → emails transactionnels (Brevo)
 const ACCOUNT_PURPOSES = ['customer_payments', 'platform_billing', 'messaging'];
 
+const TEST_STATUSES = ['success', 'failed'];
+
 const credentialSchema = new mongoose.Schema(
   {
     role: { type: String, required: true, trim: true, lowercase: true, minlength: 2, maxlength: 40 },
@@ -32,6 +34,25 @@ const credentialSchema = new mongoose.Schema(
     updatedAt: { type: Date, default: Date.now }
   },
   { _id: true }
+);
+
+// Résultat du dernier test de connexion, par runtime (test|prod pour dual_environment,
+// null pour single). `verified` est valide UNIQUEMENT pour l'empreinte courante :
+// `verifiedFingerprint` = sha256 des credentials actifs de ce runtime au moment du test.
+// Toute modification d'un credential change l'empreinte → `verified` devient périmé
+// (recalculé côté service, cf. isProviderVerified). Aucun secret n'y est stocké.
+const verificationSchema = new mongoose.Schema(
+  {
+    runtime: { type: String, enum: ['test', 'prod', null], default: null },
+    verified: { type: Boolean, default: false },
+    verifiedAt: { type: Date, default: null },
+    verifiedFingerprint: { type: String, default: '' },
+    lastTestedAt: { type: Date, default: null },
+    lastTestStatus: { type: String, enum: [...TEST_STATUSES, null], default: null },
+    lastTestMessage: { type: String, default: '' },
+    lastTestDetails: { type: mongoose.Schema.Types.Mixed, default: null } // diagnostic non sensible
+  },
+  { _id: false }
 );
 
 const integratedApiSchema = new mongoose.Schema(
@@ -53,10 +74,48 @@ const integratedApiSchema = new mongoose.Schema(
     runtimeModel: { type: String, enum: RUNTIME_MODELS, default: 'single' },
     mode: { type: String, enum: MODES, default: 'test' },
     modeUpdatedAt: { type: Date, default: null },
-    credentials: { type: [credentialSchema], default: [] }
+    credentials: { type: [credentialSchema], default: [] },
+    // État de vérification par runtime (au plus une entrée par runtime). Additif :
+    // les documents existants n'en ont pas → traités comme non vérifiés.
+    verifications: { type: [verificationSchema], default: [] }
   },
   { timestamps: true }
 );
+
+// ---------------------------------------------------------------------------
+// Helpers de vérification (aucun secret manipulé ici)
+// ---------------------------------------------------------------------------
+function normalizeRuntimeKey(runtime) {
+  return runtime === 'test' || runtime === 'prod' ? runtime : null;
+}
+
+/** Retourne l'entrée de vérification pour un runtime (ou null). */
+integratedApiSchema.methods.getVerification = function getVerification(runtime) {
+  const key = normalizeRuntimeKey(runtime);
+  return (this.verifications || []).find(v => (v.runtime ?? null) === key) || null;
+};
+
+/** Upsert de l'entrée de vérification d'un runtime avec un patch partiel. */
+integratedApiSchema.methods.setVerification = function setVerification(runtime, patch = {}) {
+  const key = normalizeRuntimeKey(runtime);
+  let entry = (this.verifications || []).find(v => (v.runtime ?? null) === key);
+  if (!entry) {
+    entry = { runtime: key, verified: false, verifiedFingerprint: '' };
+    this.verifications.push(entry);
+    entry = this.verifications[this.verifications.length - 1];
+  }
+  Object.assign(entry, patch);
+  return entry;
+};
+
+/** Réinitialise l'état vérifié d'un runtime (après changement de credential). */
+integratedApiSchema.methods.resetVerification = function resetVerification(runtime) {
+  return this.setVerification(runtime, {
+    verified: false,
+    verifiedAt: null,
+    verifiedFingerprint: ''
+  });
+};
 
 // ---------------------------------------------------------------------------
 // Invariants (enforced before every save)
@@ -102,4 +161,4 @@ integratedApiSchema.pre('validate', function enforceInvariants(next) {
 const IntegratedApi = mongoose.models.IntegratedApi || mongoose.model('IntegratedApi', integratedApiSchema);
 
 export default IntegratedApi;
-export { CREDENTIAL_TYPES, RUNTIME_MODELS, MODES, ACCOUNT_PURPOSES };
+export { CREDENTIAL_TYPES, RUNTIME_MODELS, MODES, ACCOUNT_PURPOSES, TEST_STATUSES };

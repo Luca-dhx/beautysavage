@@ -15,6 +15,7 @@ const { startMemoryDb, stopMemoryDb, clearDatabase } = await import('../setup/te
 const SendLog = (await import('../../models/SendLog.js')).default;
 const EmailTemplate = (await import('../../models/EmailTemplate.js')).default;
 const { postToBrevo, loadTemplate, sendPasswordResetEmail } = await import('../../services/mailService.js');
+const { seedDevCommunicationIdentity } = await import('../../seeders/seedDevCommunicationIdentity.js');
 
 const PAYLOAD = { to: [{ email: 'client@example.com', name: 'Client' }], subject: 'Bonjour', htmlContent: '<p>hi</p>', tags: ['transactional', 'vente'] };
 
@@ -52,7 +53,8 @@ describe('F3B — caractérisation mailService (bout-en-bout)', () => {
     expect(ok).toBe(false);
     expect(fetchSpy).not.toHaveBeenCalled();
     const log = await SendLog.findOne({ status: 'failed' }).lean();
-    expect(log?.errorCode).toBe('provider_not_configured');
+    // LOT1 — code d'erreur typé explicite (ex-'provider_not_configured').
+    expect(log?.errorCode).toBe('API_KEY_MISSING');
   });
 
   it('loadTemplate génère le défaut quand aucun doc (fallback)', async () => {
@@ -63,6 +65,8 @@ describe('F3B — caractérisation mailService (bout-en-bout)', () => {
   });
 
   it('sendPasswordResetEmail rend le template et POSTe vers Brevo (subject non vide, aucune clé exposée)', async () => {
+    // LOT1 — l'expéditeur vient d'une identité configurée (plus de fallback MAIL_FROM) : on la seed.
+    await seedDevCommunicationIdentity({ force: true });
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ messageId: '<pwd-1>' }) });
     await sendPasswordResetEmail({ email: 'user@example.com', firstName: 'Jean' }, 'reset-token-123');
     expect(fetchSpy).toHaveBeenCalledTimes(1);

@@ -20,8 +20,8 @@ async function postToBrevo(payload, context = {}) {
   }
 
   if (!apiKey) {
-    console.error('[mailService] Brevo api_key indisponible, envoi ignoré');
-    await markSendLogFailed(sendLog, { errorCode: 'provider_not_configured', errorMessageSafe: 'Brevo API key unavailable' });
+    console.error('[mailService] API_KEY_MISSING: cle Brevo (brevo/api_key) absente du coffre, email non envoye');
+    await markSendLogFailed(sendLog, { errorCode: 'API_KEY_MISSING', errorMessageSafe: 'Brevo API key unavailable' });
     return false;
   }
 

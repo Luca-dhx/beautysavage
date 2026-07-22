@@ -9,6 +9,7 @@
 //
 // The vault always takes priority over .env when a credential is present.
 
+import crypto from 'node:crypto';
 import IntegratedApi from '../models/IntegratedApi.js';
 import { decryptCredential, isUnfilledSentinel } from '../utils/credentialVault.js';
 
@@ -162,6 +163,106 @@ export async function setIntegratedApiMode(slug, mode) {
   api.modeUpdatedAt = new Date();
   await api.save();
   return { slug: api.slug, mode: api.mode, runtimeModel: api.runtimeModel };
+}
+
+// ---------------------------------------------------------------------------
+// Résolution de runtime & lecture ciblée (surface de gestion / test de connexion)
+// ---------------------------------------------------------------------------
+
+/**
+ * Runtime EFFECTIF d'un document pour un runtime demandé (peut throw, fail-loud).
+ * single → null ; dual_environment → runtime || api.mode (∈ {test,prod}).
+ * @param {import('mongoose').Document} api
+ * @param {'test'|'prod'|null} [runtime]
+ * @returns {'test'|'prod'|null}
+ */
+export function resolveTargetRuntime(api, runtime = null) {
+  return resolveEffectiveRuntime(api, runtime);
+}
+
+/**
+ * Lit un credential précis (slug, role, runtime effectif) SANS résolution de mode.
+ * Utilisé par le test de connexion qui cible un jeu (test|prod) explicite.
+ * @returns {Promise<string|null>} valeur en clair, ou null si absent/placeholder.
+ */
+export async function readSpecificCredential(slug, role, effectiveRuntime) {
+  const api = await IntegratedApi.findOne({ slug: String(slug).toLowerCase() });
+  if (!api) throw new IntegratedApiNotFoundError(slug);
+  const cred = findActiveCredential(api, role, effectiveRuntime ?? null);
+  if (!cred) return null;
+  const clear = decryptCredential(cred.encryptedValue);
+  if (isUnfilledSentinel(clear)) return null;
+  return clear;
+}
+
+// ---------------------------------------------------------------------------
+// Empreinte & état "verified" (par runtime)
+// ---------------------------------------------------------------------------
+
+/**
+ * Empreinte sha256 des credentials ACTIFS d'un runtime (sur `encryptedValue`, jamais le
+ * clair). Change dès qu'un credential est ajouté / remplacé / supprimé → invalide `verified`.
+ * @returns {string} hex, '' si aucun credential actif pour ce runtime.
+ */
+export function computeRuntimeFingerprint(api, effectiveRuntime) {
+  const key = effectiveRuntime ?? null;
+  const parts = (api.credentials || [])
+    .filter(c => c.isActive === true && (c.runtime ?? null) === key)
+    .map(c => `${String(c.role).toLowerCase()}:${c.encryptedValue}`)
+    .sort();
+  if (parts.length === 0) return '';
+  return crypto.createHash('sha256').update(parts.join('|')).digest('hex');
+}
+
+/**
+ * `verified` valide POUR L'EMPREINTE COURANTE. Un changement de clé invalide le verified.
+ * @returns {Promise<boolean>}
+ */
+export async function isProviderVerified(slug, runtime = null) {
+  const api = await IntegratedApi.findOne({ slug: String(slug).toLowerCase() });
+  if (!api) return false;
+  const eff = resolveEffectiveRuntime(api, runtime);
+  const v = api.getVerification(eff);
+  if (!v?.verified) return false;
+  if (!v.verifiedFingerprint) return true; // rétro-compat (jamais posé)
+  const current = computeRuntimeFingerprint(api, eff);
+  return Boolean(current) && current === v.verifiedFingerprint;
+}
+
+/** Marque un runtime comme vérifié (seul writer de verified=true, avec empreinte). */
+export async function markProviderVerified(slug, runtime, { message = '', details = null } = {}) {
+  const api = await IntegratedApi.findOne({ slug: String(slug).toLowerCase() });
+  if (!api) throw new IntegratedApiNotFoundError(slug);
+  const eff = resolveEffectiveRuntime(api, runtime);
+  api.setVerification(eff, {
+    verified: true,
+    verifiedAt: new Date(),
+    verifiedFingerprint: computeRuntimeFingerprint(api, eff),
+    lastTestedAt: new Date(),
+    lastTestStatus: 'success',
+    lastTestMessage: String(message || ''),
+    lastTestDetails: details ?? null
+  });
+  await api.save();
+  return api.getVerification(eff);
+}
+
+/** Marque un runtime comme NON vérifié (échec de test) sans effacer les credentials. */
+export async function markProviderUnverified(slug, runtime, { message = '', details = null } = {}) {
+  const api = await IntegratedApi.findOne({ slug: String(slug).toLowerCase() });
+  if (!api) throw new IntegratedApiNotFoundError(slug);
+  const eff = resolveEffectiveRuntime(api, runtime);
+  api.setVerification(eff, {
+    verified: false,
+    verifiedAt: null,
+    verifiedFingerprint: '',
+    lastTestedAt: new Date(),
+    lastTestStatus: 'failed',
+    lastTestMessage: String(message || ''),
+    lastTestDetails: details ?? null
+  });
+  await api.save();
+  return api.getVerification(eff);
 }
 
 // Exposed for tests / docs (no secret values).

@@ -1,15 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import Stripe from 'stripe';
 import Invoice from '../models/Invoice.js';
 import Sale from '../models/Sale.js';
 import { getSessionUserId } from '../utils/session.js';
-import { getCredential } from '../services/integratedApiCredentialService.js';
+import { getStripeClient } from '../services/stripe/stripeConfigService.js';
 
-async function getStripe() {
-  const secretKey = await getCredential('stripe-institut', { role: 'secret_key' });
-  return new Stripe(secretKey);
-}
+// LOT1 — accès Stripe institut consolidé sur l'accesseur canonique `getStripeClient`.
+const getStripe = getStripeClient;
 
 function resolveSaleTitle(sale) {
   const items = Array.isArray(sale?.items) ? sale.items : [];

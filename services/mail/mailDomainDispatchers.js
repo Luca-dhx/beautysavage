@@ -118,7 +118,7 @@ async function sendSaleEmail(sale) {
 
     if (!sender) {
 
-      console.warn('[mailService] MAIL_FROM inutilisable, email ignorÃ©');
+      console.warn('[mailService] SENDER_NOT_CONFIGURED: aucune identite expeditrice verifiee, email non envoye');
 
       return;
 
@@ -379,7 +379,7 @@ async function sendCommissionInvoiceEmail(invoice, invoiceDownloadUrl) {
 
     if (!sender) {
 
-      console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
+      console.warn('[mailService] SENDER_NOT_CONFIGURED: aucune identite expeditrice verifiee, email non envoye');
 
       return false;
 
@@ -501,7 +501,7 @@ async function sendPasswordResetEmail(user, token) {
 
     if (!sender) {
 
-      console.warn('[mailService] MAIL_FROM inutilisable, email ignorÃ©');
+      console.warn('[mailService] SENDER_NOT_CONFIGURED: aucune identite expeditrice verifiee, email non envoye');
 
       return false;
 
@@ -608,7 +608,7 @@ async function sendEmailConfirmationCodeEmail({
 
     const sender = await buildSender();
     if (!sender) {
-      console.warn('[mailService] MAIL_FROM inutilisable, email ignore');
+      console.warn('[mailService] SENDER_NOT_CONFIGURED: aucune identite expeditrice verifiee, email non envoye');
       return false;
     }
 
@@ -707,7 +707,7 @@ async function sendStatusMail({ templateKey, toEmails, templateVars, tag, contex
 
   if (!sender) {
 
-    console.warn('[mailService] MAIL_FROM inutilisable, email ignore');
+    console.warn('[mailService] SENDER_NOT_CONFIGURED: aucune identite expeditrice verifiee, email non envoye');
 
     return false;
 
@@ -1465,7 +1465,7 @@ async function sendBookingConfirmedEmail({ booking } = {}) {
 
     const sender = await buildSender();
     if (!sender) {
-      console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
+      console.warn('[mailService] SENDER_NOT_CONFIGURED: aucune identite expeditrice verifiee, email non envoye');
       return false;
     }
 
@@ -1635,7 +1635,7 @@ async function sendBookingCancelledEmail({
 
     const sender = await buildSender();
     if (!sender) {
-      console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
+      console.warn('[mailService] SENDER_NOT_CONFIGURED: aucune identite expeditrice verifiee, email non envoye');
       return false;
     }
 
@@ -1738,7 +1738,7 @@ async function sendBookingCancelledNotifyAdminEmail({
 
     const sender = await buildSender();
     if (!sender) {
-      console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
+      console.warn('[mailService] SENDER_NOT_CONFIGURED: aucune identite expeditrice verifiee, email non envoye');
       return false;
     }
 
@@ -1818,7 +1818,7 @@ async function sendBookingCancelledByAdminEmail({
 
     const sender = await buildSender();
     if (!sender) {
-      console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
+      console.warn('[mailService] SENDER_NOT_CONFIGURED: aucune identite expeditrice verifiee, email non envoye');
       return false;
     }
 
@@ -1887,7 +1887,7 @@ async function sendNoShowEmail({ booking } = {}) {
 
     const sender = await buildSender();
     if (!sender) {
-      console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
+      console.warn('[mailService] SENDER_NOT_CONFIGURED: aucune identite expeditrice verifiee, email non envoye');
       return false;
     }
 
@@ -1945,7 +1945,7 @@ async function sendBookingSuspendedEmail({
 
     const sender = await buildSender();
     if (!sender) {
-      console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
+      console.warn('[mailService] SENDER_NOT_CONFIGURED: aucune identite expeditrice verifiee, email non envoye');
       return false;
     }
 
@@ -2026,7 +2026,7 @@ async function sendBookingReminderEmail({ booking, hoursAhead = 24 } = {}) {
 
     const sender = await buildSender();
     if (!sender) {
-      console.warn('[mailService] MAIL_FROM inutilisable, email ignoré');
+      console.warn('[mailService] SENDER_NOT_CONFIGURED: aucune identite expeditrice verifiee, email non envoye');
       return false;
     }
 

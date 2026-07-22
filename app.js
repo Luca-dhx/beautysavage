@@ -56,10 +56,12 @@ import { seedSystemConfigurationFromEnv } from './services/system/systemConfigur
 import { resolvePublicBaseUrl } from './services/system/domainResolver.js';
 import { validateCredentialVaultKey } from './utils/credentialVault.js';
 import { seedIntegratedApisFromEnv } from './seeders/seedIntegratedApisFromEnv.js';
+import { seedDevCommunicationIdentity } from './seeders/seedDevCommunicationIdentity.js';
 import { seedGiftCardTemplates } from './seeders/seedGiftCardTemplates.js';
 import brevoWebhookRouter from './routers/brevoWebhookRouter.js';
 import communicationIdentityDevRouter from './routers/communicationIdentityDevRouter.js';
 import systemConfigurationDevRouter from './routers/systemConfigurationDevRouter.js';
+import integratedApiDevRouter from './routers/integratedApiDevRouter.js';
 import communicationIdentityRouter from './routers/communicationIdentityRouter.js';
 import devDiagnosticRouter from './routers/devDiagnosticRouter.js';
 import { registerNotificationSubscribers, getSubscriberMode } from './subscribers/notificationEventSubscriber.js';
@@ -476,6 +478,9 @@ app.use('/api/gestion/dev/notification-categories', notificationCategoryRouter);
 // S1 — Paramètres Système (config domaines/institut/localisation/fiscalité/maintenance), strict dev —
 // chemin spécifique, monté AVANT le routeur /api/gestion/dev générique.
 app.use('/api/gestion/dev/system-configuration', systemConfigurationDevRouter);
+// LOT1 IntegratedAPI — Gestion des credentials chiffrés (Stripe institut/dev, Brevo), strict dev —
+// chemin spécifique, monté AVANT le routeur /api/gestion/dev générique.
+app.use('/api/gestion/dev/integrated-api', integratedApiDevRouter);
 // RX-BLOCKER-2 — Gestion des comptes manager (dev-only) : chemin spécifique, AVANT les broad-mounts dev.
 app.use('/api/gestion/manager-users', managerUsersRouter);
 // M3E — Supervision mail admin (roleView=admin, institut/client). Monté AVANT les routeurs
@@ -597,6 +602,13 @@ if (process.env.NODE_ENV !== 'test') {
     await seedIntegratedApisFromEnv();
   } catch (seedError) {
     console.error('[seed] IntegratedApi vault seed failed (continuing with .env fallback):', seedError?.message || seedError);
+  }
+  // LOT1 — DEV uniquement : assure une identité expéditrice 'commerciale' vérifiée pour que les
+  // envois locaux (code de vérification signup) fonctionnent sans MAIL_FROM. No-op en production.
+  try {
+    await seedDevCommunicationIdentity();
+  } catch (devIdentityError) {
+    console.error('[seed] dev communication identity seed failed:', devIdentityError?.message || devIdentityError);
   }
   // Phase 5A: normalise EmailTemplate docs to the versioned model (idempotent,
   // content untouched). loadTemplate also tolerates un-migrated docs.
